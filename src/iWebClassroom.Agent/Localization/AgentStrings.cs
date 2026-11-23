@@ -21,6 +21,7 @@ public static class AgentStrings
         [nameof(EnrollmentHint)] = ["Só é necessário na primeira ligação", "Only required for the first connection", "Solo es necesario en la primera conexión"],
         [nameof(ComputerName)] = ["Nome deste computador", "Computer name", "Nombre de este equipo"],
         [nameof(Classroom)] = ["Sala", "Classroom", "Aula"],
+        [nameof(DefaultRoom)] = ["Sala predefinida", "Default room", "Aula predeterminada"],
         [nameof(WorkstationType)] = ["Tipo de posto", "Workstation type", "Tipo de puesto"],
         [nameof(Student)] = ["Aluno", "Student", "Alumno"],
         [nameof(Teacher)] = ["Professor", "Teacher", "Profesor"],
@@ -72,6 +73,7 @@ public static class AgentStrings
     public static string EnrollmentHint => Text(nameof(EnrollmentHint));
     public static string ComputerName => Text(nameof(ComputerName));
     public static string Classroom => Text(nameof(Classroom));
+    public static string DefaultRoom => Text(nameof(DefaultRoom));
     public static string WorkstationType => Text(nameof(WorkstationType));
     public static string Student => Text(nameof(Student));
     public static string Teacher => Text(nameof(Teacher));

@@ -122,6 +122,12 @@ public sealed class AgentRegistry(
         return true;
     }
 
+    public IReadOnlyCollection<string> GetConnectionIds(Guid agentId) =>
+        _connections
+            .Where(item => item.Value == agentId)
+            .Select(item => item.Key)
+            .ToArray();
+
     public IReadOnlyCollection<AgentSummary> List() =>
         _agents.Values
             .OrderBy(item => item.ClassroomId, StringComparer.OrdinalIgnoreCase)

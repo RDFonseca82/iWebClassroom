@@ -9,6 +9,7 @@ namespace IWebClassroom.Server.Hubs;
 
 public sealed class ClassroomHub(
     AgentRegistry registry,
+    LessonRegistry lessons,
     IOptions<ClassroomOptions> options,
     ILogger<ClassroomHub> logger) : Hub
 {
@@ -28,8 +29,12 @@ public sealed class ClassroomHub(
 
         await registry.AttachConnectionAsync(agentId, Context.ConnectionId, Context.ConnectionAborted);
         await Groups.AddToGroupAsync(Context.ConnectionId, AgentGroup(agentId), Context.ConnectionAborted);
-        await Groups.AddToGroupAsync(Context.ConnectionId, ClassroomGroup(agent.ClassroomId), Context.ConnectionAborted);
-        logger.LogInformation("Agent {AgentId} connected as {Role} in classroom {ClassroomId}.", agentId, agent.Role, agent.ClassroomId);
+        if (lessons.TryGetForAgent(agent, out var lesson))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, LessonGroup(lesson!.LessonId), Context.ConnectionAborted);
+        }
+
+        logger.LogInformation("Agent {AgentId} connected as {Role} with default room {ClassroomId}.", agentId, agent.Role, agent.ClassroomId);
         await base.OnConnectedAsync();
     }
 
@@ -42,9 +47,13 @@ public sealed class ClassroomHub(
 
     public async Task PublishScreenFrame(byte[] jpegFrame)
     {
-        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) || agent is null || agent.Role != AgentRole.Teacher)
+        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
+            agent is null ||
+            agent.Role != AgentRole.Teacher ||
+            !lessons.TryGetForAgent(agent, out var lesson) ||
+            lesson!.TeacherAgentId != agent.AgentId)
         {
-            throw new HubException("Only a connected teacher agent can publish a screen.");
+            throw new HubException("Only the teacher of an active lesson can publish a screen.");
         }
 
         if (jpegFrame.Length == 0 || jpegFrame.Length > options.Value.MaximumFrameBytes)
@@ -60,22 +69,26 @@ public sealed class ClassroomHub(
         }
 
         LastFrameTicks[Context.ConnectionId] = now;
-        await Clients.OthersInGroup(ClassroomGroup(agent.ClassroomId))
+        await Clients.OthersInGroup(LessonGroup(lesson.LessonId))
             .SendAsync(HubProtocol.ScreenFrame, jpegFrame, Context.ConnectionAborted);
     }
 
     public async Task PublishScreenStopped()
     {
-        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) || agent is null || agent.Role != AgentRole.Teacher)
+        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
+            agent is null ||
+            agent.Role != AgentRole.Teacher ||
+            !lessons.TryGetForAgent(agent, out var lesson) ||
+            lesson!.TeacherAgentId != agent.AgentId)
         {
-            throw new HubException("Only a connected teacher agent can stop a screen share.");
+            throw new HubException("Only the teacher of an active lesson can stop a screen share.");
         }
 
-        await Clients.OthersInGroup(ClassroomGroup(agent.ClassroomId))
+        await Clients.OthersInGroup(LessonGroup(lesson.LessonId))
             .SendAsync(HubProtocol.ScreenStopped, Context.ConnectionAborted);
     }
 
     public static string AgentGroup(Guid agentId) => $"agent:{agentId:N}";
 
-    private static string ClassroomGroup(string classroomId) => $"classroom:{classroomId.ToUpperInvariant()}";
+    public static string LessonGroup(Guid lessonId) => $"lesson:{lessonId:N}";
 }

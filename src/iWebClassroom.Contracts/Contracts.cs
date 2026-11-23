@@ -34,6 +34,24 @@ public sealed record CommandRequest(
     ClassroomCommandKind Kind,
     JsonElement Payload);
 
+public sealed record StartLessonRequest(
+    string RoomId,
+    Guid TeacherAgentId,
+    int DurationMinutes = 180);
+
+public sealed record LessonSessionSummary(
+    Guid LessonId,
+    string RoomId,
+    Guid TeacherAgentId,
+    string TeacherDisplayName,
+    DateTimeOffset StartedAtUtc,
+    DateTimeOffset ExpiresAtUtc,
+    IReadOnlyCollection<Guid> MemberAgentIds);
+
+public sealed record TeacherOverview(
+    IReadOnlyCollection<AgentSummary> Agents,
+    IReadOnlyCollection<LessonSessionSummary> Lessons);
+
 public sealed record UpdateManifest(
     string Component,
     string Channel,

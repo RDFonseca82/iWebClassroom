@@ -19,6 +19,19 @@ Get-Process -Name 'iWebClassroom.Agent' -ErrorAction SilentlyContinue | Stop-Pro
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 Copy-Item -Path (Join-Path $source '*') -Destination $Destination -Recurse -Force
 
+$agentDataDirectory = Join-Path $env:ProgramData 'iWebClassroom\Agent'
+New-Item -ItemType Directory -Path $agentDataDirectory -Force | Out-Null
+$authenticatedUsers = [Security.Principal.SecurityIdentifier]::new('S-1-5-11').Translate([Security.Principal.NTAccount])
+$dataAcl = Get-Acl -LiteralPath $agentDataDirectory
+$dataRule = [Security.AccessControl.FileSystemAccessRule]::new(
+    $authenticatedUsers,
+    [Security.AccessControl.FileSystemRights]::Modify,
+    [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit',
+    [Security.AccessControl.PropagationFlags]::None,
+    [Security.AccessControl.AccessControlType]::Allow)
+$dataAcl.SetAccessRule($dataRule)
+Set-Acl -LiteralPath $agentDataDirectory -AclObject $dataAcl
+
 $updatePolicy = @{
     enabled = -not [string]::IsNullOrWhiteSpace($SignerThumbprint)
     channel = 'stable'

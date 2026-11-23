@@ -29,9 +29,11 @@ builder.Logging.AddConsole();
 builder.Services.Configure<ClassroomOptions>(builder.Configuration.GetSection("Classroom"));
 builder.Services.Configure<ServerUpdateOptions>(builder.Configuration.GetSection("Update"));
 builder.Services.AddSingleton<AgentRegistry>();
+builder.Services.AddSingleton<LessonRegistry>();
 builder.Services.AddSingleton<CommandAuditStore>();
 builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddHostedService<LessonExpirationWorker>();
 builder.Services.AddHostedService<ServerUpdateWorker>();
 builder.Services.AddSignalR(options =>
 {
@@ -40,19 +42,32 @@ builder.Services.AddSignalR(options =>
 });
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("enrollment", limiter =>
-    {
-        limiter.PermitLimit = 10;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-        limiter.AutoReplenishment = true;
-    });
+    options.AddPolicy("enrollment", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("teacher", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
 var app = builder.Build();
 var registry = app.Services.GetRequiredService<AgentRegistry>();
 await registry.InitializeAsync(app.Lifetime.ApplicationStopping);
+var lessons = app.Services.GetRequiredService<LessonRegistry>();
+await lessons.InitializeAsync(app.Lifetime.ApplicationStopping);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -107,6 +122,150 @@ app.MapGet("/api/v1/agents", (HttpRequest request, AgentRegistry agentRegistry, 
     IsAdmin(request, configuration)
         ? Results.Ok(agentRegistry.List())
         : Results.Unauthorized());
+
+app.MapGet("/api/v1/teacher/overview", (
+    HttpRequest request,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    IConfiguration configuration) =>
+    IsTeacher(request, configuration)
+        ? Results.Ok(new TeacherOverview(agentRegistry.List(), lessonRegistry.List()))
+        : Results.Unauthorized()).RequireRateLimiting("teacher");
+
+app.MapPost("/api/v1/lessons", async (
+    HttpRequest httpRequest,
+    StartLessonRequest request,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    IHubContext<ClassroomHub> hub,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsTeacher(httpRequest, configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    if (request.RoomId is not { Length: >= 1 and <= 50 } || request.RoomId.Any(char.IsControl))
+    {
+        return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidRoom") });
+    }
+
+    if (request.DurationMinutes is < 15 or > 480)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidDuration") });
+    }
+
+    var teacher = agentRegistry.List().FirstOrDefault(item => item.AgentId == request.TeacherAgentId);
+    if (teacher is null || teacher.Role != AgentRole.Teacher)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidTeacher") });
+    }
+
+    var lesson = await lessonRegistry.TryStartAsync(
+        request.RoomId.Trim(),
+        teacher,
+        TimeSpan.FromMinutes(request.DurationMinutes),
+        cancellationToken);
+    if (lesson is null)
+    {
+        return Results.Conflict(new { error = ApiText.Get(httpRequest, "RoomInUse") });
+    }
+
+    foreach (var agentId in lesson.MemberAgentIds)
+    {
+        foreach (var connectionId in agentRegistry.GetConnectionIds(agentId))
+        {
+            await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(lesson.LessonId), cancellationToken);
+        }
+    }
+
+    return Results.Ok(lesson);
+}).RequireRateLimiting("teacher");
+
+app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
+    Guid lessonId,
+    HttpRequest httpRequest,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    IHubContext<ClassroomHub> hub,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsTeacher(httpRequest, configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var lesson = await lessonRegistry.EndAsync(lessonId, cancellationToken);
+    if (lesson is null)
+    {
+        return Results.NotFound();
+    }
+
+    await hub.Clients.Group(ClassroomHub.LessonGroup(lessonId))
+        .SendAsync(HubProtocol.ScreenStopped, cancellationToken);
+    foreach (var agentId in lesson.MemberAgentIds)
+    {
+        foreach (var connectionId in agentRegistry.GetConnectionIds(agentId))
+        {
+            await hub.Groups.RemoveFromGroupAsync(connectionId, ClassroomHub.LessonGroup(lessonId), cancellationToken);
+        }
+    }
+
+    return Results.NoContent();
+}).RequireRateLimiting("teacher");
+
+app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
+    Guid lessonId,
+    HttpRequest httpRequest,
+    CommandRequest request,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    IHubContext<ClassroomHub> hub,
+    CommandAuditStore audit,
+    IOptions<ClassroomOptions> options,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsTeacher(httpRequest, configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!lessonRegistry.TryGet(lessonId, out var lesson))
+    {
+        return Results.NotFound(new { error = ApiText.Get(httpRequest, "LessonNotFound") });
+    }
+
+    var validationError = ValidateCommand(httpRequest, request, options.Value);
+    if (validationError is not null)
+    {
+        return Results.BadRequest(new { error = validationError });
+    }
+
+    var allowedTargets = lesson!.MemberAgentIds.ToHashSet();
+    var targets = request.TargetAgentIds.Distinct().Where(allowedTargets.Contains).ToArray();
+    if (request.Kind is ClassroomCommandKind.StartScreenShare or ClassroomCommandKind.StopScreenShare)
+    {
+        targets = targets.Where(id => id == lesson.TeacherAgentId).ToArray();
+    }
+
+    if (targets.Length == 0)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(httpRequest, "NoLessonTarget") });
+    }
+
+    var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, request.Payload.Clone(), DateTimeOffset.UtcNow);
+    foreach (var target in targets)
+    {
+        await hub.Clients.Group(ClassroomHub.AgentGroup(target))
+            .SendAsync(HubProtocol.ReceiveCommand, command, cancellationToken);
+    }
+
+    await audit.AppendAsync(command, targets, cancellationToken);
+    return Results.Accepted(value: new { command.CommandId, targetCount = targets.Length });
+}).RequireRateLimiting("teacher");
 
 app.MapPost("/api/v1/commands", async (
     HttpRequest httpRequest,
@@ -173,6 +332,14 @@ static bool IsAdmin(HttpRequest request, IConfiguration configuration)
     var expectedToken = Environment.GetEnvironmentVariable("IWEBCLASSROOM_ADMIN_TOKEN")
                         ?? configuration["Security:AdminToken"];
     return SecretComparer.Equals(request.Headers[HubProtocol.AdminTokenHeader].ToString(), expectedToken);
+}
+
+static bool IsTeacher(HttpRequest request, IConfiguration configuration)
+{
+    var expectedPin = Environment.GetEnvironmentVariable("IWEBCLASSROOM_TEACHER_PIN")
+                      ?? configuration["Security:TeacherPin"];
+    return SecretComparer.Equals(request.Headers[HubProtocol.TeacherPinHeader].ToString(), expectedPin) ||
+           IsAdmin(request, configuration);
 }
 
 static bool TryAuthenticateAgent(HttpRequest request, AgentRegistry registry)

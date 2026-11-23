@@ -39,13 +39,16 @@ button.secondary { background: white; color: var(--green); }
 button.secondary:hover { background: var(--green-soft); }
 button.danger { border-color: #d8aaa6; color: var(--danger); }
 button.text-button { border: 0; background: transparent; color: var(--green); padding: 5px; }
-.toolbar { display: flex; align-items: end; gap: 18px; padding: 16px 20px; margin-bottom: 18px; }
-.toolbar > div { min-width: 230px; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; padding: 16px 20px; margin-bottom: 12px; }
+.toolbar > div { min-width: 180px; flex: 1 1 180px; }
 .toolbar label, .actions-card label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; font-weight: 700; }
 #selection-count { margin-left: auto; color: var(--muted); font-size: 14px; }
+.lesson-status { margin-bottom: 18px; padding: 14px 20px; border-left: 5px solid var(--amber); color: var(--muted); font-weight: 650; }
+.lesson-status.active { border-left-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
 .devices-card, .actions-card { padding: 24px; }
 .section-heading { display: flex; justify-content: space-between; align-items: start; }
+.selection-tools { display: flex; align-items: center; gap: 12px; }
 .agent-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 18px; }
 .agent { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
 .agent:has(input:checked) { border-color: var(--green); background: var(--green-soft); }
@@ -56,6 +59,8 @@ button.text-button { border: 0; background: transparent; color: var(--green); pa
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #aeb4b1; }
 .status-dot.online { background: #36a97c; }
 .actions-card { position: sticky; top: 18px; }
+.actions-card.disabled { opacity: .58; }
+.actions-card button:disabled, .actions-card textarea:disabled, .toolbar button:disabled { cursor: not-allowed; transform: none; }
 .actions-card > button { width: 100%; margin-top: 6px; }
 .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .divider { height: 1px; background: var(--line); margin: 22px 0; }

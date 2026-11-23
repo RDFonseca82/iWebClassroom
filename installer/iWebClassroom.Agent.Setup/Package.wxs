@@ -20,6 +20,12 @@
       <Directory Id="AgentProgramsFolder" Name="iWebClassroom" />
     </StandardDirectory>
 
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="AgentDataCompanyFolder" Name="iWebClassroom">
+        <Directory Id="AGENTDATADIR" Name="Agent" />
+      </Directory>
+    </StandardDirectory>
+
     <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1">
       <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER">
         <Exclude Files="$(var.PublishDir)\**\*.pdb" />
@@ -27,6 +33,7 @@
       </Files>
       <ComponentRef Id="AgentExecutableComponent" />
       <ComponentRef Id="AgentStartupComponent" />
+      <ComponentRef Id="AgentDataDirectory" />
     </Feature>
   </Package>
 
@@ -50,6 +57,18 @@
                      Name="iWebClassroom Agent"
                      Type="string"
                      Value="&quot;[INSTALLFOLDER]iWebClassroom.Agent.exe&quot;"
+                     KeyPath="yes" />
+    </Component>
+
+    <Component Id="AgentDataDirectory" Directory="AGENTDATADIR" Bitness="always64" Permanent="yes">
+      <CreateFolder>
+        <PermissionEx Sddl="D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;AU)" />
+      </CreateFolder>
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Agent"
+                     Name="DataDirectoryCreated"
+                     Type="integer"
+                     Value="1"
                      KeyPath="yes" />
     </Component>
   </Fragment>

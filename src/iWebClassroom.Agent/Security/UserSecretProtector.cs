@@ -7,14 +7,21 @@ namespace IWebClassroom.Agent.Security;
 public static class UserSecretProtector
 {
     private const int CryptProtectUiForbidden = 0x1;
+    private const int CryptProtectLocalMachine = 0x4;
 
-    public static string Protect(string value)
+    public static string Protect(string value) => Protect(value, CryptProtectUiForbidden | CryptProtectLocalMachine);
+
+    public static string Unprotect(string value) => Unprotect(value, CryptProtectUiForbidden);
+
+    public static string UnprotectForCurrentUser(string value) => Unprotect(value, CryptProtectUiForbidden);
+
+    private static string Protect(string value, int flags)
     {
         var inputBytes = Encoding.UTF8.GetBytes(value);
         var input = CreateBlob(inputBytes);
         try
         {
-            if (!CryptProtectData(ref input, null, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, CryptProtectUiForbidden, out var output))
+            if (!CryptProtectData(ref input, null, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, flags, out var output))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }
@@ -36,12 +43,12 @@ public static class UserSecretProtector
         }
     }
 
-    public static string Unprotect(string value)
+    private static string Unprotect(string value, int flags)
     {
         var input = CreateBlob(Convert.FromBase64String(value));
         try
         {
-            if (!CryptUnprotectData(ref input, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, CryptProtectUiForbidden, out var output))
+            if (!CryptUnprotectData(ref input, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, flags, out var output))
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }

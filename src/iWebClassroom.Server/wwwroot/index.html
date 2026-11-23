@@ -22,10 +22,10 @@
     <section class="card auth-card" id="auth-panel">
       <div>
         <h2 data-i18n="schoolAccess">Acesso à escola</h2>
-        <p data-i18n="tokenHelp">Introduza o token administrativo configurado no servidor. O token fica apenas nesta sessão do navegador.</p>
+        <p data-i18n="tokenHelp">Introduza o PIN de professor. O PIN fica apenas nesta sessão do navegador.</p>
       </div>
       <form id="auth-form">
-        <input id="admin-token" type="password" autocomplete="current-password" placeholder="Token administrativo" data-i18n-placeholder="adminToken" required>
+        <input id="teacher-pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="PIN de professor" data-i18n-placeholder="teacherPin" required>
         <button type="submit" data-i18n="enter">Entrar</button>
       </form>
     </section>
@@ -33,12 +33,28 @@
     <div id="workspace" hidden>
       <section class="toolbar card">
         <div>
-          <label for="classroom-filter" data-i18n="classroom">Sala</label>
-          <select id="classroom-filter"><option value="" data-i18n="allClassrooms">Todas as salas</option></select>
+          <label for="room" data-i18n="classroom">Sala</label>
+          <select id="room"></select>
         </div>
+        <div>
+          <label for="teacher" data-i18n="teacherWorkstation">Posto do professor</label>
+          <select id="teacher"></select>
+        </div>
+        <div>
+          <label for="duration" data-i18n="duration">Duração</label>
+          <select id="duration">
+            <option value="45">45 min</option>
+            <option value="90">90 min</option>
+            <option value="180" selected>180 min</option>
+            <option value="300">300 min</option>
+          </select>
+        </div>
+        <button id="start-lesson" data-i18n="startLesson">Iniciar aula</button>
+        <button id="end-lesson" class="danger secondary" data-i18n="endLesson" hidden>Terminar aula</button>
         <button id="refresh" class="secondary" data-i18n="refresh">Atualizar lista</button>
-        <span id="selection-count">0 selecionados</span>
       </section>
+
+      <section id="lesson-status" class="lesson-status card"></section>
 
       <section class="layout">
         <div class="card devices-card">
@@ -47,12 +63,12 @@
               <p class="eyebrow" data-i18n="devices">DISPOSITIVOS</p>
               <h2 data-i18n="computers">Computadores</h2>
             </div>
-            <button id="select-all" class="text-button" data-i18n="selectVisible">Selecionar visíveis</button>
+            <div class="selection-tools"><span id="selection-count">0 selecionados</span><button id="select-all" class="text-button" data-i18n="selectVisible">Selecionar disponíveis</button></div>
           </div>
           <div id="agents" class="agent-list"></div>
         </div>
 
-        <aside class="card actions-card">
+        <aside class="card actions-card" id="lesson-actions">
           <p class="eyebrow" data-i18n="actions">AÇÕES</p>
           <h2 data-i18n="classControls">Controlos da aula</h2>
 

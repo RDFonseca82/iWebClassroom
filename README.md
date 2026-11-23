@@ -7,6 +7,8 @@ Plataforma de gestão de sala de aula para redes Windows. Uma escola executa um 
 Este repositório contém um MVP funcional com:
 
 - consola web do professor para listar e selecionar computadores;
+- sessões temporárias de aula por sala, iniciadas com um clique e com associação automática dos postos de aluno;
+- PIN de professor separado do token administrativo;
 - inscrição de agentes com código temporário e token individual;
 - ligação em tempo real por SignalR, com reconexão automática;
 - abertura de aplicações permitidas por uma lista no servidor **e** outra lista local no agente;
@@ -18,6 +20,8 @@ Este repositório contém um MVP funcional com:
 - pipeline GitHub Actions para compilar e produzir artefactos Windows.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O agente escolhe o idioma do Windows; a consola web deteta o navegador e permite alteração manual.
+
+Os computadores partilhados são registados uma única vez. A identidade e a sala predefinida pertencem ao computador, não ao utilizador Windows. Quando o professor inicia uma aula, todos os postos de aluno dessa sala são associados à sessão temporária; terminar a aula remove essa associação sem alterar a configuração dos equipamentos.
 
 O espelhamento do MVP usa JPEG a aproximadamente 4 imagens por segundo. É adequado para demonstrações de aplicações e explicações; WebRTC será necessário para vídeo fluido e áudio.
 
@@ -40,6 +44,7 @@ dotnet build iWebClassroom.slnx --configuration Release
 
 $env:IWEBCLASSROOM_ADMIN_TOKEN = "um-token-longo-e-aleatorio"
 $env:IWEBCLASSROOM_ENROLLMENT_CODE = "um-codigo-temporario"
+$env:IWEBCLASSROOM_TEACHER_PIN = "246810"
 $env:Security__RequireHttps = "false"
 dotnet run --project src/iWebClassroom.Server --urls http://localhost:7080
 ```
@@ -66,19 +71,27 @@ Cada release produz seis MSI self-contained, sem necessidade de instalar previam
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.2.0-win-x64-pt-PT.msi /qn /norestart
-msiexec.exe /i iWebClassroom-Agent-0.2.0-win-x64-pt-PT.msi /qn /norestart
+msiexec.exe /i iWebClassroom-Server-0.3.0-win-x64-pt-PT.msi /qn /norestart
+msiexec.exe /i iWebClassroom-Agent-0.3.0-win-x64-pt-PT.msi /qn /norestart
 ```
 
-O MSI do servidor instala o serviço `iWebClassroom.Server`, iniciado automaticamente em `http://127.0.0.1:7080`, e protege a pasta `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados tokens aleatórios em:
+O MSI do servidor instala o serviço `iWebClassroom.Server`, iniciado automaticamente em `http://127.0.0.1:7080`, e protege a pasta `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados o token administrativo, o código de inscrição e um PIN de professor de seis algarismos em:
 
 ```text
 C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json
+C:\ProgramData\iWebClassroom\Server\teacher-access.json
 ```
 
 Esse ficheiro só pode ser lido por `SYSTEM` e pelos administradores locais. O servidor deve ser publicado através de IIS/ARR ou outro proxy HTTPS com WebSockets ativos.
 
-O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores.
+O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
+
+## Utilização diária numa sala partilhada
+
+1. O técnico inscreve cada posto uma única vez, indicando a respetiva sala predefinida e se é um posto de aluno ou de professor.
+2. O professor abre a consola, introduz o PIN de professor e escolhe a sala e o seu posto.
+3. Ao carregar em **Iniciar aula**, todos os postos de aluno dessa sala ficam associados e os que estiverem online são selecionados automaticamente.
+4. A sessão termina manualmente ou ao atingir a duração escolhida. Uma sala e um posto de professor só podem participar numa aula ativa de cada vez.
 
 ## Compilar uma release Windows
 

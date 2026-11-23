@@ -43,7 +43,7 @@
         </StackPanel>
 
         <StackPanel Grid.Column="2">
-          <TextBlock Text="{x:Static loc:AgentStrings.Classroom}" FontWeight="SemiBold" />
+          <TextBlock Text="{x:Static loc:AgentStrings.DefaultRoom}" FontWeight="SemiBold" />
           <TextBox x:Name="ClassroomText" />
 
           <TextBlock Text="{x:Static loc:AgentStrings.WorkstationType}" FontWeight="SemiBold" />
