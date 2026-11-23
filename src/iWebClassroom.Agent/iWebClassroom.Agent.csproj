@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>IWebClassroom.Agent</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>iWebClassroom.Agent</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\iWebClassroom.Contracts\iWebClassroom.Contracts.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.15" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="apps.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="update.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

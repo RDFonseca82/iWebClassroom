@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>IWebClassroom.Server</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\iWebClassroom.Contracts\iWebClassroom.Contracts.csproj" />
+    <Compile Include="..\iWebClassroom.Agent\Services\AuthenticodeVerifier.cs" Link="Security\AuthenticodeVerifier.cs" />
+  </ItemGroup>
+</Project>

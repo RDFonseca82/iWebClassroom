@@ -1,0 +1,14 @@
+[
+  {
+    "id": "notepad",
+    "displayName": "Bloco de Notas",
+    "fileName": "%WINDIR%\\System32\\notepad.exe",
+    "arguments": ""
+  },
+  {
+    "id": "calculator",
+    "displayName": "Calculadora",
+    "fileName": "%WINDIR%\\System32\\calc.exe",
+    "arguments": ""
+  }
+]

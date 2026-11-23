@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iWebClassroom</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">CONSOLA DO PROFESSOR</p>
+      <h1>iWebClassroom</h1>
+    </div>
+    <div class="connection"><span id="server-dot"></span><span id="server-status">A verificar servidor…</span></div>
+  </header>
+
+  <main>
+    <section class="card auth-card" id="auth-panel">
+      <div>
+        <h2>Acesso à escola</h2>
+        <p>Introduza o token administrativo configurado no servidor. O token fica apenas nesta sessão do navegador.</p>
+      </div>
+      <form id="auth-form">
+        <input id="admin-token" type="password" autocomplete="current-password" placeholder="Token administrativo" required>
+        <button type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <div id="workspace" hidden>
+      <section class="toolbar card">
+        <div>
+          <label for="classroom-filter">Sala</label>
+          <select id="classroom-filter"><option value="">Todas as salas</option></select>
+        </div>
+        <button id="refresh" class="secondary">Atualizar lista</button>
+        <span id="selection-count">0 selecionados</span>
+      </section>
+
+      <section class="layout">
+        <div class="card devices-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">DISPOSITIVOS</p>
+              <h2>Computadores</h2>
+            </div>
+            <button id="select-all" class="text-button">Selecionar visíveis</button>
+          </div>
+          <div id="agents" class="agent-list"></div>
+        </div>
+
+        <aside class="card actions-card">
+          <p class="eyebrow">AÇÕES</p>
+          <h2>Controlos da aula</h2>
+
+          <label for="message">Mensagem aos alunos</label>
+          <textarea id="message" maxlength="500" rows="3" placeholder="Escreva uma indicação breve…"></textarea>
+          <button data-command="message">Enviar mensagem</button>
+
+          <div class="divider"></div>
+          <p class="group-label">Abrir aplicação</p>
+          <div class="button-grid">
+            <button data-command="app" data-app="notepad" class="secondary">Bloco de Notas</button>
+            <button data-command="app" data-app="calculator" class="secondary">Calculadora</button>
+          </div>
+
+          <div class="divider"></div>
+          <p class="group-label">Ecrã do professor</p>
+          <button data-command="share">Iniciar espelhamento</button>
+          <button data-command="stop-share" class="danger secondary">Parar espelhamento</button>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

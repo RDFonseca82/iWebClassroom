@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/iWebClassroom.Agent/iWebClassroom.Agent.csproj" />
+    <Project Path="src/iWebClassroom.Contracts/iWebClassroom.Contracts.csproj" />
+    <Project Path="src/iWebClassroom.Server/iWebClassroom.Server.csproj" />
+    <Project Path="src/iWebClassroom.Updater/iWebClassroom.Updater.csproj" />
+  </Folder>
+</Solution>

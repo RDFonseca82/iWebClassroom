@@ -1,0 +1,31 @@
+# Build output
+**/bin/
+**/obj/
+artifacts/
+
+# Local SDK and tooling
+.dotnet/
+.dotnet-install.ps1
+.tools/
+.packages/
+
+# Runtime data and secrets
+data/
+*.db
+*.log
+appsettings.Local.json
+.env
+
+# IDE and operating system
+.vs/
+.vscode/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Installer and release output
+*.msi
+*.msix
+*.nupkg
+releases/*.json

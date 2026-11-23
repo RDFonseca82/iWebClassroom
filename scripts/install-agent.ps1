@@ -1,0 +1,34 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)] [string]$SourcePath,
+    [string]$Destination = "$env:ProgramFiles\iWebClassroom\Agent",
+    [string]$SignerThumbprint = ''
+)
+
+$ErrorActionPreference = 'Stop'
+$principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'Execute este script numa consola PowerShell elevada.'
+}
+
+$source = (Resolve-Path -LiteralPath $SourcePath).Path
+$agentExecutable = Join-Path $source 'iWebClassroom.Agent.exe'
+if (-not (Test-Path -LiteralPath $agentExecutable)) { throw "Não foi encontrado $agentExecutable" }
+
+Get-Process -Name 'iWebClassroom.Agent' -ErrorAction SilentlyContinue | Stop-Process -Force
+New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+Copy-Item -Path (Join-Path $source '*') -Destination $Destination -Recurse -Force
+
+$updatePolicy = @{
+    enabled = -not [string]::IsNullOrWhiteSpace($SignerThumbprint)
+    channel = 'stable'
+    signerThumbprint = $SignerThumbprint
+}
+$updatePolicy | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Destination 'update.json') -Encoding UTF8
+
+$installedExecutable = Join-Path $Destination 'iWebClassroom.Agent.exe'
+$runPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
+Set-ItemProperty -Path $runPath -Name 'iWebClassroom Agent' -Value ('"{0}"' -f $installedExecutable)
+Start-Process -FilePath $installedExecutable
+
+Write-Host 'Agente instalado. Conclua a inscrição na janela que foi aberta.'
