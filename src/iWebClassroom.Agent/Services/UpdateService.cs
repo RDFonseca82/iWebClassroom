@@ -1,9 +1,12 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Globalization;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using IWebClassroom.Agent.Configuration;
+using IWebClassroom.Agent.Localization;
 using IWebClassroom.Contracts;
 
 namespace IWebClassroom.Agent.Services;
@@ -21,6 +24,7 @@ public sealed class UpdateService
         using var manifestClient = new HttpClient { BaseAddress = new Uri(settings.ServerUrl), Timeout = TimeSpan.FromMinutes(1) };
         manifestClient.DefaultRequestHeaders.Add(HubProtocol.AgentIdHeader, settings.AgentId.ToString());
         manifestClient.DefaultRequestHeaders.Add(HubProtocol.AgentTokenHeader, settings.AgentToken);
+        manifestClient.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue(CultureInfo.CurrentUICulture.Name));
 
         using var response = await manifestClient.GetAsync($"/api/v1/updates/agent/{Uri.EscapeDataString(policy.Channel)}", cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -37,7 +41,7 @@ public sealed class UpdateService
 
         if (!string.Equals(manifest.DownloadUrl.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("A atualização foi rejeitada porque não utiliza HTTPS.");
+            throw new InvalidOperationException(AgentStrings.UpdateHttpsRequired);
         }
 
         var updateDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "iWebClassroom", "updates");
@@ -58,20 +62,20 @@ public sealed class UpdateService
         if (!string.Equals(hash, manifest.Sha256, StringComparison.OrdinalIgnoreCase))
         {
             File.Delete(packagePath);
-            throw new InvalidOperationException("A atualização foi rejeitada porque o hash SHA-256 não corresponde.");
+            throw new InvalidOperationException(AgentStrings.UpdateHashInvalid);
         }
 
         if (!string.Equals(Normalize(policy.SignerThumbprint), Normalize(manifest.SignerThumbprint), StringComparison.OrdinalIgnoreCase) ||
             !AuthenticodeVerifier.IsTrustedAndSignedBy(packagePath, policy.SignerThumbprint))
         {
             File.Delete(packagePath);
-            throw new InvalidOperationException("A atualização foi rejeitada porque a assinatura digital não é válida.");
+            throw new InvalidOperationException(AgentStrings.UpdateSignatureInvalid);
         }
 
         var updaterPath = Path.Combine(AppContext.BaseDirectory, "iWebClassroom.Updater.exe");
         if (!File.Exists(updaterPath))
         {
-            throw new InvalidOperationException("O componente de atualização não está instalado.");
+            throw new InvalidOperationException(AgentStrings.UpdaterMissing);
         }
 
         Process.Start(new ProcessStartInfo

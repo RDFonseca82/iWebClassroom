@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using IWebClassroom.Agent.Localization;
 
 namespace IWebClassroom.Agent.Services;
 
@@ -23,13 +24,13 @@ public sealed class ApplicationCatalog
     {
         if (!_entries.TryGetValue(applicationId, out var entry))
         {
-            throw new InvalidOperationException($"A aplicação '{applicationId}' não está autorizada neste computador.");
+            throw new InvalidOperationException(AgentStrings.Format(nameof(AgentStrings.AppNotAllowed), applicationId));
         }
 
         var fileName = Environment.ExpandEnvironmentVariables(entry.FileName);
         if (!Path.IsPathFullyQualified(fileName) || !File.Exists(fileName))
         {
-            throw new InvalidOperationException($"O executável autorizado para '{entry.DisplayName}' não foi encontrado.");
+            throw new InvalidOperationException(AgentStrings.Format(nameof(AgentStrings.AppNotFound), entry.Id));
         }
 
         Process.Start(new ProcessStartInfo

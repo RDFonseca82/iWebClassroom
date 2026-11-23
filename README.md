@@ -17,6 +17,8 @@ Este repositório contém um MVP funcional com:
 - scripts de publicação e instalação Windows;
 - pipeline GitHub Actions para compilar e produzir artefactos Windows.
 
+Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O agente escolhe o idioma do Windows; a consola web deteta o navegador e permite alteração manual.
+
 O espelhamento do MVP usa JPEG a aproximadamente 4 imagens por segundo. É adequado para demonstrações de aplicações e explicações; WebRTC será necessário para vídeo fluido e áudio.
 
 ## Estrutura
@@ -50,24 +52,51 @@ dotnet run --project src/iWebClassroom.Agent
 
 O agente só aceita HTTP em `localhost`. Numa escola, o endereço tem obrigatoriamente de usar HTTPS.
 
-## Publicação Windows
+## Instaladores Windows
+
+Cada release produz seis MSI self-contained, sem necessidade de instalar previamente o .NET:
+
+- `iWebClassroom-Agent-<versão>-win-x64-pt-PT.msi`
+- `iWebClassroom-Agent-<versão>-win-x64-en-US.msi`
+- `iWebClassroom-Agent-<versão>-win-x64-es-ES.msi`
+- `iWebClassroom-Server-<versão>-win-x64-pt-PT.msi`
+- `iWebClassroom-Server-<versão>-win-x64-en-US.msi`
+- `iWebClassroom-Server-<versão>-win-x64-es-ES.msi`
+
+Instalação silenciosa:
+
+```powershell
+msiexec.exe /i iWebClassroom-Server-0.2.0-win-x64-pt-PT.msi /qn /norestart
+msiexec.exe /i iWebClassroom-Agent-0.2.0-win-x64-pt-PT.msi /qn /norestart
+```
+
+O MSI do servidor instala o serviço `iWebClassroom.Server`, iniciado automaticamente em `http://127.0.0.1:7080`, e protege a pasta `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados tokens aleatórios em:
+
+```text
+C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json
+```
+
+Esse ficheiro só pode ser lido por `SYSTEM` e pelos administradores locais. O servidor deve ser publicado através de IIS/ARR ou outro proxy HTTPS com WebSockets ativos.
+
+O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores.
+
+## Compilar uma release Windows
 
 ```powershell
 ./scripts/build-release.ps1 -Version 1.0.0
 ```
 
-O resultado fica em `artifacts/`. Execute os instaladores PowerShell numa consola elevada:
+O resultado fica em `artifacts/`, incluindo os MSI, ZIP e manifestos de atualização. Os scripts `install-server.ps1` e `install-agent.ps1` continuam disponíveis como alternativa para instalações a partir dos ZIP.
+
+Para assinar os MSI com um certificado já instalado no armazém do Windows:
 
 ```powershell
-./scripts/install-server.ps1 `
-  -SourcePath ./artifacts/server `
-  -AdminToken "<token administrativo>" `
-  -EnrollmentCode "<código de inscrição>"
-
-./scripts/install-agent.ps1 -SourcePath ./artifacts/agent
+./scripts/build-release.ps1 -Version 1.0.0 -SigningCertificateThumbprint "<impressão digital>"
 ```
 
-O servidor fica numa tarefa agendada executada como `SYSTEM`; o agente arranca na sessão interativa de cada utilizador. Em produção, coloque IIS, ARR ou outro proxy HTTPS à frente de `http://127.0.0.1:7080`, com WebSockets ativos.
+Sem certificado, os MSI podem ser testados e instalados manualmente, mas o Windows apresenta o editor como desconhecido e as atualizações automáticas mantêm-se desativadas.
+
+Os projetos de instalação usam WiX Toolset 7.0.1. O ficheiro de projeto aceita a EULA `wix7`; antes de distribuir comercialmente, a organização deve rever os termos [OSMF do WiX](https://docs.firegiant.com/wix/osmf/).
 
 ## Atualizações automáticas
 

@@ -1,0 +1,5 @@
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="es-ES">
+  <String Id="ProductName" Value="iWebClassroom Server" />
+  <String Id="DowngradeError" Value="Ya está instalada una versión más reciente de iWebClassroom Server." />
+  <String Id="ServiceDescription" Value="Servidor central de gestión de aulas iWebClassroom" />
+</WixLocalization>

@@ -29,16 +29,36 @@ jobs:
         run: ./scripts/smoke-test.ps1
       - name: Create Windows artifacts
         if: startsWith(github.ref, 'refs/tags/v')
+        id: release_artifacts
         shell: pwsh
+        env:
+          SIGNING_CERTIFICATE_BASE64: ${{ secrets.SIGNING_CERTIFICATE_BASE64 }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
         run: |
           $version = '${{ github.ref_name }}'.TrimStart('v')
-          ./scripts/build-release.ps1 -Version $version
+          $thumbprint = ''
+          if (-not [string]::IsNullOrWhiteSpace($env:SIGNING_CERTIFICATE_BASE64)) {
+            $certificatePath = Join-Path $env:RUNNER_TEMP 'iwebclassroom-signing.pfx'
+            [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:SIGNING_CERTIFICATE_BASE64))
+            try {
+              $securePassword = ConvertTo-SecureString $env:SIGNING_CERTIFICATE_PASSWORD -AsPlainText -Force
+              $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+              $thumbprint = $certificate.Thumbprint
+            }
+            finally {
+              Remove-Item -LiteralPath $certificatePath -Force -ErrorAction SilentlyContinue
+            }
+          }
+          ./scripts/build-release.ps1 -Version $version -SigningCertificateThumbprint $thumbprint
       - name: Upload build artifacts
         if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: iWebClassroom-${{ github.ref_name }}
-          path: artifacts/*.zip
+          path: |
+            artifacts/*.zip
+            artifacts/*.msi
+            artifacts/*-stable.json
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
@@ -46,4 +66,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create '${{ github.ref_name }}' --generate-notes
-          gh release upload '${{ github.ref_name }}' artifacts/*.zip
+          gh release upload '${{ github.ref_name }}' artifacts/*.zip artifacts/*.msi artifacts/*-stable.json

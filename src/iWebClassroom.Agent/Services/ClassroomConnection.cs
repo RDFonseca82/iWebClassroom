@@ -1,7 +1,9 @@
 using IWebClassroom.Agent.Configuration;
+using IWebClassroom.Agent.Localization;
 using IWebClassroom.Contracts;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Globalization;
 
 namespace IWebClassroom.Agent.Services;
 
@@ -32,6 +34,7 @@ public sealed class ClassroomConnection : IAsyncDisposable
             {
                 options.Headers.Add(HubProtocol.AgentIdHeader, settings.AgentId.ToString());
                 options.Headers.Add(HubProtocol.AgentTokenHeader, settings.AgentToken);
+                options.Headers.Add("Accept-Language", CultureInfo.CurrentUICulture.Name);
                 options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
             })
             .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15)])
@@ -46,12 +49,12 @@ public sealed class ClassroomConnection : IAsyncDisposable
         });
         _connection.On<byte[]>(HubProtocol.ScreenFrame, frame => ScreenFrameReceived?.Invoke(frame));
         _connection.On(HubProtocol.ScreenStopped, () => ScreenStopped?.Invoke());
-        _connection.Reconnecting += _ => { StateChanged?.Invoke("A restabelecer ligação…"); return Task.CompletedTask; };
-        _connection.Reconnected += _ => { StateChanged?.Invoke("Ligado"); return Task.CompletedTask; };
-        _connection.Closed += _ => { StateChanged?.Invoke("Desligado"); return Task.CompletedTask; };
+        _connection.Reconnecting += _ => { StateChanged?.Invoke(AgentStrings.Reconnecting); return Task.CompletedTask; };
+        _connection.Reconnected += _ => { StateChanged?.Invoke(AgentStrings.Connected); return Task.CompletedTask; };
+        _connection.Closed += _ => { StateChanged?.Invoke(AgentStrings.Disconnected); return Task.CompletedTask; };
 
         await _connection.StartAsync(cancellationToken);
-        StateChanged?.Invoke("Ligado");
+        StateChanged?.Invoke(AgentStrings.Connected);
     }
 
     public Task PublishFrameAsync(byte[] frame, CancellationToken cancellationToken) =>

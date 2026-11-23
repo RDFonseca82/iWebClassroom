@@ -6,7 +6,7 @@ param(
     [string]$Destination = "$env:ProgramFiles\iWebClassroom\Server",
     [string]$ListenUrl = 'http://127.0.0.1:7080',
     [string]$SignerThumbprint = '',
-    [string]$TaskName = 'iWebClassroom Server'
+    [string]$ServiceName = 'iWebClassroom.Server'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,10 +19,11 @@ $source = (Resolve-Path -LiteralPath $SourcePath).Path
 $serverExecutable = Join-Path $source 'iWebClassroom.Server.exe'
 if (-not (Test-Path -LiteralPath $serverExecutable)) { throw "Não foi encontrado $serverExecutable" }
 
-$existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($existingTask) {
-    Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+$existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($existingService) {
+    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+    & sc.exe delete $ServiceName | Out-Null
+    Start-Sleep -Seconds 1
 }
 
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
@@ -38,7 +39,7 @@ $settings = @{
         ManifestUrl = 'https://github.com/RDFonseca82/iWebClassroom/releases/latest/download/server-stable.json'
         SignerThumbprint = $SignerThumbprint
         CheckIntervalHours = 6
-        ScheduledTaskName = $TaskName
+        ServiceName = $ServiceName
     }
 }
 $settingsPath = Join-Path $Destination 'appsettings.Local.json'
@@ -47,12 +48,10 @@ $settings | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $settingsPath -En
 & icacls.exe $dataDirectory /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 
 $installedExecutable = Join-Path $Destination 'iWebClassroom.Server.exe'
-$action = New-ScheduledTaskAction -Execute $installedExecutable -Argument "--urls $ListenUrl" -WorkingDirectory $Destination
-$trigger = New-ScheduledTaskTrigger -AtStartup
-$taskPrincipal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-$taskSettings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $taskPrincipal -Settings $taskSettings | Out-Null
-Start-ScheduledTask -TaskName $TaskName
+$binaryPath = ('"{0}" --urls {1}' -f $installedExecutable, $ListenUrl)
+New-Service -Name $ServiceName -BinaryPathName $binaryPath -DisplayName 'iWebClassroom Server' -Description 'Servidor central iWebClassroom' -StartupType Automatic | Out-Null
+& sc.exe failure $ServiceName reset= 86400 actions= restart/30000/restart/30000/restart/30000 | Out-Null
+Start-Service -Name $ServiceName
 
 Write-Host "Servidor instalado. Endpoint local: $ListenUrl"
 Write-Host 'Configure agora o proxy HTTPS e WebSockets no IIS/ARR.'

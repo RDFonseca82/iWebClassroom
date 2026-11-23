@@ -1,0 +1,5 @@
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="pt-PT">
+  <String Id="ProductName" Value="iWebClassroom Agent" />
+  <String Id="DowngradeError" Value="Já está instalada uma versão mais recente do iWebClassroom Agent." />
+  <String Id="ShortcutDescription" Value="Agente de sala de aula iWebClassroom" />
+</WixLocalization>

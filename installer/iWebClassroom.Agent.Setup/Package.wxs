@@ -1,0 +1,56 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Id="IWebClassroom.Agent"
+           Name="!(loc.ProductName)"
+           Manufacturer="Fundação Salesianos"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="{94F4D627-8591-4E68-B64D-F7B1F5DC8D3B}"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="AgentCompanyFolder" Name="iWebClassroom">
+        <Directory Id="INSTALLFOLDER" Name="Agent" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AgentProgramsFolder" Name="iWebClassroom" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1">
+      <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER">
+        <Exclude Files="$(var.PublishDir)\**\*.pdb" />
+        <Exclude Files="$(var.PublishDir)\iWebClassroom.Agent.exe" />
+      </Files>
+      <ComponentRef Id="AgentExecutableComponent" />
+      <ComponentRef Id="AgentStartupComponent" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <Component Id="AgentExecutableComponent" Directory="INSTALLFOLDER" Bitness="always64">
+      <File Id="AgentExecutable"
+            Source="$(var.PublishDir)\iWebClassroom.Agent.exe"
+            KeyPath="yes">
+        <Shortcut Id="AgentStartMenuShortcut"
+                  Directory="AgentProgramsFolder"
+                  Name="iWebClassroom Agent"
+                  Description="!(loc.ShortcutDescription)"
+                  Advertise="yes" />
+      </File>
+      <RemoveFolder Id="RemoveAgentProgramsFolder" Directory="AgentProgramsFolder" On="uninstall" />
+    </Component>
+
+    <Component Id="AgentStartupComponent" Directory="INSTALLFOLDER" Bitness="always64">
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+                     Name="iWebClassroom Agent"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]iWebClassroom.Agent.exe&quot;"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

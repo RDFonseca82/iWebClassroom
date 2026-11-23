@@ -10,5 +10,5 @@ public sealed class ServerUpdateOptions
 
     public int CheckIntervalHours { get; init; } = 6;
 
-    public string ScheduledTaskName { get; init; } = "iWebClassroom Server";
+    public string ServiceName { get; init; } = "iWebClassroom.Server";
 }

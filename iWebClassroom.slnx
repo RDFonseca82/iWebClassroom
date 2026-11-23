@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/installer/">
+    <Project Path="installer/iWebClassroom.Agent.Setup/iWebClassroom.Agent.Setup.wixproj" />
+    <Project Path="installer/iWebClassroom.Server.Setup/iWebClassroom.Server.Setup.wixproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/iWebClassroom.Agent/iWebClassroom.Agent.csproj" />
     <Project Path="src/iWebClassroom.Contracts/iWebClassroom.Contracts.csproj" />

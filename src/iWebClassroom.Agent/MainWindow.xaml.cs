@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using IWebClassroom.Agent.Configuration;
+using IWebClassroom.Agent.Localization;
 using IWebClassroom.Agent.Services;
 using IWebClassroom.Contracts;
 
@@ -47,7 +48,7 @@ public partial class MainWindow : Window
         DisplayNameText.Text = _settings.DisplayName;
         ClassroomText.Text = _settings.ClassroomId;
         RoleCombo.SelectedIndex = _settings.Role == AgentRole.Teacher ? 1 : 0;
-        IdentityText.Text = _settings.AgentId == Guid.Empty ? "Ainda não inscrito" : _settings.AgentId.ToString();
+        IdentityText.Text = _settings.AgentId == Guid.Empty ? AgentStrings.NotEnrolled : _settings.AgentId.ToString();
     }
 
     private async void ConnectButton_Click(object sender, RoutedEventArgs e) => await ConnectAsync(reenroll: SettingsChanged());
@@ -62,28 +63,28 @@ public partial class MainWindow : Window
 
     private async Task ConnectAsync(bool reenroll)
     {
-        SetBusy(true, "A ligar…");
+        SetBusy(true, AgentStrings.Connecting);
         try
         {
             if (!Uri.TryCreate(ServerUrlText.Text.Trim(), UriKind.Absolute, out var serverUri) ||
                 (serverUri.Scheme != Uri.UriSchemeHttps && !(serverUri.Scheme == Uri.UriSchemeHttp && serverUri.IsLoopback)))
             {
-                throw new InvalidOperationException("O servidor tem de usar HTTPS. HTTP só é permitido em localhost para testes.");
+                throw new InvalidOperationException(AgentStrings.InvalidServer);
             }
 
             if (reenroll || _settings.AgentId == Guid.Empty || string.IsNullOrWhiteSpace(_settings.AgentToken))
             {
                 if (string.IsNullOrWhiteSpace(EnrollmentCodeText.Password))
                 {
-                    throw new InvalidOperationException("Introduza o código de inscrição para registar ou alterar este agente.");
+                    throw new InvalidOperationException(AgentStrings.EnterEnrollmentCode);
                 }
 
                 _settings = await _enrollmentClient.EnrollAsync(
                     serverUri,
                     EnrollmentCodeText.Password,
-                    Required(DisplayNameText.Text, "nome do computador"),
+                    Required(DisplayNameText.Text, AgentStrings.ComputerNameField),
                     SelectedRole(),
-                    Required(ClassroomText.Text, "sala"),
+                    Required(ClassroomText.Text, AgentStrings.ClassroomField),
                     CancellationToken.None);
                 await _settingsStore.SaveAsync(_settings);
                 EnrollmentCodeText.Clear();
@@ -91,14 +92,14 @@ public partial class MainWindow : Window
             }
 
             await _connection.ConnectAsync(_settings, CancellationToken.None);
-            StatusText.Text = "Ligado";
+            StatusText.Text = AgentStrings.Connected;
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
             _ = CheckForUpdatesAsync();
         }
         catch (Exception exception)
         {
-            StatusText.Text = "Erro de ligação";
-            MessageBox.Show(this, exception.Message, "iWebClassroom", MessageBoxButton.OK, MessageBoxImage.Warning);
+            StatusText.Text = AgentStrings.ConnectionError;
+            MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -114,7 +115,7 @@ public partial class MainWindow : Window
             {
                 case ClassroomCommandKind.ShowMessage:
                     var message = command.Payload.GetProperty("message").GetString() ?? string.Empty;
-                    await Dispatcher.InvokeAsync(() => MessageBox.Show(message, "Mensagem do professor", MessageBoxButton.OK, MessageBoxImage.Information));
+                    await Dispatcher.InvokeAsync(() => MessageBox.Show(message, AgentStrings.TeacherMessageTitle, MessageBoxButton.OK, MessageBoxImage.Information));
                     break;
                 case ClassroomCommandKind.LaunchApplication:
                     _applications.Launch(command.Payload.GetProperty("applicationId").GetString() ?? string.Empty);
@@ -132,7 +133,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            await Dispatcher.InvokeAsync(() => ActivityText.Text = $"Falha: {exception.Message}");
+            await Dispatcher.InvokeAsync(() => ActivityText.Text = $"{AgentStrings.FailurePrefix}: {exception.Message}");
         }
     }
 
@@ -172,7 +173,7 @@ public partial class MainWindow : Window
         _screenCapture.Start(_connection.PublishFrameAsync);
         ShareButton.IsEnabled = false;
         StopShareButton.IsEnabled = true;
-        ActivityText.Text = "Ecrã em partilha";
+        ActivityText.Text = AgentStrings.ScreenSharing;
     }
 
     private async void StopShareButton_Click(object sender, RoutedEventArgs e) => await StopSharingAsync();
@@ -201,14 +202,14 @@ public partial class MainWindow : Window
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    ActivityText.Text = "A instalar atualização…";
+                    ActivityText.Text = AgentStrings.InstallingUpdate;
                     Close();
                 });
             }
         }
         catch (Exception exception)
         {
-            await Dispatcher.InvokeAsync(() => ActivityText.Text = $"Atualização: {exception.Message}");
+            await Dispatcher.InvokeAsync(() => ActivityText.Text = $"{AgentStrings.UpdatePrefix}: {exception.Message}");
         }
     }
 
@@ -219,7 +220,7 @@ public partial class MainWindow : Window
     private static string Required(string value, string field)
     {
         var result = value.Trim();
-        return string.IsNullOrWhiteSpace(result) ? throw new InvalidOperationException($"Preencha o campo {field}.") : result;
+        return string.IsNullOrWhiteSpace(result) ? throw new InvalidOperationException(AgentStrings.Format(nameof(AgentStrings.RequiredField), field)) : result;
     }
 
     private void SetBusy(bool busy, string activity)

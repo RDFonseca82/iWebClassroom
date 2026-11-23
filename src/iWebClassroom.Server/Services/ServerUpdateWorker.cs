@@ -109,7 +109,7 @@ public sealed class ServerUpdateWorker(
                 "--sha256", manifest.Sha256,
                 "--signer", policy.SignerThumbprint,
                 "--wait-pid", Environment.ProcessId.ToString(),
-                "--scheduled-task", policy.ScheduledTaskName
+                "--service-name", policy.ServiceName
             }
         });
         logger.LogInformation("A signed server update to version {Version} is ready and will now be installed.", candidateVersion);

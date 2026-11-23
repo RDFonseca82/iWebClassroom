@@ -1,0 +1,88 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Id="IWebClassroom.Server"
+           Name="!(loc.ProductName)"
+           Manufacturer="Fundação Salesianos"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="{F68834C1-FCB7-4825-A6AA-E9B96E3F897D}"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ServerCompanyFolder" Name="iWebClassroom">
+        <Directory Id="INSTALLFOLDER" Name="Server" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="ServerDataCompanyFolder" Name="iWebClassroom">
+        <Directory Id="SERVERDATADIR" Name="Server" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1">
+      <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER">
+        <Exclude Files="$(var.PublishDir)\**\*.pdb" />
+        <Exclude Files="$(var.PublishDir)\iWebClassroom.Server.exe" />
+      </Files>
+      <ComponentRef Id="ServerService" />
+      <ComponentRef Id="ServerDataDirectory" />
+      <ComponentRef Id="ServerMachineSettings" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <Component Id="ServerService" Directory="INSTALLFOLDER" Bitness="always64">
+      <File Id="ServerExecutable"
+            Source="$(var.PublishDir)\iWebClassroom.Server.exe"
+            KeyPath="yes" />
+      <ServiceInstall Id="InstallServerService"
+                      Name="iWebClassroom.Server"
+                      DisplayName="iWebClassroom Server"
+                      Description="!(loc.ServiceDescription)"
+                      Arguments="--urls http://127.0.0.1:7080"
+                      Type="ownProcess"
+                      Start="auto"
+                      ErrorControl="normal"
+                      Vital="yes">
+        <util:ServiceConfig FirstFailureActionType="restart"
+                            SecondFailureActionType="restart"
+                            ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="30"
+                            ResetPeriodInDays="1" />
+      </ServiceInstall>
+      <ServiceControl Id="ControlServerService"
+                      Name="iWebClassroom.Server"
+                      Start="install"
+                      Stop="both"
+                      Remove="uninstall"
+                      Wait="yes" />
+    </Component>
+
+    <Component Id="ServerDataDirectory" Directory="SERVERDATADIR" Bitness="always64" Permanent="yes">
+      <CreateFolder>
+        <PermissionEx Sddl="D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)" />
+      </CreateFolder>
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Server"
+                     Name="DataDirectoryCreated"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <Component Id="ServerMachineSettings"
+               Directory="SERVERDATADIR"
+               Bitness="always64"
+               Permanent="yes"
+               NeverOverwrite="yes">
+      <File Id="ServerMachineSettingsFile"
+            Source="appsettings.Local.json"
+            Name="appsettings.Local.json"
+            KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

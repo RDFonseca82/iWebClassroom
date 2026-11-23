@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using IWebClassroom.Agent.Localization;
 
 namespace IWebClassroom.Agent.Services;
 
@@ -72,7 +73,7 @@ public sealed class ScreenCaptureService : IAsyncDisposable
         {
             if (!BitBlt(memoryDc, 0, 0, width, height, screenDc, left, top, 0x00CC0020 | 0x40000000))
             {
-                throw new InvalidOperationException("Não foi possível capturar o ecrã.");
+                throw new InvalidOperationException(AgentStrings.ScreenCaptureFailed);
             }
 
             var source = Imaging.CreateBitmapSourceFromHBitmap(bitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());

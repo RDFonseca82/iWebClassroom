@@ -79,7 +79,21 @@ if (arguments.TryGetValue("scheduled-task", out var scheduledTask) && !string.Is
     if (taskStarter is not null)
     {
         await taskStarter.WaitForExitAsync();
-        return taskStarter.ExitCode;
+        return 0;
+    }
+}
+
+if (arguments.TryGetValue("service-name", out var serviceName) && !string.IsNullOrWhiteSpace(serviceName))
+{
+    using var serviceStarter = Process.Start(new ProcessStartInfo
+    {
+        FileName = Path.Combine(Environment.SystemDirectory, "sc.exe"),
+        UseShellExecute = false,
+        ArgumentList = { "start", serviceName }
+    });
+    if (serviceStarter is not null)
+    {
+        await serviceStarter.WaitForExitAsync();
     }
 }
 

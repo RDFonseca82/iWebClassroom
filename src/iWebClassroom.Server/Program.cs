@@ -4,15 +4,25 @@ using System.Threading.RateLimiting;
 using IWebClassroom.Contracts;
 using IWebClassroom.Server.Configuration;
 using IWebClassroom.Server.Hubs;
+using IWebClassroom.Server.Localization;
 using IWebClassroom.Server.Security;
 using IWebClassroom.Server.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using Microsoft.Extensions.Options;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WindowsServiceHelpers.IsWindowsService()
+    ? WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory })
+    : WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService(options => options.ServiceName = "iWebClassroom.Server");
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile(
+    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "iWebClassroom", "Server", "appsettings.Local.json"),
+    optional: true,
+    reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
+BootstrapSecrets.AddOrCreate(builder);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
@@ -65,6 +75,7 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 app.MapPost("/api/v1/enrollment", async (
+    HttpRequest httpRequest,
     EnrollmentRequest request,
     AgentRegistry agentRegistry,
     IConfiguration configuration,
@@ -74,7 +85,7 @@ app.MapPost("/api/v1/enrollment", async (
                        ?? configuration["Security:EnrollmentCode"];
     if (string.IsNullOrWhiteSpace(expectedCode))
     {
-        return Results.Problem("Enrollment is not configured on this server.", statusCode: StatusCodes.Status503ServiceUnavailable);
+        return Results.Problem(ApiText.Get(httpRequest, "EnrollmentNotConfigured"), statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
     if (!SecretComparer.Equals(request.EnrollmentCode, expectedCode))
@@ -82,7 +93,7 @@ app.MapPost("/api/v1/enrollment", async (
         return Results.Unauthorized();
     }
 
-    var errors = ValidateEnrollment(request);
+    var errors = ValidateEnrollment(httpRequest, request);
     if (errors.Count > 0)
     {
         return Results.ValidationProblem(errors);
@@ -112,7 +123,7 @@ app.MapPost("/api/v1/commands", async (
         return Results.Unauthorized();
     }
 
-    var validationError = ValidateCommand(request, options.Value);
+    var validationError = ValidateCommand(httpRequest, request, options.Value);
     if (validationError is not null)
     {
         return Results.BadRequest(new { error = validationError });
@@ -122,7 +133,7 @@ app.MapPost("/api/v1/commands", async (
     var targets = request.TargetAgentIds.Distinct().Where(knownIds.Contains).ToArray();
     if (targets.Length == 0)
     {
-        return Results.BadRequest(new { error = "No valid target agent was selected." });
+        return Results.BadRequest(new { error = ApiText.Get(httpRequest, "NoTarget") });
     }
 
     var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, request.Payload.Clone(), DateTimeOffset.UtcNow);
@@ -170,43 +181,43 @@ static bool TryAuthenticateAgent(HttpRequest request, AgentRegistry registry)
            registry.TryAuthenticate(agentId, request.Headers[HubProtocol.AgentTokenHeader].ToString(), out _);
 }
 
-static Dictionary<string, string[]> ValidateEnrollment(EnrollmentRequest request)
+static Dictionary<string, string[]> ValidateEnrollment(HttpRequest httpRequest, EnrollmentRequest request)
 {
     var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-    ValidateText(request.MachineId, nameof(request.MachineId), 1, 200, errors);
-    ValidateText(request.DisplayName, nameof(request.DisplayName), 1, 100, errors);
-    ValidateText(request.ClassroomId, nameof(request.ClassroomId), 1, 50, errors);
+    ValidateText(httpRequest, request.MachineId, nameof(request.MachineId), 1, 200, errors);
+    ValidateText(httpRequest, request.DisplayName, nameof(request.DisplayName), 1, 100, errors);
+    ValidateText(httpRequest, request.ClassroomId, nameof(request.ClassroomId), 1, 50, errors);
     if (!Enum.IsDefined(request.Role))
     {
-        errors[nameof(request.Role)] = ["The role is invalid."];
+        errors[nameof(request.Role)] = [ApiText.Get(httpRequest, "InvalidRole")];
     }
 
     return errors;
 }
 
-static void ValidateText(string? value, string field, int minimum, int maximum, IDictionary<string, string[]> errors)
+static void ValidateText(HttpRequest httpRequest, string? value, string field, int minimum, int maximum, IDictionary<string, string[]> errors)
 {
     if (value is null || value.Length < minimum || value.Length > maximum || value.Any(char.IsControl))
     {
-        errors[field] = [$"The field must contain between {minimum} and {maximum} printable characters."];
+        errors[field] = [ApiText.Get(httpRequest, "InvalidText", minimum, maximum)];
     }
 }
 
-static string? ValidateCommand(CommandRequest request, ClassroomOptions options)
+static string? ValidateCommand(HttpRequest httpRequest, CommandRequest request, ClassroomOptions options)
 {
     if (request.TargetAgentIds.Count is 0 or > 200)
     {
-        return "Select between 1 and 200 agents.";
+        return ApiText.Get(httpRequest, "SelectAgents");
     }
 
     if (!Enum.IsDefined(request.Kind))
     {
-        return "The command type is invalid.";
+        return ApiText.Get(httpRequest, "InvalidCommand");
     }
 
     if (request.Payload.ValueKind != JsonValueKind.Object)
     {
-        return "The command payload must be a JSON object.";
+        return ApiText.Get(httpRequest, "ObjectPayload");
     }
 
     switch (request.Kind)
@@ -216,7 +227,7 @@ static string? ValidateCommand(CommandRequest request, ClassroomOptions options)
                 message.ValueKind != JsonValueKind.String ||
                 message.GetString() is not { Length: > 0 and <= 500 })
             {
-                return "The message must contain between 1 and 500 characters.";
+                return ApiText.Get(httpRequest, "MessageLength");
             }
 
             break;
@@ -225,7 +236,7 @@ static string? ValidateCommand(CommandRequest request, ClassroomOptions options)
                 applicationId.ValueKind != JsonValueKind.String ||
                 !options.AllowedApplicationIds.Contains(applicationId.GetString()!, StringComparer.OrdinalIgnoreCase))
             {
-                return "The application is not allowed by the server.";
+                return ApiText.Get(httpRequest, "AppNotAllowed");
             }
 
             break;
@@ -234,7 +245,7 @@ static string? ValidateCommand(CommandRequest request, ClassroomOptions options)
         case ClassroomCommandKind.CheckForUpdate:
             break;
         default:
-            return "The command type is not supported.";
+            return ApiText.Get(httpRequest, "UnsupportedCommand");
     }
 
     return null;
