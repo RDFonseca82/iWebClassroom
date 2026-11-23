@@ -7,7 +7,7 @@
     <OutputName>iWebClassroom-Server-$(ProductVersion)-win-x64</OutputName>
     <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
     <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\server</PublishDir>
-    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir)</DefineConstants>
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir);InstallerSourceDir=$(MSBuildProjectDirectory)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WixToolset.Util.wixext" Version="7.0.1" />

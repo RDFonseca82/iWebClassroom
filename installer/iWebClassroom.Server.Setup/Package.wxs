@@ -80,7 +80,7 @@
                Permanent="yes"
                NeverOverwrite="yes">
       <File Id="ServerMachineSettingsFile"
-            Source="appsettings.Local.json"
+            Source="$(var.InstallerSourceDir)\appsettings.Local.json"
             Name="appsettings.Local.json"
             KeyPath="yes" />
     </Component>
