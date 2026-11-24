@@ -62,7 +62,9 @@ const languageSelect = document.querySelector("#language");
 const authPanel = document.querySelector("#auth-panel");
 const workspace = document.querySelector("#admin-workspace");
 const toast = document.querySelector("#toast");
-let language = localStorage.getItem("iwebclassroom-language") || "pt-PT";
+const storedLanguage = localStorage.getItem("iwebclassroom-language");
+const detectedLanguage = navigator.language?.toLowerCase().startsWith("es") ? "es" : navigator.language?.toLowerCase().startsWith("en") ? "en" : "pt-PT";
+let language = storedLanguage || detectedLanguage;
 let adminToken = sessionStorage.getItem("iwebclassroom-admin-token") || "";
 let currentModel = null;
 
@@ -74,6 +76,19 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach(element => { element.placeholder = t(element.dataset.i18nPlaceholder); });
   languageSelect.value = language;
   if (currentModel) render(currentModel);
+}
+
+async function applyInstallerLanguage() {
+  if (storedLanguage) return;
+  try {
+    const response = await fetch("/api/v1/localization");
+    if (!response.ok) return;
+    const preference = await response.json();
+    if (["pt-PT", "en", "es"].includes(preference.language)) {
+      language = preference.language;
+      applyLanguage();
+    }
+  } catch { /* The browser language remains the fallback. */ }
 }
 
 function notify(message) {
@@ -212,4 +227,5 @@ languageSelect.addEventListener("change", () => {
 });
 
 applyLanguage();
+void applyInstallerLanguage();
 if (adminToken) load().catch(error => notify(error.message));

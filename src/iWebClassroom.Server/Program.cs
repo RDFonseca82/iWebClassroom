@@ -105,6 +105,11 @@ app.MapGet("/health", () => Results.Ok(new
     utc = DateTimeOffset.UtcNow
 }));
 
+app.MapGet("/api/v1/localization", () => Results.Ok(new
+{
+    language = InstallerPreferences.Language()
+}));
+
 app.MapPost("/api/v1/enrollment", async (
     HttpRequest httpRequest,
     EnrollmentRequest request,

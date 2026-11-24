@@ -1,15 +1,11 @@
 using System.Globalization;
+using IWebClassroom.Agent.Configuration;
 
 namespace IWebClassroom.Agent.Localization;
 
 public static class AgentStrings
 {
-    private static readonly string Language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName switch
-    {
-        "pt" => "pt",
-        "es" => "es",
-        _ => "en"
-    };
+    private static readonly string Language = InstallerPreferences.Language();
 
     private static readonly IReadOnlyDictionary<string, string[]> Values = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {

@@ -20,7 +20,7 @@ Este repositório contém um MVP funcional com:
 - pipeline GitHub Actions para compilar e produzir artefactos Windows;
 - sincronização bidirecional das definições entre cada servidor escolar e `cloud.iwebclassroom.app`.
 
-Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O agente escolhe o idioma do Windows; a consola web deteta o navegador e permite alteração manual.
+Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
 Os computadores partilhados são registados uma única vez. A identidade e a sala predefinida pertencem ao computador, não ao utilizador Windows. Quando o professor inicia uma aula, todos os postos de aluno dessa sala são associados à sessão temporária; terminar a aula remove essa associação sem alterar a configuração dos equipamentos.
 
@@ -75,21 +75,21 @@ O portal cloud é mantido no seu projeto de implantação próprio. Este reposit
 
 ## Instaladores Windows
 
-Cada release produz seis MSI self-contained, sem necessidade de instalar previamente o .NET:
+Cada release produz dois MSI self-contained, sem necessidade de instalar previamente o .NET:
 
-- `iWebClassroom-Agent-<versão>-win-x64-pt-PT.msi`
-- `iWebClassroom-Agent-<versão>-win-x64-en-US.msi`
-- `iWebClassroom-Agent-<versão>-win-x64-es-ES.msi`
-- `iWebClassroom-Server-<versão>-win-x64-pt-PT.msi`
-- `iWebClassroom-Server-<versão>-win-x64-en-US.msi`
-- `iWebClassroom-Server-<versão>-win-x64-es-ES.msi`
+- `iWebClassroom-Agent-<versão>-win-x64.msi`
+- `iWebClassroom-Server-<versão>-win-x64.msi`
+
+O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma interface. No servidor, a escolha define o idioma inicial das consolas. No agente, além do idioma, é pedido o endereço HTTPS do servidor local e esse valor aparece já preenchido no primeiro registo do computador.
 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.3.0-win-x64-pt-PT.msi /qn /norestart
-msiexec.exe /i iWebClassroom-Agent-0.3.0-win-x64-pt-PT.msi /qn /norestart
+msiexec.exe /i iWebClassroom-Server-0.5.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.5.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT /norestart
 ```
+
+`INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
 
 O MSI do servidor instala o serviço `iWebClassroom.Server`, iniciado automaticamente em `http://127.0.0.1:7080`, e protege a pasta `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados o token administrativo, o código de inscrição e um PIN de professor de seis algarismos em:
 
@@ -100,7 +100,7 @@ C:\ProgramData\iWebClassroom\Server\teacher-access.json
 
 Esse ficheiro só pode ser lido por `SYSTEM` e pelos administradores locais. O servidor deve ser publicado através de IIS/ARR ou outro proxy HTTPS com WebSockets ativos.
 
-O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
+O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A URL e o idioma são guardados em `HKLM\SOFTWARE\iWebClassroom\Agent`. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
 
 ## Utilização diária numa sala partilhada
 

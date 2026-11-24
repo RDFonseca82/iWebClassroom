@@ -1,14 +1,85 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Id="IWebClassroom.Agent"
-           Name="!(loc.ProductName)"
+           Name="iWebClassroom Agent"
            Manufacturer="Fundação Salesianos"
            Version="$(var.ProductVersion)"
            UpgradeCode="{94F4D627-8591-4E68-B64D-F7B1F5DC8D3B}"
            Scope="perMachine"
            Compressed="yes">
 
-    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed. / Já está instalada uma versão mais recente. / Ya está instalada una versión más reciente." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="SERVERURL" Secure="yes">
+      <RegistrySearch Id="InstalledAgentServerUrl"
+                      Root="HKLM"
+                      Key="SOFTWARE\iWebClassroom\Agent"
+                      Name="ServerUrl"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+    <Property Id="INSTALLLANGUAGE" Value="pt-PT" Secure="yes">
+      <RegistrySearch Id="InstalledAgentLanguage"
+                      Root="HKLM"
+                      Key="SOFTWARE\iWebClassroom\Agent"
+                      Name="InstallLanguage"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+
+    <CustomAction Id="RequireServerUrl"
+                  Error="Specify SERVERURL, for example SERVERURL=https://classroom.school.local. / Indique SERVERURL. / Indique SERVERURL." />
+    <InstallExecuteSequence>
+      <Custom Action="RequireServerUrl"
+              Before="InstallInitialize"
+              Condition="NOT Installed AND NOT SERVERURL" />
+    </InstallExecuteSequence>
+
+    <UI Id="AgentInstallerUI">
+      <TextStyle Id="DlgFont8" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="DlgTitleFont" FaceName="Segoe UI" Size="13" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="DlgFont8" />
+
+      <Dialog Id="AgentConfigurationDlg" Width="370" Height="270" Title="iWebClassroom Agent">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes"
+                 Text="{\DlgTitleFont}Instalação / Setup / Instalación" />
+        <Control Id="Description" Type="Text" X="20" Y="43" Width="330" Height="28" Transparent="yes" NoPrefix="yes"
+                 Text="Configure o agente antes de instalar. / Configure the agent before installation. / Configure el agente antes de instalar." />
+        <Control Id="LanguageLabel" Type="Text" X="20" Y="83" Width="330" Height="15" Text="Idioma / Language / Idioma" />
+        <Control Id="Language" Type="ComboBox" X="20" Y="100" Width="200" Height="18" Property="INSTALLLANGUAGE" ComboList="yes">
+          <ComboBox Property="INSTALLLANGUAGE">
+            <ListItem Text="Português (Portugal)" Value="pt-PT" />
+            <ListItem Text="English" Value="en-US" />
+            <ListItem Text="Español" Value="es-ES" />
+          </ComboBox>
+        </Control>
+        <Control Id="ServerUrlLabel" Type="Text" X="20" Y="132" Width="330" Height="15"
+                 Text="Endereço do servidor local / Local server address / Dirección del servidor local" />
+        <Control Id="ServerUrl" Type="Edit" X="20" Y="150" Width="330" Height="18" Property="SERVERURL" />
+        <Control Id="ServerUrlHint" Type="Text" X="20" Y="173" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
+                 Text="Ex.: https://classroom.escola.local — HTTPS é obrigatório fora de localhost." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="225" Width="370" Height="0" />
+        <Control Id="Cancel" Type="PushButton" X="220" Y="239" Width="65" Height="18" Cancel="yes" Text="Cancelar / Cancel">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="Install" Type="PushButton" X="292" Y="239" Width="58" Height="18" Default="yes" Text="Instalar / Install">
+          <Publish Event="SpawnDialog" Value="MissingServerDlg" Condition="NOT SERVERURL" />
+          <Publish Event="EndDialog" Value="Return" Condition="SERVERURL" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="MissingServerDlg" Width="300" Height="95" Title="iWebClassroom Agent">
+        <Control Id="Message" Type="Text" X="18" Y="15" Width="264" Height="42" NoPrefix="yes"
+                 Text="Indique o endereço do servidor local. / Enter the local server address. / Indique la dirección del servidor local." />
+        <Control Id="OK" Type="PushButton" X="122" Y="65" Width="56" Height="18" Default="yes" Cancel="yes" Text="OK">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="AgentConfigurationDlg" After="CostFinalize" Condition="NOT Installed" />
+      </InstallUISequence>
+    </UI>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="AgentCompanyFolder" Name="iWebClassroom">
@@ -26,14 +97,15 @@
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1">
-      <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER">
+    <Feature Id="MainFeature" Title="iWebClassroom Agent" Level="1">
+      <Files Include="$(var.PublishDir)\**\*" Directory="INSTALLFOLDER">
         <Exclude Files="$(var.PublishDir)\**\*.pdb" />
         <Exclude Files="$(var.PublishDir)\iWebClassroom.Agent.exe" />
       </Files>
       <ComponentRef Id="AgentExecutableComponent" />
       <ComponentRef Id="AgentStartupComponent" />
       <ComponentRef Id="AgentDataDirectory" />
+      <ComponentRef Id="AgentInstallerConfiguration" />
     </Feature>
   </Package>
 
@@ -45,7 +117,7 @@
         <Shortcut Id="AgentStartMenuShortcut"
                   Directory="AgentProgramsFolder"
                   Name="iWebClassroom Agent"
-                  Description="!(loc.ShortcutDescription)"
+                  Description="iWebClassroom classroom agent"
                   Advertise="yes" />
       </File>
       <RemoveFolder Id="RemoveAgentProgramsFolder" Directory="AgentProgramsFolder" On="uninstall" />
@@ -69,6 +141,20 @@
                      Name="DataDirectoryCreated"
                      Type="integer"
                      Value="1"
+                     KeyPath="yes" />
+    </Component>
+
+    <Component Id="AgentInstallerConfiguration" Directory="AGENTDATADIR" Bitness="always64">
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Agent"
+                     Name="ServerUrl"
+                     Type="string"
+                     Value="[SERVERURL]" />
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Agent"
+                     Name="InstallLanguage"
+                     Type="string"
+                     Value="[INSTALLLANGUAGE]"
                      KeyPath="yes" />
     </Component>
   </Fragment>

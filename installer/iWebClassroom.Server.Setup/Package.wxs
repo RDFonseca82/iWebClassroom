@@ -1,15 +1,56 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package Id="IWebClassroom.Server"
-           Name="!(loc.ProductName)"
+           Name="iWebClassroom Server"
            Manufacturer="Fundação Salesianos"
            Version="$(var.ProductVersion)"
            UpgradeCode="{F68834C1-FCB7-4825-A6AA-E9B96E3F897D}"
            Scope="perMachine"
            Compressed="yes">
 
-    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed. / Já está instalada uma versão mais recente. / Ya está instalada una versión más reciente." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="INSTALLLANGUAGE" Value="pt-PT" Secure="yes">
+      <RegistrySearch Id="InstalledServerLanguage"
+                      Root="HKLM"
+                      Key="SOFTWARE\iWebClassroom\Server"
+                      Name="InstallLanguage"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+
+    <UI Id="ServerInstallerUI">
+      <TextStyle Id="DlgFont8" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="DlgTitleFont" FaceName="Segoe UI" Size="13" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="DlgFont8" />
+
+      <Dialog Id="ServerConfigurationDlg" Width="370" Height="230" Title="iWebClassroom Server">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes"
+                 Text="{\DlgTitleFont}Instalação / Setup / Instalación" />
+        <Control Id="Description" Type="Text" X="20" Y="43" Width="330" Height="36" Transparent="yes" NoPrefix="yes"
+                 Text="Escolha o idioma inicial das consolas. / Choose the initial console language. / Elija el idioma inicial de las consolas." />
+        <Control Id="LanguageLabel" Type="Text" X="20" Y="94" Width="330" Height="15" Text="Idioma / Language / Idioma" />
+        <Control Id="Language" Type="ComboBox" X="20" Y="112" Width="200" Height="18" Property="INSTALLLANGUAGE" ComboList="yes">
+          <ComboBox Property="INSTALLLANGUAGE">
+            <ListItem Text="Português (Portugal)" Value="pt-PT" />
+            <ListItem Text="English" Value="en-US" />
+            <ListItem Text="Español" Value="es-ES" />
+          </ComboBox>
+        </Control>
+        <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
+        <Control Id="Cancel" Type="PushButton" X="220" Y="199" Width="65" Height="18" Cancel="yes" Text="Cancelar / Cancel">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+        <Control Id="Install" Type="PushButton" X="292" Y="199" Width="58" Height="18" Default="yes" Text="Instalar / Install">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <InstallUISequence>
+        <Show Dialog="ServerConfigurationDlg" After="CostFinalize" Condition="NOT Installed" />
+      </InstallUISequence>
+    </UI>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="ServerCompanyFolder" Name="iWebClassroom">
@@ -23,14 +64,15 @@
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="MainFeature" Title="!(loc.ProductName)" Level="1">
-      <Files Include="$(var.PublishDir)\**" Directory="INSTALLFOLDER">
+    <Feature Id="MainFeature" Title="iWebClassroom Server" Level="1">
+      <Files Include="$(var.PublishDir)\**\*" Directory="INSTALLFOLDER">
         <Exclude Files="$(var.PublishDir)\**\*.pdb" />
         <Exclude Files="$(var.PublishDir)\iWebClassroom.Server.exe" />
       </Files>
       <ComponentRef Id="ServerService" />
       <ComponentRef Id="ServerDataDirectory" />
       <ComponentRef Id="ServerMachineSettings" />
+      <ComponentRef Id="ServerInstallerConfiguration" />
     </Feature>
   </Package>
 
@@ -42,7 +84,7 @@
       <ServiceInstall Id="InstallServerService"
                       Name="iWebClassroom.Server"
                       DisplayName="iWebClassroom Server"
-                      Description="!(loc.ServiceDescription)"
+                      Description="iWebClassroom local classroom management server"
                       Arguments="--urls http://127.0.0.1:7080"
                       Type="ownProcess"
                       Start="auto"
@@ -83,6 +125,15 @@
             Source="$(var.InstallerSourceDir)\appsettings.Installer.json"
             Name="appsettings.Local.json"
             KeyPath="yes" />
+    </Component>
+
+    <Component Id="ServerInstallerConfiguration" Directory="SERVERDATADIR" Bitness="always64">
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Server"
+                     Name="InstallLanguage"
+                     Type="string"
+                     Value="[INSTALLLANGUAGE]"
+                     KeyPath="yes" />
     </Component>
   </Fragment>
 </Wix>

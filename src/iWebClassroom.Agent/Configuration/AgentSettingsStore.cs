@@ -26,7 +26,10 @@ public sealed class AgentSettingsStore
 
         if (!File.Exists(_legacyPath))
         {
-            return AgentSettings.Empty;
+            var installedServerUrl = InstallerPreferences.ServerUrl();
+            return string.IsNullOrWhiteSpace(installedServerUrl)
+                ? AgentSettings.Empty
+                : AgentSettings.Empty with { ServerUrl = installedServerUrl.Trim().TrimEnd('/') };
         }
 
         var legacy = await LoadFromAsync(_legacyPath, machineScope: false, cancellationToken);

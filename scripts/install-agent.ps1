@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$SourcePath,
+    [Parameter(Mandatory)] [ValidatePattern('^https?://')] [string]$ServerUrl,
+    [ValidateSet('pt-PT', 'en-US', 'es-ES')] [string]$Language = 'pt-PT',
     [string]$Destination = "$env:ProgramFiles\iWebClassroom\Agent",
     [string]$SignerThumbprint = ''
 )
@@ -42,6 +44,10 @@ $updatePolicy | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Destinatio
 $installedExecutable = Join-Path $Destination 'iWebClassroom.Agent.exe'
 $runPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
 Set-ItemProperty -Path $runPath -Name 'iWebClassroom Agent' -Value ('"{0}"' -f $installedExecutable)
+$agentRegistryPath = 'HKLM:\SOFTWARE\iWebClassroom\Agent'
+New-Item -Path $agentRegistryPath -Force | Out-Null
+Set-ItemProperty -Path $agentRegistryPath -Name 'ServerUrl' -Value $ServerUrl.Trim().TrimEnd('/')
+Set-ItemProperty -Path $agentRegistryPath -Name 'InstallLanguage' -Value $Language
 Start-Process -FilePath $installedExecutable
 
 Write-Host 'Agente instalado. Conclua a inscrição na janela que foi aberta.'

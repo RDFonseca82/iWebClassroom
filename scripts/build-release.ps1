@@ -30,9 +30,12 @@ $updaterOutput = Join-Path $artifactsRoot 'updater'
 $installerBuildRoot = Join-Path $artifactsRoot 'installer-build'
 New-Item -ItemType Directory -Path $agentOutput, $serverOutput, $updaterOutput, $installerBuildRoot | Out-Null
 
-& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Updater\iWebClassroom.Updater.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -o $updaterOutput
-& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Agent\iWebClassroom.Agent.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -o $agentOutput
-& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Server\iWebClassroom.Server.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -o $serverOutput
+& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Updater\iWebClassroom.Updater.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -p:NuGetAudit=false -o $updaterOutput
+if ($LASTEXITCODE -ne 0) { throw 'Publishing the updater failed.' }
+& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Agent\iWebClassroom.Agent.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -p:NuGetAudit=false -o $agentOutput
+if ($LASTEXITCODE -ne 0) { throw 'Publishing the agent failed.' }
+& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Server\iWebClassroom.Server.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -p:NuGetAudit=false -o $serverOutput
+if ($LASTEXITCODE -ne 0) { throw 'Publishing the server failed.' }
 
 $updaterFiles = @(
     'iWebClassroom.Updater.exe',
@@ -52,21 +55,28 @@ Compress-Archive -Path (Join-Path $serverOutput '*') -DestinationPath (Join-Path
 
 $agentInstallerOutput = Join-Path $installerBuildRoot 'agent'
 $serverInstallerOutput = Join-Path $installerBuildRoot 'server'
-& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput
-& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput
-
-$installerFiles = [Collections.Generic.List[string]]::new()
-foreach ($culture in @('pt-PT', 'en-US', 'es-ES')) {
-    foreach ($component in @('Agent', 'Server')) {
-        $buildRoot = if ($component -eq 'Agent') { $agentInstallerOutput } else { $serverInstallerOutput }
-        $baseName = "iWebClassroom-$component-$Version-win-x64.msi"
-        $source = Join-Path $buildRoot "$culture\$baseName"
-        if (-not (Test-Path -LiteralPath $source)) { throw "Missing localized installer: $source" }
-        $destination = Join-Path $artifactsRoot "iWebClassroom-$component-$Version-win-x64-$culture.msi"
-        Copy-Item -LiteralPath $source -Destination $destination -Force
-        $installerFiles.Add($destination)
-    }
+& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'The first agent MSI build failed; retrying once.'
+    & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
 }
+if ($LASTEXITCODE -ne 0) { throw 'Building the agent MSI failed.' }
+& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'The first server MSI build failed; retrying once.'
+    & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
+}
+if ($LASTEXITCODE -ne 0) { throw 'Building the server MSI failed.' }
+
+$agentInstaller = Join-Path $artifactsRoot "iWebClassroom-Agent-$Version-win-x64.msi"
+$serverInstaller = Join-Path $artifactsRoot "iWebClassroom-Server-$Version-win-x64.msi"
+$agentInstallerSource = Join-Path $agentInstallerOutput (Split-Path -Leaf $agentInstaller)
+$serverInstallerSource = Join-Path $serverInstallerOutput (Split-Path -Leaf $serverInstaller)
+if (-not (Test-Path -LiteralPath $agentInstallerSource)) { throw "Missing agent installer: $agentInstallerSource" }
+if (-not (Test-Path -LiteralPath $serverInstallerSource)) { throw "Missing server installer: $serverInstallerSource" }
+Copy-Item -LiteralPath $agentInstallerSource -Destination $agentInstaller -Force
+Copy-Item -LiteralPath $serverInstallerSource -Destination $serverInstaller -Force
+$installerFiles = @($agentInstaller, $serverInstaller)
 
 if (-not [string]::IsNullOrWhiteSpace($SigningCertificateThumbprint)) {
     $normalizedThumbprint = $SigningCertificateThumbprint.Replace(' ', '')
@@ -80,20 +90,18 @@ if (-not [string]::IsNullOrWhiteSpace($SigningCertificateThumbprint)) {
     }
 }
 
-$agentStableInstaller = Join-Path $artifactsRoot "iWebClassroom-Agent-$Version-win-x64-pt-PT.msi"
-$serverStableInstaller = Join-Path $artifactsRoot "iWebClassroom-Server-$Version-win-x64-pt-PT.msi"
 $publishedAt = [DateTimeOffset]::UtcNow.ToString('o')
 @{
     component = 'agent'; channel = 'stable'; version = $Version
-    downloadUrl = "https://github.com/RDFonseca82/iWebClassroom/releases/download/v$Version/$(Split-Path -Leaf $agentStableInstaller)"
-    sha256 = (Get-FileHash -LiteralPath $agentStableInstaller -Algorithm SHA256).Hash
+    downloadUrl = "https://github.com/RDFonseca82/iWebClassroom/releases/download/v$Version/$(Split-Path -Leaf $agentInstaller)"
+    sha256 = (Get-FileHash -LiteralPath $agentInstaller -Algorithm SHA256).Hash
     signerThumbprint = $SigningCertificateThumbprint.Replace(' ', '')
     mandatory = $false; publishedAtUtc = $publishedAt
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $artifactsRoot 'agent-stable.json') -Encoding UTF8
 @{
     component = 'server'; channel = 'stable'; version = $Version
-    downloadUrl = "https://github.com/RDFonseca82/iWebClassroom/releases/download/v$Version/$(Split-Path -Leaf $serverStableInstaller)"
-    sha256 = (Get-FileHash -LiteralPath $serverStableInstaller -Algorithm SHA256).Hash
+    downloadUrl = "https://github.com/RDFonseca82/iWebClassroom/releases/download/v$Version/$(Split-Path -Leaf $serverInstaller)"
+    sha256 = (Get-FileHash -LiteralPath $serverInstaller -Algorithm SHA256).Hash
     signerThumbprint = $SigningCertificateThumbprint.Replace(' ', '')
     mandatory = $false; publishedAtUtc = $publishedAt
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $artifactsRoot 'server-stable.json') -Encoding UTF8

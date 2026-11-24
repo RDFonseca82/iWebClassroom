@@ -44,9 +44,10 @@ const translations = {
 };
 
 const detectedLanguage = navigator.language?.toLowerCase().startsWith("es") ? "es" : navigator.language?.toLowerCase().startsWith("en") ? "en" : "pt-PT";
+const storedLanguage = localStorage.getItem("language");
 const state = {
   pin: sessionStorage.getItem("teacher-pin") || "", agents: [], lessons: [], selected: new Set(), renderedLessonId: null, durationInitialized: false,
-  language: localStorage.getItem("language") || detectedLanguage
+  language: storedLanguage || detectedLanguage
 };
 const elements = {
   authPanel: document.querySelector("#auth-panel"), workspace: document.querySelector("#workspace"), authForm: document.querySelector("#auth-form"),
@@ -67,6 +68,19 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n]").forEach(element => element.textContent = t(element.dataset.i18n));
   document.querySelectorAll("[data-i18n-placeholder]").forEach(element => element.placeholder = t(element.dataset.i18nPlaceholder));
   if (state.agents.length) renderOverview(); else updateCount();
+}
+
+async function applyInstallerLanguage() {
+  if (storedLanguage) return;
+  try {
+    const response = await fetch("/api/v1/localization");
+    if (!response.ok) return;
+    const preference = await response.json();
+    if (["pt-PT", "en", "es"].includes(preference.language)) {
+      state.language = preference.language;
+      applyLanguage();
+    }
+  } catch { /* The browser language remains the fallback. */ }
 }
 
 async function api(path, options = {}) {
@@ -215,6 +229,7 @@ document.querySelectorAll("[data-command]").forEach(button => button.addEventLis
 }));
 
 applyLanguage();
+void applyInstallerLanguage();
 fetch("/health").then(response => { if (!response.ok) throw new Error(); document.querySelector("#server-dot").classList.add("online"); document.querySelector("#server-status").dataset.i18n = "serverAvailable"; applyLanguage(); }).catch(() => { document.querySelector("#server-status").dataset.i18n = "serverUnavailable"; applyLanguage(); });
 if (state.pin) loadOverview().then(() => { elements.authPanel.hidden = true; elements.workspace.hidden = false; }).catch(() => logout());
 window.setInterval(() => { if (state.pin) loadOverview().catch(() => {}); }, 10000);
