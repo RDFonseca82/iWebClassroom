@@ -36,6 +36,30 @@ O espelhamento do MVP usa JPEG a aproximadamente 4 imagens por segundo. É adequ
 | `iWebClassroom.Contracts` | contratos partilhados e protocolo de comandos |
 | `iWebClassroom.Updater` | instalador auxiliar que valida e aplica atualizações assinadas |
 
+## Dimensionamento recomendado do servidor
+
+Os valores seguintes são pontos de partida para uma máquina física ou virtual dedicada ao iWebClassroom. O número de **salas com espelhamento simultâneo** é mais importante para a rede do que o número de computadores apenas ligados, porque cada imagem recebida do professor é retransmitida para todos os alunos da respetiva aula.
+
+| Computadores por servidor | Espelhamentos simultâneos previstos | Processador | Memória RAM | Disco do sistema | Rede do servidor | Recomendação |
+| ---: | ---: | --- | ---: | ---: | --- | --- |
+| Até 50 | 1–2 salas | 4 vCPU/cores modernos, 2,5 GHz ou superior | 8 GB | SSD com 80 GB | 1 GbE | Escola pequena ou piloto |
+| 51–150 | Até 5 salas | 6 vCPU/cores modernos | 12–16 GB | SSD com 120 GB | 1 GbE dedicado | Escola pequena/média |
+| 151–300 | Até 10 salas | 8 vCPU/cores modernos | 16 GB | SSD/NVMe com 160 GB | 2,5 GbE recomendado | Servidor dedicado e monitorização obrigatória |
+| 301–500 | Até 15 salas | 12 vCPU/cores modernos | 24–32 GB | NVMe com 250 GB | 10 GbE recomendado | Fazer teste de carga; considerar dois servidores locais |
+| Mais de 500 | Depende das salas ativas | Vários servidores, 8–12 vCPU cada | 16–32 GB por servidor | NVMe com 160–250 GB por servidor | 2,5/10 GbE por servidor | Dividir edifícios, pisos ou conjuntos de salas por servidor |
+
+Requisitos e critérios adicionais:
+
+- utilizar Windows Server 2022 ou 2025 x64, preferencialmente numa máquina virtual dedicada; não alojar no mesmo servidor outras aplicações com muitas ligações persistentes;
+- reservar pelo menos 20% de CPU, memória e largura de banda para picos, reconexões e atualizações;
+- usar armazenamento SSD/NVMe e manter espaço para o Windows, paginação, logs, auditoria, cópias de segurança e pacotes de atualização;
+- ativar WebSockets no proxy IIS/ARR e garantir baixa latência entre o servidor e as VLAN dos alunos;
+- dimensionar a rede com base nas salas que partilham o ecrã ao mesmo tempo. Como referência de planeamento, um JPEG médio de 100–250 KB a 4 imagens por segundo representa aproximadamente 3,2–8 Mbit/s por transmissão para **cada destinatário**. Uma aula com 30 alunos poderá, portanto, gerar cerca de 96–240 Mbit/s de saída do servidor; o valor real depende do conteúdo do ecrã, resolução e compressão;
+- acima de 300 computadores, executar um teste piloto em horário real e acompanhar CPU, memória, ligações TCP, latência e tráfego de saída antes da instalação geral;
+- no MVP atual, o inventário e as aulas são guardados em ficheiros JSON. Para instalações grandes, alta disponibilidade ou mais de 500 computadores por servidor, deverá ser considerada a migração para uma base de dados e uma arquitetura de escalabilidade própria.
+
+Estes valores não são limites rígidos nem substituem testes no ambiente da escola. A própria Microsoft recomenda testes de implantação para definir recursos adequados e indica uma ligação Ethernet de pelo menos 1 Gbit/s para Windows Server. O SignalR mantém ligações TCP persistentes, consumindo memória e ligações do servidor, pelo que a Microsoft recomenda isolar a aplicação e escalar quando necessário. Consulte os [requisitos de hardware do Windows Server](https://learn.microsoft.com/windows-server/get-started/hardware-requirements) e as [orientações de alojamento e escalabilidade do ASP.NET Core SignalR](https://learn.microsoft.com/aspnet/core/signalr/scale).
+
 ## Executar em desenvolvimento
 
 É necessário o SDK .NET 10 no Windows.
