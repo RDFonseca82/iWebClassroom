@@ -1,98 +1,81 @@
 <!doctype html>
-<html lang="pt">
+<html lang="pt-PT">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>iWebClassroom</title>
+  <meta name="theme-color" content="#07162d">
+  <title>iWebClassroom · Consola do professor</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header>
-    <div>
-      <p class="eyebrow" data-i18n="teacherConsole">CONSOLA DO PROFESSOR</p>
-      <h1>iWebClassroom</h1>
-    </div>
-    <div class="header-actions">
-      <a class="admin-link" href="/admin.html" data-i18n="administration">Administração</a>
-      <label class="language-picker"><span data-i18n="language">Idioma</span><select id="language"><option value="pt-PT">Português</option><option value="en">English</option><option value="es">Español</option></select></label>
-      <div class="connection"><span id="server-dot"></span><span id="server-status" data-i18n="checkingServer">A verificar servidor…</span></div>
-    </div>
-  </header>
-
-  <main>
-    <section class="card auth-card" id="auth-panel">
-      <div>
-        <h2 data-i18n="schoolAccess">Acesso à escola</h2>
-        <p data-i18n="tokenHelp">Introduza o PIN de professor. O PIN fica apenas nesta sessão do navegador.</p>
+  <div class="cloud-shell">
+    <aside class="cloud-sidebar">
+      <a class="cloud-brand" href="/">
+        <svg viewBox="0 0 42 42" aria-hidden="true"><path d="M7 10.5 21 4l14 6.5v20L21 38 7 30.5z"/><path d="M13 15.3 21 12l8 3.3v10.9L21 30l-8-3.8z"/><path d="m17.2 21 2.5 2.6 5.5-6"/></svg>
+        <span>iWeb<strong>Classroom</strong><small data-i18n="localServer">Servidor local</small></span>
+      </a>
+      <nav class="cloud-nav">
+        <span>iWebClassroom</span>
+        <a class="active" href="/">
+          <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+          <span data-i18n="teacherConsole">Consola do professor</span>
+        </a>
+        <a href="/admin.html">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/></svg>
+          <span data-i18n="administration">Administração</span>
+        </a>
+      </nav>
+      <div class="sidebar-school">
+        <span data-i18n="localServer">Servidor local</span>
+        <strong>iWebClassroom</strong>
+        <small class="connection"><i id="server-dot"></i><span id="server-status" data-i18n="checkingServer">A verificar servidor…</span></small>
       </div>
-      <form id="auth-form">
-        <input id="teacher-pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="PIN de professor" data-i18n-placeholder="teacherPin" required>
-        <button type="submit" data-i18n="enter">Entrar</button>
-      </form>
-    </section>
+    </aside>
 
-    <div id="workspace" hidden>
-      <section class="toolbar card">
-        <div>
-          <label for="room" data-i18n="classroom">Sala</label>
-          <select id="room"></select>
-        </div>
-        <div>
-          <label for="teacher" data-i18n="teacherWorkstation">Posto do professor</label>
-          <select id="teacher"></select>
-        </div>
-        <div>
-          <label for="duration" data-i18n="duration">Duração</label>
-          <select id="duration">
-            <option value="45">45 min</option>
-            <option value="90">90 min</option>
-            <option value="180" selected>180 min</option>
-            <option value="300">300 min</option>
-          </select>
-        </div>
-        <button id="start-lesson" data-i18n="startLesson">Iniciar aula</button>
-        <button id="end-lesson" class="danger secondary" data-i18n="endLesson" hidden>Terminar aula</button>
-        <button id="refresh" class="secondary" data-i18n="refresh">Atualizar lista</button>
-      </section>
+    <div class="cloud-workspace">
+      <header class="cloud-topbar">
+        <div class="topbar-context"><small>iWebClassroom</small><strong data-i18n="teacherConsole">Consola do professor</strong></div>
+        <label class="language-picker"><span data-i18n="language">Idioma</span><select id="language"><option value="pt-PT">PT</option><option value="en">EN</option><option value="es">ES</option></select></label>
+        <a class="topbar-link" href="/admin.html" data-i18n="administration">Administração</a>
+      </header>
 
-      <section id="lesson-status" class="lesson-status card"></section>
+      <main class="cloud-main">
+        <section class="cloud-card auth-card" id="auth-panel">
+          <div><span class="section-kicker" data-i18n="teacherConsole">CONSOLA DO PROFESSOR</span><h1 data-i18n="schoolAccess">Acesso à escola</h1><p data-i18n="tokenHelp">Introduza o PIN de professor. O PIN fica apenas nesta sessão do navegador.</p></div>
+          <form id="auth-form" class="auth-form"><label><span data-i18n="teacherPin">PIN de professor</span><input id="teacher-pin" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="PIN de professor" data-i18n-placeholder="teacherPin" required></label><button type="submit" data-i18n="enter">Entrar</button></form>
+        </section>
 
-      <section class="layout">
-        <div class="card devices-card">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow" data-i18n="devices">DISPOSITIVOS</p>
-              <h2 data-i18n="computers">Computadores</h2>
+        <div id="workspace" hidden>
+          <div class="page-heading"><div><span class="section-kicker" data-i18n="teacherConsole">CONSOLA DO PROFESSOR</span><h1 data-i18n="classControls">Controlos da aula</h1><p data-i18n="lessonReady">Sala pronta. Selecione um posto de professor e inicie a aula.</p></div></div>
+
+          <section class="cloud-card toolbar">
+            <div><label for="room" data-i18n="classroom">Sala</label><select id="room"></select></div>
+            <div><label for="teacher" data-i18n="teacherWorkstation">Posto do professor</label><select id="teacher"></select></div>
+            <div><label for="duration" data-i18n="duration">Duração</label><select id="duration"><option value="45">45 min</option><option value="90">90 min</option><option value="180" selected>180 min</option><option value="300">300 min</option></select></div>
+            <button id="start-lesson" data-i18n="startLesson">Iniciar aula</button>
+            <button id="end-lesson" class="danger secondary" data-i18n="endLesson" hidden>Terminar aula</button>
+            <button id="refresh" class="secondary" data-i18n="refresh">Atualizar lista</button>
+          </section>
+
+          <section id="lesson-status" class="lesson-status cloud-card"></section>
+
+          <section class="layout">
+            <div class="cloud-card devices-card">
+              <div class="card-heading"><div><span class="section-kicker" data-i18n="devices">DISPOSITIVOS</span><h2 data-i18n="computers">Computadores da sala</h2></div><div class="selection-tools"><span id="selection-count">0 selecionados</span><button id="select-all" class="text-button" data-i18n="selectVisible">Selecionar disponíveis</button></div></div>
+              <div id="agents" class="agent-list"></div>
             </div>
-            <div class="selection-tools"><span id="selection-count">0 selecionados</span><button id="select-all" class="text-button" data-i18n="selectVisible">Selecionar disponíveis</button></div>
-          </div>
-          <div id="agents" class="agent-list"></div>
+
+            <aside class="cloud-card actions-card" id="lesson-actions">
+              <span class="section-kicker" data-i18n="actions">AÇÕES</span><h2 data-i18n="classControls">Controlos da aula</h2>
+              <label for="message" data-i18n="studentMessage">Mensagem aos alunos</label><textarea id="message" maxlength="500" rows="3" placeholder="Escreva uma indicação breve…" data-i18n-placeholder="messagePlaceholder"></textarea><button data-command="message" data-i18n="sendMessage">Enviar mensagem</button>
+              <div class="divider"></div><p class="group-label" data-i18n="openApplication">Abrir aplicação</p><div class="button-grid"><button data-command="app" data-app="notepad" class="secondary" data-i18n="notepad">Bloco de Notas</button><button data-command="app" data-app="calculator" class="secondary" data-i18n="calculator">Calculadora</button></div>
+              <div class="divider"></div><p class="group-label" data-i18n="teacherScreen">Ecrã do professor</p><button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button><button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
+            </aside>
+          </section>
         </div>
-
-        <aside class="card actions-card" id="lesson-actions">
-          <p class="eyebrow" data-i18n="actions">AÇÕES</p>
-          <h2 data-i18n="classControls">Controlos da aula</h2>
-
-          <label for="message" data-i18n="studentMessage">Mensagem aos alunos</label>
-          <textarea id="message" maxlength="500" rows="3" placeholder="Escreva uma indicação breve…" data-i18n-placeholder="messagePlaceholder"></textarea>
-          <button data-command="message" data-i18n="sendMessage">Enviar mensagem</button>
-
-          <div class="divider"></div>
-          <p class="group-label" data-i18n="openApplication">Abrir aplicação</p>
-          <div class="button-grid">
-            <button data-command="app" data-app="notepad" class="secondary" data-i18n="notepad">Bloco de Notas</button>
-            <button data-command="app" data-app="calculator" class="secondary" data-i18n="calculator">Calculadora</button>
-          </div>
-
-          <div class="divider"></div>
-          <p class="group-label" data-i18n="teacherScreen">Ecrã do professor</p>
-          <button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button>
-          <button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
-        </aside>
-      </section>
+      </main>
     </div>
-  </main>
-
+  </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="/app.js" defer></script>
 </body>

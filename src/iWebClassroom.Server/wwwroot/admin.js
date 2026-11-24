@@ -1,8 +1,8 @@
 const translations = {
   "pt-PT": {
-    kicker: "ADMINISTRAÇÃO LOCAL", teacherConsole: "Consola do professor", language: "Idioma",
+    kicker: "ADMINISTRAÇÃO LOCAL", teacherConsole: "Consola do professor", language: "Idioma", localServer: "Servidor local", localManagement: "Gestão desta instalação",
     adminAccess: "Ligar à gestão central", adminHelp: "Use as credenciais técnicas criadas no portal quando este servidor foi registado. O token, a licença e as definições serão obtidos automaticamente.",
-    adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Ligar e entrar", recoveryAccess: "Acesso local de recuperação",
+    adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Ligar e entrar", connecting: "A ligar e sincronizar…", recoveryAccess: "Acesso local de recuperação",
     recoveryHelp: "Utilize apenas quando não for possível contactar a cloud.", cloud: "CLOUD", cloudSync: "Sincronização central",
     syncUsername: "Utilizador do servidor", syncPassword: "Palavra-passe", connect: "Ligar à cloud",
     syncNow: "Sincronizar agora", disconnect: "Remover ligação", settingsKicker: "DEFINIÇÕES",
@@ -22,13 +22,13 @@ const translations = {
     plan: "Plano", maxDevices: "Máximo de dispositivos", maxClassrooms: "Máximo de salas", leaseExpires: "Licença local válida até",
     offlineGrace: "Tolerância offline até", licenseReceived: "Recebida em", active: "Ativa", missing: "Em falta",
     invalid_credentials: "O utilizador ou a palavra-passe do servidor não estão corretos.", inactive_server: "Este servidor ou a escola não estão ativos no portal.",
-    instance_mismatch: "Estas credenciais já estão associadas a outra instalação do servidor.", cloud_unavailable: "Não foi possível contactar a gestão central.",
+    instance_mismatch: "Estas credenciais continuam associadas a outra instalação. No portal central, abra este servidor, escolha «Permitir nova instalação» e tente novamente.", cloud_unavailable: "Não foi possível contactar a gestão central.",
     cloud_request_failed: "A gestão central recusou o pedido.", cloud_configuration_error: "A ligação à gestão central não está corretamente configurada."
   },
   en: {
-    kicker: "LOCAL ADMINISTRATION", teacherConsole: "Teacher console", language: "Language",
+    kicker: "LOCAL ADMINISTRATION", teacherConsole: "Teacher console", language: "Language", localServer: "Local server", localManagement: "Manage this installation",
     adminAccess: "Connect to central management", adminHelp: "Use the technical credentials created in the portal when this server was registered. The token, license and settings will be retrieved automatically.",
-    adminToken: "Administrative token", enter: "Sign in", connectAndEnter: "Connect and sign in", recoveryAccess: "Local recovery access",
+    adminToken: "Administrative token", enter: "Sign in", connectAndEnter: "Connect and sign in", connecting: "Connecting and synchronizing…", recoveryAccess: "Local recovery access",
     recoveryHelp: "Use only when the cloud cannot be reached.", cloud: "CLOUD", cloudSync: "Central synchronization",
     syncUsername: "Server username", syncPassword: "Password", connect: "Connect to cloud",
     syncNow: "Synchronize now", disconnect: "Remove connection", settingsKicker: "SETTINGS",
@@ -48,13 +48,13 @@ const translations = {
     plan: "Plan", maxDevices: "Maximum devices", maxClassrooms: "Maximum classrooms", leaseExpires: "Local license valid until",
     offlineGrace: "Offline grace until", licenseReceived: "Received at", active: "Active", missing: "Missing",
     invalid_credentials: "The server username or password is incorrect.", inactive_server: "This server or school is not active in the portal.",
-    instance_mismatch: "These credentials are already linked to another server installation.", cloud_unavailable: "Central management could not be reached.",
+    instance_mismatch: "These credentials are still linked to another installation. In the central portal, open this server, choose “Allow new installation”, and try again.", cloud_unavailable: "Central management could not be reached.",
     cloud_request_failed: "Central management rejected the request.", cloud_configuration_error: "The central management connection is not configured correctly."
   },
   es: {
-    kicker: "ADMINISTRACIÓN LOCAL", teacherConsole: "Consola del profesor", language: "Idioma",
+    kicker: "ADMINISTRACIÓN LOCAL", teacherConsole: "Consola del profesor", language: "Idioma", localServer: "Servidor local", localManagement: "Gestión de esta instalación",
     adminAccess: "Conectar con la gestión central", adminHelp: "Utilice las credenciales técnicas creadas en el portal al registrar este servidor. El token, la licencia y la configuración se obtendrán automáticamente.",
-    adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Conectar y entrar", recoveryAccess: "Acceso local de recuperación",
+    adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Conectar y entrar", connecting: "Conectando y sincronizando…", recoveryAccess: "Acceso local de recuperación",
     recoveryHelp: "Utilícelo solo cuando no sea posible contactar con la nube.", cloud: "CLOUD", cloudSync: "Sincronización central",
     syncUsername: "Usuario del servidor", syncPassword: "Contraseña", connect: "Conectar a la nube",
     syncNow: "Sincronizar ahora", disconnect: "Eliminar conexión", settingsKicker: "CONFIGURACIÓN",
@@ -74,7 +74,7 @@ const translations = {
     plan: "Plan", maxDevices: "Máximo de dispositivos", maxClassrooms: "Máximo de aulas", leaseExpires: "Licencia local válida hasta",
     offlineGrace: "Tolerancia sin conexión hasta", licenseReceived: "Recibida el", active: "Activa", missing: "Ausente",
     invalid_credentials: "El usuario o la contraseña del servidor no son correctos.", inactive_server: "Este servidor o centro no están activos en el portal.",
-    instance_mismatch: "Estas credenciales ya están asociadas a otra instalación del servidor.", cloud_unavailable: "No se pudo contactar con la gestión central.",
+    instance_mismatch: "Estas credenciales siguen asociadas a otra instalación. En el portal central, abra este servidor, elija «Permitir nueva instalación» y vuelva a intentarlo.", cloud_unavailable: "No se pudo contactar con la gestión central.",
     cloud_request_failed: "La gestión central rechazó la solicitud.", cloud_configuration_error: "La conexión con la gestión central no está configurada correctamente."
   }
 };
@@ -211,6 +211,9 @@ async function load() {
 
 document.querySelector("#auth-form").addEventListener("submit", async event => {
   event.preventDefault();
+  const submitButton = event.currentTarget.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  submitButton.textContent = t("connecting");
   try {
     const response = await fetch("/api/v1/admin/cloud-login", {
       method: "POST",
@@ -235,6 +238,10 @@ document.querySelector("#auth-form").addEventListener("submit", async event => {
     render(model);
     notify(t("connectionSaved"));
   } catch (error) { notify(error.message); }
+  finally {
+    submitButton.disabled = false;
+    submitButton.textContent = t("connectAndEnter");
+  }
 });
 
 document.querySelector("#recovery-form").addEventListener("submit", async event => {

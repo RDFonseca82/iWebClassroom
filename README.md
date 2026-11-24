@@ -96,6 +96,14 @@ A palavra-passe nunca é guardada no servidor local. A API devolve um token indi
 
 O token de `bootstrap-secrets.json` permanece disponível no ecrã em **Acesso local de recuperação**, para permitir a administração quando a cloud estiver indisponível.
 
+Se o servidor for reinstalado, substituído ou perder o seu diretório `ProgramData`, o portal central mantém a associação segura à instalação anterior. Nesse caso:
+
+1. abra a ficha desse servidor em `cloud.iwebclassroom.app`;
+2. na área **Credenciais e acesso**, escolha **Permitir nova instalação** e confirme;
+3. volte à administração do servidor local e use o mesmo utilizador e palavra-passe técnicos.
+
+Esta operação invalida imediatamente o token da instalação anterior, limpa a identidade e os contadores reportados por essa instalação e mantém a palavra-passe técnica. Não é necessária qualquer alteração à base de dados.
+
 São sincronizados HTTPS, limites do espelhamento, duração predefinida das aulas, aplicações permitidas e política de atualização. Segredos, caminhos locais e identidade dos agentes nunca são enviados como configuração.
 
 O portal cloud é mantido no seu projeto de implantação próprio. Este repositório contém apenas o cliente da API no servidor Windows; as alterações de base de dados e do portal são entregues diretamente nesse projeto.
@@ -112,8 +120,8 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.5.2-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.5.2-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.5.3-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.5.3-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.

@@ -1,6 +1,6 @@
 const translations = {
   "pt-PT": {
-    teacherConsole: "CONSOLA DO PROFESSOR", language: "Idioma", administration: "Administração", checkingServer: "A verificar servidor…", schoolAccess: "Acesso do professor",
+    teacherConsole: "CONSOLA DO PROFESSOR", language: "Idioma", administration: "Administração", localServer: "Servidor local", checkingServer: "A verificar servidor…", schoolAccess: "Acesso do professor",
     tokenHelp: "Introduza o PIN de professor. O PIN fica apenas nesta sessão do navegador.", teacherPin: "PIN de professor", enter: "Entrar",
     classroom: "Sala", teacherWorkstation: "Posto do professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
@@ -14,7 +14,7 @@ const translations = {
     lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível"
   },
   en: {
-    teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", checkingServer: "Checking server…", schoolAccess: "Teacher access",
+    teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
     tokenHelp: "Enter the teacher PIN. The PIN is kept only for this browser session.", teacherPin: "Teacher PIN", enter: "Sign in",
     classroom: "Room", teacherWorkstation: "Teacher workstation", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
@@ -28,7 +28,7 @@ const translations = {
     lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable"
   },
   es: {
-    teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
+    teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
     tokenHelp: "Introduzca el PIN de profesor. El PIN se conserva solo durante esta sesión del navegador.", teacherPin: "PIN de profesor", enter: "Entrar",
     classroom: "Aula", teacherWorkstation: "Puesto del profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",

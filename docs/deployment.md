@@ -12,6 +12,10 @@
 8. No portal central, registe o servidor e guarde o utilizador e a palavra-passe técnicos apresentados uma única vez.
 9. Abra `/admin.html` no servidor e introduza diretamente o utilizador e a palavra-passe técnicos. O servidor obtém o token, a licença e todas as definições na sincronização inicial. A palavra-passe não é guardada.
 
+### Reinstalar ou substituir o servidor
+
+O portal associa cada credencial técnica a uma única instalação através do `instance_uid`. Antes de ligar uma reinstalação ou um servidor de substituição, abra a ficha do servidor no portal central e escolha **Permitir nova instalação** em **Credenciais e acesso**. A operação invalida o token anterior, mas mantém o utilizador e a palavra-passe técnicos. Depois, repita a ligação em `/admin.html`. Não é necessária uma migração SQL.
+
 ## Agentes
 
 1. Publique o agente e o atualizador para `win-x64`.
