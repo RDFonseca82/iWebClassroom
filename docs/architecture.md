@@ -3,7 +3,9 @@
 ## Componentes
 
 ```text
-Professor ── HTTPS ──> Consola web / Servidor da escola
+Gestão central <── HTTPS/token ──> Servidor da escola
+                                      │
+Professor ── HTTPS ──> Consola web ───┤
                               │
                               │ SignalR sobre WebSocket (TLS)
                     ┌─────────┴─────────┐
@@ -13,6 +15,15 @@ Professor ── HTTPS ──> Consola web / Servidor da escola
 ```
 
 O servidor mantém a identidade permanente do computador, a sala predefinida, a função e o estado de presença dos agentes. Os tokens são guardados apenas como hash SHA-256 no servidor. No agente, o token é cifrado com DPAPI ao nível da máquina e guardado em `ProgramData`, para continuar disponível quando muda o utilizador Windows.
+
+### Sincronização central
+
+1. O portal cria uma identidade técnica exclusiva para cada servidor, mesmo quando a escola tem vários.
+2. O servidor troca uma vez o utilizador e a palavra-passe por um token opaco através de HTTPS.
+3. O token fica cifrado com DPAPI ao nível da máquina; a palavra-passe não é guardada.
+4. O servidor envia a revisão conhecida, o hash da configuração e as alterações locais.
+5. O portal incrementa a revisão ao aceitar uma alteração. Uma revisão central mais recente prevalece sobre uma alteração local desatualizada.
+6. A indisponibilidade da Internet não bloqueia aulas nem agentes; a sincronização volta a tentar em segundo plano.
 
 ## Fluxos principais
 

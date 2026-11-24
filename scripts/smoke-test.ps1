@@ -63,6 +63,24 @@ try {
 
     $teacherHeaders = @{ 'X-Teacher-Pin' = $teacherPin }
     $overview = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
+    $settingsBefore = Invoke-RestMethod -Uri "$baseUrl/api/v1/settings" -Headers $headers
+    $settingsAfter = Invoke-RestMethod -Method Put -Uri "$baseUrl/api/v1/settings" -Headers $headers -ContentType 'application/json' -Body (@{
+        security = @{ require_https = $false }
+        classroom = @{
+            maximum_frame_bytes = 1250000
+            minimum_frame_interval_milliseconds = 200
+            default_lesson_duration_minutes = 75
+            allowed_application_ids = @('notepad', 'calculator')
+        }
+        update = @{
+            enabled = $true
+            manifest_url = 'https://github.com/RDFonseca82/iWebClassroom/releases/latest/download/server-stable.json'
+            signer_thumbprint = ''
+            check_interval_hours = 12
+        }
+    } | ConvertTo-Json -Depth 5)
+    Start-Sleep -Milliseconds 500
+    $overviewAfterSettings = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
     $lesson = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
         roomId = $roomId; teacherAgentId = $teacher.agentId; durationMinutes = 90
     } | ConvertTo-Json)
@@ -86,10 +104,13 @@ try {
         $unauthorizedOverview.StatusCode -ne 401 -or
         $duplicateLesson.StatusCode -ne 409 -or
         $outsideCommand.StatusCode -ne 400 -or
+        $settingsBefore.cloud.connected -ne $false -or
+        $settingsAfter.configuration.classroom.default_lesson_duration_minutes -ne 75 -or
+        $overviewAfterSettings.defaultLessonDurationMinutes -ne 75 -or
         $command.targetCount -ne 1 -or
         $lessonCommand.targetCount -ne 1 -or
         @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0) {
-        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; adminTargets={7}; lessonTargets={8}; activeLessons={9}." -f
+        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudConnected={7}; duration={8}; liveDuration={9}; adminTargets={10}; lessonTargets={11}; activeLessons={12}." -f
             $health.status,
             $agents.Count,
             $overview.agents.Count,
@@ -97,6 +118,9 @@ try {
             $unauthorizedOverview.StatusCode,
             $duplicateLesson.StatusCode,
             $outsideCommand.StatusCode,
+            $settingsBefore.cloud.connected,
+            $settingsAfter.configuration.classroom.default_lesson_duration_minutes,
+            $overviewAfterSettings.defaultLessonDurationMinutes,
             $command.targetCount,
             $lessonCommand.targetCount,
             @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count)

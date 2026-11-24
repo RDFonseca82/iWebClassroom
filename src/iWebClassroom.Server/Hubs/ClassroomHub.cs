@@ -10,7 +10,7 @@ namespace IWebClassroom.Server.Hubs;
 public sealed class ClassroomHub(
     AgentRegistry registry,
     LessonRegistry lessons,
-    IOptions<ClassroomOptions> options,
+    IOptionsMonitor<ClassroomOptions> options,
     ILogger<ClassroomHub> logger) : Hub
 {
     private static readonly ConcurrentDictionary<string, long> LastFrameTicks = new(StringComparer.Ordinal);
@@ -56,14 +56,14 @@ public sealed class ClassroomHub(
             throw new HubException("Only the teacher of an active lesson can publish a screen.");
         }
 
-        if (jpegFrame.Length == 0 || jpegFrame.Length > options.Value.MaximumFrameBytes)
+        if (jpegFrame.Length == 0 || jpegFrame.Length > options.CurrentValue.MaximumFrameBytes)
         {
             throw new HubException("The screen frame has an invalid size.");
         }
 
         var now = Environment.TickCount64;
         var previous = LastFrameTicks.GetOrAdd(Context.ConnectionId, 0);
-        if (now - previous < options.Value.MinimumFrameIntervalMilliseconds)
+        if (now - previous < options.CurrentValue.MinimumFrameIntervalMilliseconds)
         {
             return;
         }

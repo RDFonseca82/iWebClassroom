@@ -15,6 +15,9 @@ O iWebClassroom controla computadores de menores e deve ser tratado como softwar
 - limite de tamanho e frequência dos frames;
 - auditoria de tipo, data e destinos dos comandos;
 - atualizações por HTTPS, SHA-256, Authenticode e certificado fixado localmente;
+- credenciais técnicas separadas por servidor, trocadas por um token opaco guardado com DPAPI ao nível da máquina;
+- palavra-passe de sincronização apenas como hash adaptativo no portal e nunca persistida no servidor local;
+- associação do token ao `instance_uid`, rotação e suspensão individual de cada servidor;
 - indicador visível enquanto o professor partilha o ecrã.
 
 ## Limitações do MVP

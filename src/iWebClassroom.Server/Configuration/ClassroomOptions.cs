@@ -10,5 +10,7 @@ public sealed class ClassroomOptions
 
     public int MinimumFrameIntervalMilliseconds { get; init; } = 150;
 
+    public int DefaultLessonDurationMinutes { get; init; } = 180;
+
     public IReadOnlyCollection<string> AllowedApplicationIds { get; init; } = ["notepad", "calculator"];
 }

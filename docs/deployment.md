@@ -9,6 +9,8 @@
 5. Proteja a pasta `C:\ProgramData\iWebClassroom\Server` e faça cópias de segurança.
 6. Leia as credenciais administrativas em `C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json` e o PIN de professor em `teacher-access.json` na mesma pasta.
 7. Abra a consola por HTTPS e confirme `/health`.
+8. No portal central, registe o servidor e guarde o utilizador e a palavra-passe técnicos apresentados uma única vez.
+9. Abra `/admin.html` no servidor, introduza o token administrativo e ligue-o à cloud com essas credenciais.
 
 ## Agentes
 
@@ -26,6 +28,7 @@ Numa sala fixa, use a mesma sala predefinida em todos os postos de aluno e marqu
 | --- | --- | --- | --- |
 | Professores/alunos | Servidor/proxy | TCP 443 | painel, API e WebSocket SignalR |
 | Servidor | GitHub Releases | TCP 443 | atualizações, se ativas |
+| Servidor | `cloud.iwebclassroom.app` | TCP 443 | autenticação e sincronização central |
 
 Não é necessária qualquer ligação iniciada do servidor para os computadores dos alunos.
 
@@ -35,5 +38,7 @@ Não é necessária qualquer ligação iniciada do servidor para os computadores
 - `lessons.json`: sessões de aula ainda ativas e respetiva expiração;
 - `audit.jsonl`: identificador, tipo, destinos e data de cada comando;
 - `releases/*.json`: manifestos de atualização fornecidos aos agentes.
+- `cloud-sync-state.json`: identidade cloud, revisão e token cifrado com DPAPI;
+- `cloud-settings.json`: definições sincronizadas, sem palavras-passe nem tokens.
 
 Por omissão estes dados ficam sob o diretório de conteúdo. Na instalação, devem ser redirecionados para `C:\ProgramData\iWebClassroom\Server` em `appsettings.Local.json`.

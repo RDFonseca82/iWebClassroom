@@ -1,0 +1,144 @@
+using System.Reflection;
+using IWebClassroom.Server.Configuration;
+using Microsoft.Extensions.Options;
+
+namespace IWebClassroom.Server.Services;
+
+public sealed class CloudSyncService(
+    CloudSyncClient client,
+    CloudSyncStateStore stateStore,
+    CloudConfigurationStore configurationStore,
+    AgentRegistry agents,
+    IOptionsMonitor<CloudSyncOptions> options,
+    ILogger<CloudSyncService> logger)
+{
+    private readonly SemaphoreSlim _syncLock = new(1, 1);
+
+    public CloudSyncStatus Status()
+    {
+        var state = stateStore.Snapshot();
+        return new CloudSyncStatus(
+            options.CurrentValue.Enabled,
+            state.ServerId.HasValue && !string.IsNullOrWhiteSpace(stateStore.GetAccessToken()),
+            state.InstanceUid,
+            state.ServerId,
+            state.SchoolId,
+            state.SchoolName,
+            state.ConfigurationRevision,
+            state.Status,
+            state.LastSyncUtc,
+            state.LastError,
+            state.Conflict,
+            options.CurrentValue.BaseUrl);
+    }
+
+    public async Task<CloudSyncStatus> ConnectAsync(CloudConnectRequest request, CancellationToken cancellationToken)
+    {
+        if (!options.CurrentValue.Enabled)
+        {
+            throw new InvalidOperationException("Cloud synchronization is disabled on this server.");
+        }
+
+        var state = stateStore.Snapshot();
+        var version = CurrentVersion();
+        var response = await client.AuthenticateAsync(new CloudAuthRequest(
+            request.Username.Trim(),
+            request.Password,
+            state.InstanceUid,
+            Environment.MachineName,
+            version), cancellationToken);
+
+        var configurationHash = string.Empty;
+        if (response.Configuration.Revision > 0)
+        {
+            await configurationStore.ApplyAsync(response.Configuration.Settings, cancellationToken);
+            configurationHash = response.Configuration.Settings.Hash();
+        }
+
+        await stateStore.SaveAuthenticationAsync(response, configurationHash, cancellationToken);
+        logger.LogInformation(
+            "Cloud synchronization connected to school {SchoolName} with server id {ServerId}.",
+            response.SchoolName,
+            response.ServerId);
+        await SynchronizeAsync(cancellationToken);
+        return Status();
+    }
+
+    public async Task<CloudSyncStatus> SynchronizeAsync(CancellationToken cancellationToken)
+    {
+        await _syncLock.WaitAsync(cancellationToken);
+        try
+        {
+            var state = stateStore.Snapshot();
+            var token = stateStore.GetAccessToken();
+            if (!options.CurrentValue.Enabled || !state.ServerId.HasValue || string.IsNullOrWhiteSpace(token))
+            {
+                return Status();
+            }
+
+            var current = configurationStore.Current;
+            var currentHash = current.Hash();
+            var agentList = agents.List();
+            var request = new CloudSyncRequest(
+                state.InstanceUid,
+                CurrentVersion(),
+                CurrentVersion(),
+                agentList.Count,
+                agentList.Select(item => item.ClassroomId).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+                new CloudConfigurationRequest(
+                    state.ConfigurationRevision,
+                    !string.Equals(currentHash, state.ConfigurationHash, StringComparison.OrdinalIgnoreCase),
+                    current));
+
+            var response = await client.SynchronizeAsync(state.ServerId.Value, token, request, cancellationToken);
+            var remoteHash = response.Configuration.Settings.Hash();
+            if (!string.Equals(remoteHash, currentHash, StringComparison.OrdinalIgnoreCase))
+            {
+                await configurationStore.ApplyAsync(response.Configuration.Settings, cancellationToken);
+            }
+
+            await stateStore.UpdateSynchronizationAsync(
+                response.Configuration.Revision,
+                remoteHash,
+                response.Configuration.Conflict,
+                cancellationToken);
+            logger.LogInformation(
+                "Cloud synchronization completed at revision {Revision}{Conflict}.",
+                response.Configuration.Revision,
+                response.Configuration.Conflict ? " with a resolved conflict" : string.Empty);
+            return Status();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            await stateStore.SetErrorAsync(exception.Message, CancellationToken.None);
+            logger.LogError(exception, "Cloud synchronization failed.");
+            throw;
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
+    }
+
+    public async Task<CloudSyncStatus> UpdateLocalConfigurationAsync(CloudServerSettings settings, CancellationToken cancellationToken)
+    {
+        await configurationStore.ApplyAsync(settings, cancellationToken);
+        if (Status().Connected)
+        {
+            await SynchronizeAsync(cancellationToken);
+        }
+        return Status();
+    }
+
+    public async Task<CloudSyncStatus> DisconnectAsync(CancellationToken cancellationToken)
+    {
+        await stateStore.DisconnectAsync(cancellationToken);
+        logger.LogInformation("Cloud synchronization credentials were removed from this server.");
+        return Status();
+    }
+
+    public CloudServerSettings Configuration() => configurationStore.Current;
+
+    private static string CurrentVersion() =>
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+}

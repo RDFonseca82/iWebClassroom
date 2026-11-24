@@ -17,7 +17,8 @@ Este repositório contém um MVP funcional com:
 - registo de auditoria dos comandos, sem guardar o conteúdo das mensagens;
 - atualização automática do agente e do servidor por pacote MSI assinado, SHA-256 e certificado Authenticode fixado localmente;
 - scripts de publicação e instalação Windows;
-- pipeline GitHub Actions para compilar e produzir artefactos Windows.
+- pipeline GitHub Actions para compilar e produzir artefactos Windows;
+- sincronização bidirecional das definições entre cada servidor escolar e `cloud.iwebclassroom.app`.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O agente escolhe o idioma do Windows; a consola web deteta o navegador e permite alteração manual.
 
@@ -56,6 +57,21 @@ dotnet run --project src/iWebClassroom.Agent
 ```
 
 O agente só aceita HTTP em `localhost`. Numa escola, o endereço tem obrigatoriamente de usar HTTPS.
+
+## Ligação à gestão central
+
+Cada escola pode ter vários servidores. No portal central, registe cada servidor com um utilizador técnico e uma palavra-passe próprios. No servidor local:
+
+1. abra `https://<servidor>/admin.html`;
+2. autentique-se com o token administrativo de `bootstrap-secrets.json`;
+3. introduza as credenciais técnicas mostradas pelo portal;
+4. confirme que o estado passa a **Sincronizado**.
+
+A palavra-passe é usada uma única vez. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`. A cada 60 segundos são enviados inventário, versões e alterações locais, e recebidas as definições centrais. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
+
+São sincronizados HTTPS, limites do espelhamento, duração predefinida das aulas, aplicações permitidas e política de atualização. Segredos, caminhos locais e identidade dos agentes nunca são enviados como configuração.
+
+O portal cloud é mantido no seu projeto de implantação próprio. Este repositório contém apenas o cliente da API no servidor Windows; as alterações de base de dados e do portal são entregues diretamente nesse projeto.
 
 ## Instaladores Windows
 

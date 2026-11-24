@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iWebClassroom · Administração</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div><p class="eyebrow" data-i18n="kicker">ADMINISTRAÇÃO LOCAL</p><h1>iWebClassroom</h1></div>
+    <div class="header-actions">
+      <a class="admin-link" href="/" data-i18n="teacherConsole">Consola do professor</a>
+      <label class="language-picker"><span data-i18n="language">Idioma</span><select id="language"><option value="pt-PT">Português</option><option value="en">English</option><option value="es">Español</option></select></label>
+    </div>
+  </header>
+  <main>
+    <section class="card auth-card" id="auth-panel">
+      <div><h2 data-i18n="adminAccess">Acesso administrativo</h2><p data-i18n="adminHelp">Introduza o token administrativo guardado em bootstrap-secrets.json.</p></div>
+      <form id="auth-form"><input id="admin-token" type="password" autocomplete="current-password" data-i18n-placeholder="adminToken" placeholder="Token administrativo" required><button type="submit" data-i18n="enter">Entrar</button></form>
+    </section>
+
+    <div id="admin-workspace" hidden>
+      <section class="card admin-section">
+        <div class="card-heading"><div><p class="eyebrow" data-i18n="cloud">CLOUD</p><h2 data-i18n="cloudSync">Sincronização central</h2></div><span id="cloud-badge" class="status-pill">—</span></div>
+        <div id="cloud-details" class="admin-summary"></div>
+        <form id="cloud-connect-form" class="cloud-connect-grid">
+          <label><span data-i18n="syncUsername">Utilizador de sincronização</span><input id="sync-username" autocomplete="username" required></label>
+          <label><span data-i18n="syncPassword">Palavra-passe</span><input id="sync-password" type="password" autocomplete="current-password" minlength="16" required></label>
+          <button type="submit" data-i18n="connect">Ligar à cloud</button>
+        </form>
+        <div class="admin-actions"><button id="sync-now" class="secondary" data-i18n="syncNow">Sincronizar agora</button><button id="disconnect-cloud" class="danger secondary" data-i18n="disconnect">Remover ligação</button></div>
+      </section>
+
+      <section class="card admin-section">
+        <div class="card-heading"><div><p class="eyebrow" data-i18n="settingsKicker">DEFINIÇÕES</p><h2 data-i18n="serverSettings">Configuração sincronizada</h2><p data-i18n="settingsHelp">As alterações são aplicadas localmente e enviadas para a gestão central.</p></div></div>
+        <form id="settings-form" class="settings-grid">
+          <label><span data-i18n="requireHttps">HTTPS obrigatório</span><select id="require-https"><option value="false" data-i18n="no">Não</option><option value="true" data-i18n="yes">Sim</option></select></label>
+          <label><span data-i18n="lessonDuration">Duração predefinida da aula</span><input id="lesson-duration" type="number" min="15" max="480" required></label>
+          <label><span data-i18n="frameSize">Tamanho máximo do frame</span><input id="frame-size" type="number" min="100000" max="5000000" required></label>
+          <label><span data-i18n="frameInterval">Intervalo mínimo entre frames</span><input id="frame-interval" type="number" min="100" max="5000" required></label>
+          <label class="wide"><span data-i18n="allowedApps">Aplicações permitidas</span><textarea id="allowed-apps" rows="4" required></textarea></label>
+          <label><span data-i18n="updates">Atualizações automáticas</span><select id="update-enabled"><option value="false" data-i18n="disabled">Desativadas</option><option value="true" data-i18n="enabled">Ativas</option></select></label>
+          <label><span data-i18n="updateInterval">Intervalo de atualização (horas)</span><input id="update-interval" type="number" min="1" max="168" required></label>
+          <label class="wide"><span data-i18n="manifestUrl">URL do manifesto</span><input id="manifest-url" type="url" required></label>
+          <label class="wide"><span data-i18n="thumbprint">Impressão digital Authenticode</span><input id="signer-thumbprint" maxlength="128"></label>
+          <div class="form-actions wide"><button type="submit" data-i18n="saveSettings">Guardar e sincronizar</button></div>
+        </form>
+      </section>
+    </div>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="/admin.js" defer></script>
+</body>
+</html>

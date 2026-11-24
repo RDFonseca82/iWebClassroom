@@ -50,7 +50,8 @@ public sealed record LessonSessionSummary(
 
 public sealed record TeacherOverview(
     IReadOnlyCollection<AgentSummary> Agents,
-    IReadOnlyCollection<LessonSessionSummary> Lessons);
+    IReadOnlyCollection<LessonSessionSummary> Lessons,
+    int DefaultLessonDurationMinutes);
 
 public sealed record UpdateManifest(
     string Component,

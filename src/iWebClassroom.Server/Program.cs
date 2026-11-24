@@ -22,17 +22,31 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 builder.Configuration.AddEnvironmentVariables();
+var configuredDataDirectory = builder.Configuration["Classroom:DataDirectory"] ?? "data";
+builder.Configuration.AddJsonFile(
+    CloudConfigurationStore.ResolvePath(builder.Environment.ContentRootPath, configuredDataDirectory),
+    optional: true,
+    reloadOnChange: true);
+// Environment variables remain the highest-priority local override, including in Windows service deployments.
+builder.Configuration.AddEnvironmentVariables();
 BootstrapSecrets.AddOrCreate(builder);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 builder.Services.Configure<ClassroomOptions>(builder.Configuration.GetSection("Classroom"));
 builder.Services.Configure<ServerUpdateOptions>(builder.Configuration.GetSection("Update"));
+builder.Services.Configure<CloudSyncOptions>(builder.Configuration.GetSection("CloudSync"));
 builder.Services.AddSingleton<AgentRegistry>();
 builder.Services.AddSingleton<LessonRegistry>();
+builder.Services.AddSingleton<CloudSyncStateStore>();
+builder.Services.AddSingleton<CloudConfigurationStore>();
+builder.Services.AddSingleton<CloudSyncClient>();
+builder.Services.AddSingleton<CloudSyncService>();
 builder.Services.AddSingleton<CommandAuditStore>();
 builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
+builder.Services.AddHttpClient(nameof(CloudSyncClient));
+builder.Services.AddHostedService<CloudSyncWorker>();
 builder.Services.AddHostedService<LessonExpirationWorker>();
 builder.Services.AddHostedService<ServerUpdateWorker>();
 builder.Services.AddSignalR(options =>
@@ -68,6 +82,8 @@ var registry = app.Services.GetRequiredService<AgentRegistry>();
 await registry.InitializeAsync(app.Lifetime.ApplicationStopping);
 var lessons = app.Services.GetRequiredService<LessonRegistry>();
 await lessons.InitializeAsync(app.Lifetime.ApplicationStopping);
+var cloudState = app.Services.GetRequiredService<CloudSyncStateStore>();
+await cloudState.InitializeAsync(app.Lifetime.ApplicationStopping);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -127,10 +143,109 @@ app.MapGet("/api/v1/teacher/overview", (
     HttpRequest request,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    IOptionsMonitor<ClassroomOptions> classroomOptions,
     IConfiguration configuration) =>
     IsTeacher(request, configuration)
-        ? Results.Ok(new TeacherOverview(agentRegistry.List(), lessonRegistry.List()))
+        ? Results.Ok(new TeacherOverview(
+            agentRegistry.List(),
+            lessonRegistry.List(),
+            Math.Clamp(classroomOptions.CurrentValue.DefaultLessonDurationMinutes, 15, 480)))
         : Results.Unauthorized()).RequireRateLimiting("teacher");
+
+app.MapGet("/api/v1/settings", (
+    HttpRequest request,
+    CloudSyncService cloud,
+    IConfiguration configuration) =>
+    IsAdmin(request, configuration)
+        ? Results.Ok(new { configuration = cloud.Configuration(), cloud = cloud.Status() })
+        : Results.Unauthorized());
+
+app.MapPut("/api/v1/settings", async (
+    HttpRequest request,
+    CloudServerSettings settings,
+    CloudSyncService cloud,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsAdmin(request, configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var error = ValidateCloudSettings(settings);
+    if (error is not null)
+    {
+        return Results.BadRequest(new { error });
+    }
+
+    try
+    {
+        var status = await cloud.UpdateLocalConfigurationAsync(settings, cancellationToken);
+        return Results.Ok(new { configuration = cloud.Configuration(), cloud = status });
+    }
+    catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+});
+
+app.MapPost("/api/v1/cloud/connect", async (
+    HttpRequest request,
+    CloudConnectRequest credentials,
+    CloudSyncService cloud,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsAdmin(request, configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    if (credentials.Username is not { Length: >= 4 and <= 160 } ||
+        credentials.Password is not { Length: >= 16 and <= 512 })
+    {
+        return Results.BadRequest(new { error = "As credenciais de sincronização não têm o formato esperado." });
+    }
+
+    try
+    {
+        return Results.Ok(await cloud.ConnectAsync(credentials, cancellationToken));
+    }
+    catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+});
+
+app.MapPost("/api/v1/cloud/sync", async (
+    HttpRequest request,
+    CloudSyncService cloud,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsAdmin(request, configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        return Results.Ok(await cloud.SynchronizeAsync(cancellationToken));
+    }
+    catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
+    {
+        return Results.BadRequest(new { error = exception.Message });
+    }
+});
+
+app.MapDelete("/api/v1/cloud/connection", async (
+    HttpRequest request,
+    CloudSyncService cloud,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+    IsAdmin(request, configuration)
+        ? Results.Ok(await cloud.DisconnectAsync(cancellationToken))
+        : Results.Unauthorized());
 
 app.MapPost("/api/v1/lessons", async (
     HttpRequest httpRequest,
@@ -224,7 +339,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     LessonRegistry lessonRegistry,
     IHubContext<ClassroomHub> hub,
     CommandAuditStore audit,
-    IOptions<ClassroomOptions> options,
+    IOptionsMonitor<ClassroomOptions> options,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
@@ -238,7 +353,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
         return Results.NotFound(new { error = ApiText.Get(httpRequest, "LessonNotFound") });
     }
 
-    var validationError = ValidateCommand(httpRequest, request, options.Value);
+    var validationError = ValidateCommand(httpRequest, request, options.CurrentValue);
     if (validationError is not null)
     {
         return Results.BadRequest(new { error = validationError });
@@ -273,7 +388,7 @@ app.MapPost("/api/v1/commands", async (
     AgentRegistry agentRegistry,
     IHubContext<ClassroomHub> hub,
     CommandAuditStore audit,
-    IOptions<ClassroomOptions> options,
+    IOptionsMonitor<ClassroomOptions> options,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
@@ -282,7 +397,7 @@ app.MapPost("/api/v1/commands", async (
         return Results.Unauthorized();
     }
 
-    var validationError = ValidateCommand(httpRequest, request, options.Value);
+    var validationError = ValidateCommand(httpRequest, request, options.CurrentValue);
     if (validationError is not null)
     {
         return Results.BadRequest(new { error = validationError });
@@ -413,6 +528,29 @@ static string? ValidateCommand(HttpRequest httpRequest, CommandRequest request, 
             break;
         default:
             return ApiText.Get(httpRequest, "UnsupportedCommand");
+    }
+
+    return null;
+}
+
+static string? ValidateCloudSettings(CloudServerSettings settings)
+{
+    if (settings.Classroom.MaximumFrameBytes is < 100_000 or > 5_000_000 ||
+        settings.Classroom.MinimumFrameIntervalMilliseconds is < 100 or > 5_000 ||
+        settings.Classroom.DefaultLessonDurationMinutes is < 15 or > 480 ||
+        settings.Classroom.AllowedApplicationIds.Count is < 1 or > 100 ||
+        settings.Classroom.AllowedApplicationIds.Any(id =>
+            string.IsNullOrWhiteSpace(id) || id.Length > 64 || !id.All(character => char.IsAsciiLetterOrDigit(character) || character is '.' or '_' or '-')))
+    {
+        return "A configuração da sala contém valores inválidos.";
+    }
+
+    if (!Uri.TryCreate(settings.Update.ManifestUrl, UriKind.Absolute, out var manifestUri) ||
+        manifestUri.Scheme != Uri.UriSchemeHttps ||
+        settings.Update.CheckIntervalHours is < 1 or > 168 ||
+        settings.Update.SignerThumbprint.Length > 128)
+    {
+        return "A configuração de atualização não é válida.";
     }
 
     return null;

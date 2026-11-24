@@ -11,27 +11,22 @@ namespace IWebClassroom.Server.Services;
 
 public sealed class ServerUpdateWorker(
     IHttpClientFactory httpClientFactory,
-    IOptions<ServerUpdateOptions> options,
+    IOptionsMonitor<ServerUpdateOptions> options,
     IWebHostEnvironment environment,
     ILogger<ServerUpdateWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var policy = options.Value;
-        if (!policy.Enabled || string.IsNullOrWhiteSpace(policy.SignerThumbprint) ||
-            !Uri.TryCreate(policy.ManifestUrl, UriKind.Absolute, out var manifestUri) ||
-            manifestUri.Scheme != Uri.UriSchemeHttps)
-        {
-            logger.LogInformation("Automatic server updates are disabled or do not have a pinned signing certificate.");
-            return;
-        }
-
-        var interval = TimeSpan.FromHours(Math.Clamp(policy.CheckIntervalHours, 1, 168));
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                if (await TryStartUpdateAsync(manifestUri, policy, stoppingToken))
+                var policy = options.CurrentValue;
+                if (policy.Enabled &&
+                    !string.IsNullOrWhiteSpace(policy.SignerThumbprint) &&
+                    Uri.TryCreate(policy.ManifestUrl, UriKind.Absolute, out var manifestUri) &&
+                    manifestUri.Scheme == Uri.UriSchemeHttps &&
+                    await TryStartUpdateAsync(manifestUri, policy, stoppingToken))
                 {
                     Environment.Exit(0);
                     return;
@@ -46,6 +41,10 @@ public sealed class ServerUpdateWorker(
                 logger.LogError(exception, "The automatic server update check failed.");
             }
 
+            var currentPolicy = options.CurrentValue;
+            var interval = currentPolicy.Enabled && !string.IsNullOrWhiteSpace(currentPolicy.SignerThumbprint)
+                ? TimeSpan.FromHours(Math.Clamp(currentPolicy.CheckIntervalHours, 1, 168))
+                : TimeSpan.FromMinutes(5);
             await Task.Delay(interval, stoppingToken);
         }
     }
