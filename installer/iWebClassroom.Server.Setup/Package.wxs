@@ -26,7 +26,7 @@
       <Property Id="DefaultUIFont" Value="DlgFont8" />
 
       <Dialog Id="ServerConfigurationDlg" Width="370" Height="230" Title="iWebClassroom Server">
-        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes"
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" TabSkip="no"
                  Text="{\DlgTitleFont}Instalação / Setup / Instalación" />
         <Control Id="Description" Type="Text" X="20" Y="43" Width="330" Height="36" Transparent="yes" NoPrefix="yes"
                  Text="Escolha o idioma inicial das consolas. / Choose the initial console language. / Elija el idioma inicial de las consolas." />
@@ -47,8 +47,61 @@
         </Control>
       </Dialog>
 
+      <Dialog Id="ServerProgressDlg" Width="370" Height="230" Title="iWebClassroom Server" Modeless="yes">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" TabSkip="no"
+                 Text="{\DlgTitleFont}A instalar / Installing / Instalando" />
+        <Control Id="Description" Type="Text" X="20" Y="48" Width="330" Height="36" Transparent="yes" NoPrefix="yes"
+                 Text="Aguarde enquanto o servidor é instalado. / Please wait while the server is installed. / Espere mientras se instala el servidor." />
+        <Control Id="ActionText" Type="Text" X="20" Y="102" Width="330" Height="18" NoPrefix="yes">
+          <Subscribe Event="ActionText" Attribute="Text" />
+        </Control>
+        <Control Id="ProgressBar" Type="ProgressBar" X="20" Y="128" Width="330" Height="12" ProgressBlocks="yes" Text="Progresso / Progress / Progreso">
+          <Subscribe Event="SetProgress" Attribute="Progress" />
+        </Control>
+        <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
+        <Control Id="Wait" Type="Text" X="20" Y="199" Width="330" Height="18" Transparent="yes" NoPrefix="yes"
+                 Text="Não desligue o computador. / Do not turn off the computer. / No apague el equipo." />
+      </Dialog>
+
+      <Dialog Id="ServerSuccessDlg" Width="370" Height="230" Title="iWebClassroom Server">
+        <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
+                 Text="{\DlgTitleFont}Instalação concluída / Installation complete / Instalación completada" />
+        <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="70" Transparent="yes" NoPrefix="yes"
+                 Text="O servidor foi instalado e o serviço foi iniciado. A consola local está disponível em http://localhost:7080. / The server was installed and the service was started. The local console is available at http://localhost:7080. / El servidor se instaló y el servicio se inició. La consola local está disponible en http://localhost:7080." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
+        <Control Id="Finish" Type="PushButton" X="282" Y="199" Width="68" Height="18" Default="yes" Cancel="yes" Text="Concluir / Finish">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="ServerErrorDlg" Width="370" Height="190" Title="iWebClassroom Server">
+        <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
+                 Text="{\DlgTitleFont}Falha na instalação / Installation failed / Error de instalación" />
+        <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="55" Transparent="yes" NoPrefix="yes"
+                 Text="O servidor não foi instalado. Consulte o registo do Windows Installer. / The server was not installed. Check the Windows Installer log. / El servidor no se instaló. Consulte el registro de Windows Installer." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="145" Width="370" Height="0" />
+        <Control Id="Finish" Type="PushButton" X="282" Y="159" Width="68" Height="18" Default="yes" Cancel="yes" Text="Fechar / Close">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="ServerCancelledDlg" Width="370" Height="190" Title="iWebClassroom Server">
+        <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
+                 Text="{\DlgTitleFont}Instalação cancelada / Installation cancelled / Instalación cancelada" />
+        <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="45" Transparent="yes" NoPrefix="yes"
+                 Text="Não foram efetuadas alterações. / No changes were made. / No se realizaron cambios." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="145" Width="370" Height="0" />
+        <Control Id="Finish" Type="PushButton" X="282" Y="159" Width="68" Height="18" Default="yes" Cancel="yes" Text="Fechar / Close">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+
       <InstallUISequence>
         <Show Dialog="ServerConfigurationDlg" After="CostFinalize" Condition="NOT Installed" />
+        <Show Dialog="ServerProgressDlg" Before="ExecuteAction" />
+        <Show Dialog="ServerSuccessDlg" OnExit="success" />
+        <Show Dialog="ServerErrorDlg" OnExit="error" />
+        <Show Dialog="ServerCancelledDlg" OnExit="cancel" />
       </InstallUISequence>
     </UI>
 

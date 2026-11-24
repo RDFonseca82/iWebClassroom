@@ -55,13 +55,13 @@ Compress-Archive -Path (Join-Path $serverOutput '*') -DestinationPath (Join-Path
 
 $agentInstallerOutput = Join-Path $installerBuildRoot 'agent'
 $serverInstallerOutput = Join-Path $installerBuildRoot 'server'
-& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
+& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -t:Rebuild -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) {
     Write-Warning 'The first agent MSI build failed; retrying once.'
     & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
 }
 if ($LASTEXITCODE -ne 0) { throw 'Building the agent MSI failed.' }
-& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
+& $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -t:Rebuild -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
 if ($LASTEXITCODE -ne 0) {
     Write-Warning 'The first server MSI build failed; retrying once.'
     & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
@@ -77,6 +77,58 @@ if (-not (Test-Path -LiteralPath $serverInstallerSource)) { throw "Missing serve
 Copy-Item -LiteralPath $agentInstallerSource -Destination $agentInstaller -Force
 Copy-Item -LiteralPath $serverInstallerSource -Destination $serverInstaller -Force
 $installerFiles = @($agentInstaller, $serverInstaller)
+
+function Get-MsiPayloadStatistics {
+    param([Parameter(Mandatory)] [string]$Path)
+
+    $windowsInstaller = New-Object -ComObject WindowsInstaller.Installer
+    $database = $windowsInstaller.GetType().InvokeMember(
+        'OpenDatabase',
+        'InvokeMethod',
+        $null,
+        $windowsInstaller,
+        @($Path, 0))
+    $view = $database.GetType().InvokeMember(
+        'OpenView',
+        'InvokeMethod',
+        $null,
+        $database,
+        @('SELECT `FileSize` FROM `File`'))
+    $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
+
+    $fileCount = 0
+    $totalBytes = [long]0
+    while ($true) {
+        $record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)
+        if ($null -eq $record) { break }
+        $fileCount++
+        $totalBytes += [long]$record.IntegerData(1)
+    }
+
+    return @{ FileCount = $fileCount; TotalBytes = $totalBytes }
+}
+
+function Assert-MsiPayload {
+    param(
+        [Parameter(Mandatory)] [string]$InstallerPath,
+        [Parameter(Mandatory)] [string]$PublishPath,
+        [int]$AdditionalFileCount = 0,
+        [long]$AdditionalBytes = 0
+    )
+
+    $publishedFiles = @(Get-ChildItem -LiteralPath $PublishPath -Recurse -File |
+        Where-Object { $_.Extension -ne '.pdb' })
+    $expectedFileCount = $publishedFiles.Count + $AdditionalFileCount
+    $expectedBytes = [long](($publishedFiles | Measure-Object -Property Length -Sum).Sum) + $AdditionalBytes
+    $actual = Get-MsiPayloadStatistics -Path $InstallerPath
+    if ($actual.FileCount -ne $expectedFileCount -or $actual.TotalBytes -ne $expectedBytes) {
+        throw "Incomplete MSI payload in $InstallerPath. Expected $expectedFileCount files/$expectedBytes bytes, found $($actual.FileCount) files/$($actual.TotalBytes) bytes."
+    }
+}
+
+Assert-MsiPayload -InstallerPath $agentInstaller -PublishPath $agentOutput
+$serverSettingsTemplate = Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\appsettings.Installer.json'
+Assert-MsiPayload -InstallerPath $serverInstaller -PublishPath $serverOutput -AdditionalFileCount 1 -AdditionalBytes (Get-Item -LiteralPath $serverSettingsTemplate).Length
 
 if (-not [string]::IsNullOrWhiteSpace($SigningCertificateThumbprint)) {
     $normalizedThumbprint = $SigningCertificateThumbprint.Replace(' ', '')
