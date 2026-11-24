@@ -18,7 +18,8 @@ Este repositório contém um MVP funcional com:
 - atualização automática do agente e do servidor por pacote MSI assinado, SHA-256 e certificado Authenticode fixado localmente;
 - scripts de publicação e instalação Windows;
 - pipeline GitHub Actions para compilar e produzir artefactos Windows;
-- sincronização bidirecional das definições entre cada servidor escolar e `cloud.iwebclassroom.app`.
+- sincronização bidirecional das definições entre cada servidor escolar e `cloud.iwebclassroom.app`;
+- início de sessão administrativo com as credenciais técnicas do servidor, obtenção automática do token e receção da licença cloud.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
@@ -63,11 +64,13 @@ O agente só aceita HTTP em `localhost`. Numa escola, o endereço tem obrigatori
 Cada escola pode ter vários servidores. No portal central, registe cada servidor com um utilizador técnico e uma palavra-passe próprios. No servidor local:
 
 1. abra `https://<servidor>/admin.html`;
-2. autentique-se com o token administrativo de `bootstrap-secrets.json`;
-3. introduza as credenciais técnicas mostradas pelo portal;
-4. confirme que o estado passa a **Sincronizado**.
+2. introduza o utilizador e a palavra-passe técnicos mostrados pelo portal quando o servidor foi criado;
+3. aguarde pela autenticação, obtenção do token, licença e definições;
+4. confirme que o estado passa a **Sincronizado** e que a licença apresentada é a esperada.
 
-A palavra-passe é usada uma única vez. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`. A cada 60 segundos são enviados inventário, versões e alterações locais, e recebidas as definições centrais. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
+A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. A cada 60 segundos são enviados inventário, versões e alterações locais, e recebidas as definições centrais e uma licença atualizada. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
+
+O token de `bootstrap-secrets.json` permanece disponível no ecrã em **Acesso local de recuperação**, para permitir a administração quando a cloud estiver indisponível.
 
 São sincronizados HTTPS, limites do espelhamento, duração predefinida das aulas, aplicações permitidas e política de atualização. Segredos, caminhos locais e identidade dos agentes nunca são enviados como configuração.
 
@@ -85,8 +88,8 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.5.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.5.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.5.2-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.5.2-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.

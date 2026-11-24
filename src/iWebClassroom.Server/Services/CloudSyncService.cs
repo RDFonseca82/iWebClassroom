@@ -7,11 +7,13 @@ namespace IWebClassroom.Server.Services;
 public sealed class CloudSyncService(
     CloudSyncClient client,
     CloudSyncStateStore stateStore,
+    CloudLicenseStore licenseStore,
     CloudConfigurationStore configurationStore,
     AgentRegistry agents,
     IOptionsMonitor<CloudSyncOptions> options,
     ILogger<CloudSyncService> logger)
 {
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _syncLock = new(1, 1);
 
     public CloudSyncStatus Status()
@@ -34,34 +36,42 @@ public sealed class CloudSyncService(
 
     public async Task<CloudSyncStatus> ConnectAsync(CloudConnectRequest request, CancellationToken cancellationToken)
     {
-        if (!options.CurrentValue.Enabled)
+        await _connectionLock.WaitAsync(cancellationToken);
+        try
         {
-            throw new InvalidOperationException("Cloud synchronization is disabled on this server.");
+            if (!options.CurrentValue.Enabled)
+            {
+                throw new InvalidOperationException("Cloud synchronization is disabled on this server.");
+            }
+
+            var state = stateStore.Snapshot();
+            var version = CurrentVersion();
+            var response = await client.AuthenticateAsync(new CloudAuthRequest(
+                request.Username.Trim(),
+                request.Password,
+                state.InstanceUid,
+                Environment.MachineName,
+                version), cancellationToken);
+
+            var configurationHash = string.Empty;
+            if (response.Configuration.Revision > 0)
+            {
+                await configurationStore.ApplyAsync(response.Configuration.Settings, cancellationToken);
+                configurationHash = response.Configuration.Settings.Hash();
+            }
+
+            await stateStore.SaveAuthenticationAsync(response, configurationHash, cancellationToken);
+            logger.LogInformation(
+                "Cloud synchronization connected to school {SchoolName} with server id {ServerId}.",
+                response.SchoolName,
+                response.ServerId);
+            await SynchronizeAsync(cancellationToken);
+            return Status();
         }
-
-        var state = stateStore.Snapshot();
-        var version = CurrentVersion();
-        var response = await client.AuthenticateAsync(new CloudAuthRequest(
-            request.Username.Trim(),
-            request.Password,
-            state.InstanceUid,
-            Environment.MachineName,
-            version), cancellationToken);
-
-        var configurationHash = string.Empty;
-        if (response.Configuration.Revision > 0)
+        finally
         {
-            await configurationStore.ApplyAsync(response.Configuration.Settings, cancellationToken);
-            configurationHash = response.Configuration.Settings.Hash();
+            _connectionLock.Release();
         }
-
-        await stateStore.SaveAuthenticationAsync(response, configurationHash, cancellationToken);
-        logger.LogInformation(
-            "Cloud synchronization connected to school {SchoolName} with server id {ServerId}.",
-            response.SchoolName,
-            response.ServerId);
-        await SynchronizeAsync(cancellationToken);
-        return Status();
     }
 
     public async Task<CloudSyncStatus> SynchronizeAsync(CancellationToken cancellationToken)
@@ -91,6 +101,7 @@ public sealed class CloudSyncService(
                     current));
 
             var response = await client.SynchronizeAsync(state.ServerId.Value, token, request, cancellationToken);
+            await licenseStore.ApplyAsync(response.License, cancellationToken);
             var remoteHash = response.Configuration.Settings.Hash();
             if (!string.Equals(remoteHash, currentHash, StringComparison.OrdinalIgnoreCase))
             {
@@ -138,6 +149,8 @@ public sealed class CloudSyncService(
     }
 
     public CloudServerSettings Configuration() => configurationStore.Current;
+
+    public CloudLicenseState License() => licenseStore.Snapshot();
 
     private static string CurrentVersion() =>
         Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";

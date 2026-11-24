@@ -17,6 +17,9 @@ O iWebClassroom controla computadores de menores e deve ser tratado como softwar
 - atualizações por HTTPS, SHA-256, Authenticode e certificado fixado localmente;
 - credenciais técnicas separadas por servidor, trocadas por um token opaco guardado com DPAPI ao nível da máquina;
 - palavra-passe de sincronização apenas como hash adaptativo no portal e nunca persistida no servidor local;
+- autenticação administrativa normal através da cloud, seguida de uma sessão local aleatória em memória com validade de oito horas;
+- token administrativo persistente reservado para recuperação local quando a cloud não está disponível;
+- licença cloud armazenada localmente sem guardar as credenciais que a obtiveram;
 - associação do token ao `instance_uid`, rotação e suspensão individual de cada servidor;
 - indicador visível enquanto o professor partilha o ecrã.
 

@@ -64,6 +64,9 @@ try {
     $teacherHeaders = @{ 'X-Teacher-Pin' = $teacherPin }
     $overview = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
     $settingsBefore = Invoke-RestMethod -Uri "$baseUrl/api/v1/settings" -Headers $headers
+    $invalidCloudLogin = Invoke-WebRequest -Method Post -Uri "$baseUrl/api/v1/admin/cloud-login" -ContentType 'application/json' -SkipHttpErrorCheck -Body (@{
+        username = ''; password = ''
+    } | ConvertTo-Json)
     $settingsAfter = Invoke-RestMethod -Method Put -Uri "$baseUrl/api/v1/settings" -Headers $headers -ContentType 'application/json' -Body (@{
         security = @{ require_https = $false }
         classroom = @{
@@ -104,13 +107,15 @@ try {
         $unauthorizedOverview.StatusCode -ne 401 -or
         $duplicateLesson.StatusCode -ne 409 -or
         $outsideCommand.StatusCode -ne 400 -or
+        $invalidCloudLogin.StatusCode -ne 400 -or
         $settingsBefore.cloud.connected -ne $false -or
+        $null -ne $settingsBefore.license.license -or
         $settingsAfter.configuration.classroom.default_lesson_duration_minutes -ne 75 -or
         $overviewAfterSettings.defaultLessonDurationMinutes -ne 75 -or
         $command.targetCount -ne 1 -or
         $lessonCommand.targetCount -ne 1 -or
         @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0) {
-        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudConnected={7}; duration={8}; liveDuration={9}; adminTargets={10}; lessonTargets={11}; activeLessons={12}." -f
+        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}." -f
             $health.status,
             $agents.Count,
             $overview.agents.Count,
@@ -118,6 +123,7 @@ try {
             $unauthorizedOverview.StatusCode,
             $duplicateLesson.StatusCode,
             $outsideCommand.StatusCode,
+            $invalidCloudLogin.StatusCode,
             $settingsBefore.cloud.connected,
             $settingsAfter.configuration.classroom.default_lesson_duration_minutes,
             $overviewAfterSettings.defaultLessonDurationMinutes,

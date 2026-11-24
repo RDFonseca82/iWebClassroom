@@ -1,9 +1,10 @@
 const translations = {
   "pt-PT": {
     kicker: "ADMINISTRAÇÃO LOCAL", teacherConsole: "Consola do professor", language: "Idioma",
-    adminAccess: "Acesso administrativo", adminHelp: "Introduza o token administrativo guardado em bootstrap-secrets.json.",
-    adminToken: "Token administrativo", enter: "Entrar", cloud: "CLOUD", cloudSync: "Sincronização central",
-    syncUsername: "Utilizador de sincronização", syncPassword: "Palavra-passe", connect: "Ligar à cloud",
+    adminAccess: "Ligar à gestão central", adminHelp: "Use as credenciais técnicas criadas no portal quando este servidor foi registado. O token, a licença e as definições serão obtidos automaticamente.",
+    adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Ligar e entrar", recoveryAccess: "Acesso local de recuperação",
+    recoveryHelp: "Utilize apenas quando não for possível contactar a cloud.", cloud: "CLOUD", cloudSync: "Sincronização central",
+    syncUsername: "Utilizador do servidor", syncPassword: "Palavra-passe", connect: "Ligar à cloud",
     syncNow: "Sincronizar agora", disconnect: "Remover ligação", settingsKicker: "DEFINIÇÕES",
     serverSettings: "Configuração sincronizada", settingsHelp: "As alterações são aplicadas localmente e enviadas para a gestão central.",
     requireHttps: "HTTPS obrigatório", lessonDuration: "Duração predefinida da aula (minutos)", frameSize: "Tamanho máximo do frame (bytes)",
@@ -14,15 +15,22 @@ const translations = {
     conflict: "Conflito resolvido", error: "Erro", school: "Escola", serverId: "Servidor", instance: "Instância",
     revision: "Revisão", lastSync: "Última sincronização", never: "Nunca", cloudUrl: "Endereço cloud",
     credentialsRequired: "Introduza as credenciais técnicas criadas no portal central.", connectedTo: "Ligado à gestão central.",
-    loginFailed: "Token administrativo inválido.", connectionSaved: "Ligação à cloud concluída.", syncComplete: "Sincronização concluída.",
+    loginFailed: "A sessão administrativa terminou. Inicie sessão novamente.", connectionSaved: "Ligação à cloud concluída.", syncComplete: "Sincronização concluída.",
     settingsSaved: "Definições guardadas e sincronizadas.", disconnectedOk: "Ligação à cloud removida.",
-    confirmDisconnect: "Remover deste servidor a ligação e o token da cloud?", requestFailed: "Não foi possível concluir o pedido."
+    confirmDisconnect: "Remover deste servidor a ligação e o token da cloud?", requestFailed: "Não foi possível concluir o pedido.",
+    licenseKicker: "LICENÇA", licenseTitle: "Licença atribuída pela gestão central", licenseUnavailable: "Não disponível",
+    plan: "Plano", maxDevices: "Máximo de dispositivos", maxClassrooms: "Máximo de salas", leaseExpires: "Licença local válida até",
+    offlineGrace: "Tolerância offline até", licenseReceived: "Recebida em", active: "Ativa", missing: "Em falta",
+    invalid_credentials: "O utilizador ou a palavra-passe do servidor não estão corretos.", inactive_server: "Este servidor ou a escola não estão ativos no portal.",
+    instance_mismatch: "Estas credenciais já estão associadas a outra instalação do servidor.", cloud_unavailable: "Não foi possível contactar a gestão central.",
+    cloud_request_failed: "A gestão central recusou o pedido.", cloud_configuration_error: "A ligação à gestão central não está corretamente configurada."
   },
   en: {
     kicker: "LOCAL ADMINISTRATION", teacherConsole: "Teacher console", language: "Language",
-    adminAccess: "Administrative access", adminHelp: "Enter the administrative token stored in bootstrap-secrets.json.",
-    adminToken: "Administrative token", enter: "Sign in", cloud: "CLOUD", cloudSync: "Central synchronization",
-    syncUsername: "Synchronization username", syncPassword: "Password", connect: "Connect to cloud",
+    adminAccess: "Connect to central management", adminHelp: "Use the technical credentials created in the portal when this server was registered. The token, license and settings will be retrieved automatically.",
+    adminToken: "Administrative token", enter: "Sign in", connectAndEnter: "Connect and sign in", recoveryAccess: "Local recovery access",
+    recoveryHelp: "Use only when the cloud cannot be reached.", cloud: "CLOUD", cloudSync: "Central synchronization",
+    syncUsername: "Server username", syncPassword: "Password", connect: "Connect to cloud",
     syncNow: "Synchronize now", disconnect: "Remove connection", settingsKicker: "SETTINGS",
     serverSettings: "Synchronized configuration", settingsHelp: "Changes are applied locally and sent to central management.",
     requireHttps: "Require HTTPS", lessonDuration: "Default lesson duration (minutes)", frameSize: "Maximum frame size (bytes)",
@@ -33,15 +41,22 @@ const translations = {
     conflict: "Conflict resolved", error: "Error", school: "School", serverId: "Server", instance: "Instance",
     revision: "Revision", lastSync: "Last synchronization", never: "Never", cloudUrl: "Cloud address",
     credentialsRequired: "Enter the technical credentials created in the central portal.", connectedTo: "Connected to central management.",
-    loginFailed: "Invalid administrative token.", connectionSaved: "Cloud connection completed.", syncComplete: "Synchronization completed.",
+    loginFailed: "The administrative session has ended. Sign in again.", connectionSaved: "Cloud connection completed.", syncComplete: "Synchronization completed.",
     settingsSaved: "Settings saved and synchronized.", disconnectedOk: "Cloud connection removed.",
-    confirmDisconnect: "Remove the cloud connection and token from this server?", requestFailed: "The request could not be completed."
+    confirmDisconnect: "Remove the cloud connection and token from this server?", requestFailed: "The request could not be completed.",
+    licenseKicker: "LICENSE", licenseTitle: "License assigned by central management", licenseUnavailable: "Not available",
+    plan: "Plan", maxDevices: "Maximum devices", maxClassrooms: "Maximum classrooms", leaseExpires: "Local license valid until",
+    offlineGrace: "Offline grace until", licenseReceived: "Received at", active: "Active", missing: "Missing",
+    invalid_credentials: "The server username or password is incorrect.", inactive_server: "This server or school is not active in the portal.",
+    instance_mismatch: "These credentials are already linked to another server installation.", cloud_unavailable: "Central management could not be reached.",
+    cloud_request_failed: "Central management rejected the request.", cloud_configuration_error: "The central management connection is not configured correctly."
   },
   es: {
     kicker: "ADMINISTRACIÓN LOCAL", teacherConsole: "Consola del profesor", language: "Idioma",
-    adminAccess: "Acceso administrativo", adminHelp: "Introduzca el token administrativo guardado en bootstrap-secrets.json.",
-    adminToken: "Token administrativo", enter: "Entrar", cloud: "CLOUD", cloudSync: "Sincronización central",
-    syncUsername: "Usuario de sincronización", syncPassword: "Contraseña", connect: "Conectar a la nube",
+    adminAccess: "Conectar con la gestión central", adminHelp: "Utilice las credenciales técnicas creadas en el portal al registrar este servidor. El token, la licencia y la configuración se obtendrán automáticamente.",
+    adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Conectar y entrar", recoveryAccess: "Acceso local de recuperación",
+    recoveryHelp: "Utilícelo solo cuando no sea posible contactar con la nube.", cloud: "CLOUD", cloudSync: "Sincronización central",
+    syncUsername: "Usuario del servidor", syncPassword: "Contraseña", connect: "Conectar a la nube",
     syncNow: "Sincronizar ahora", disconnect: "Eliminar conexión", settingsKicker: "CONFIGURACIÓN",
     serverSettings: "Configuración sincronizada", settingsHelp: "Los cambios se aplican localmente y se envían a la gestión central.",
     requireHttps: "HTTPS obligatorio", lessonDuration: "Duración predeterminada de la clase (minutos)", frameSize: "Tamaño máximo del frame (bytes)",
@@ -52,9 +67,15 @@ const translations = {
     conflict: "Conflicto resuelto", error: "Error", school: "Escuela", serverId: "Servidor", instance: "Instancia",
     revision: "Revisión", lastSync: "Última sincronización", never: "Nunca", cloudUrl: "Dirección cloud",
     credentialsRequired: "Introduzca las credenciales técnicas creadas en el portal central.", connectedTo: "Conectado a la gestión central.",
-    loginFailed: "Token administrativo no válido.", connectionSaved: "Conexión a la nube completada.", syncComplete: "Sincronización completada.",
+    loginFailed: "La sesión administrativa ha finalizado. Vuelva a iniciar sesión.", connectionSaved: "Conexión a la nube completada.", syncComplete: "Sincronización completada.",
     settingsSaved: "Configuración guardada y sincronizada.", disconnectedOk: "Conexión a la nube eliminada.",
-    confirmDisconnect: "¿Eliminar de este servidor la conexión y el token de la nube?", requestFailed: "No se pudo completar la solicitud."
+    confirmDisconnect: "¿Eliminar de este servidor la conexión y el token de la nube?", requestFailed: "No se pudo completar la solicitud.",
+    licenseKicker: "LICENCIA", licenseTitle: "Licencia asignada por la gestión central", licenseUnavailable: "No disponible",
+    plan: "Plan", maxDevices: "Máximo de dispositivos", maxClassrooms: "Máximo de aulas", leaseExpires: "Licencia local válida hasta",
+    offlineGrace: "Tolerancia sin conexión hasta", licenseReceived: "Recibida el", active: "Activa", missing: "Ausente",
+    invalid_credentials: "El usuario o la contraseña del servidor no son correctos.", inactive_server: "Este servidor o centro no están activos en el portal.",
+    instance_mismatch: "Estas credenciales ya están asociadas a otra instalación del servidor.", cloud_unavailable: "No se pudo contactar con la gestión central.",
+    cloud_request_failed: "La gestión central rechazó la solicitud.", cloud_configuration_error: "La conexión con la gestión central no está configurada correctamente."
   }
 };
 
@@ -65,7 +86,8 @@ const toast = document.querySelector("#toast");
 const storedLanguage = localStorage.getItem("iwebclassroom-language");
 const detectedLanguage = navigator.language?.toLowerCase().startsWith("es") ? "es" : navigator.language?.toLowerCase().startsWith("en") ? "en" : "pt-PT";
 let language = storedLanguage || detectedLanguage;
-let adminToken = sessionStorage.getItem("iwebclassroom-admin-token") || "";
+let adminSession = sessionStorage.getItem("iwebclassroom-admin-session") || "";
+let recoveryToken = sessionStorage.getItem("iwebclassroom-admin-recovery-token") || "";
 let currentModel = null;
 
 function t(key) { return translations[language]?.[key] || translations["pt-PT"][key] || key; }
@@ -99,14 +121,19 @@ function notify(message) {
 }
 
 async function api(path, options = {}) {
+  const authenticationHeader = adminSession
+    ? { "X-Admin-Session": adminSession }
+    : recoveryToken ? { "X-Admin-Token": recoveryToken } : {};
   const response = await fetch(path, {
     ...options,
-    headers: { "Content-Type": "application/json", "X-Admin-Token": adminToken, ...(options.headers || {}) }
+    headers: { "Content-Type": "application/json", ...authenticationHeader, ...(options.headers || {}) }
   });
   const body = await response.json().catch(() => ({}));
   if (response.status === 401) {
-    sessionStorage.removeItem("iwebclassroom-admin-token");
-    adminToken = "";
+    sessionStorage.removeItem("iwebclassroom-admin-session");
+    sessionStorage.removeItem("iwebclassroom-admin-recovery-token");
+    adminSession = "";
+    recoveryToken = "";
     workspace.hidden = true;
     authPanel.hidden = false;
     throw new Error(t("loginFailed"));
@@ -146,6 +173,27 @@ function render(model) {
   document.querySelector("#cloud-connect-form").hidden = cloud.connected;
   document.querySelector("#sync-now").hidden = !cloud.connected;
   document.querySelector("#disconnect-cloud").hidden = !cloud.connected;
+
+  const licenseState = model.license || {};
+  const licensePayload = licenseState.license?.payload;
+  const licenseStatus = licensePayload?.status || "missing";
+  const licenseBadge = document.querySelector("#license-badge");
+  licenseBadge.textContent = t(licenseStatus) || licenseStatus;
+  licenseBadge.className = `status-pill ${licenseStatus === "active" ? "success" : "failure"}`;
+  const licenseRows = licensePayload ? [
+    [t("plan"), licensePayload.plan || "—"],
+    [t("maxDevices"), licensePayload.limits?.max_devices ?? "—"],
+    [t("maxClassrooms"), licensePayload.limits?.max_classrooms ?? "—"],
+    [t("leaseExpires"), formatDate(licensePayload.lease_expires_at)],
+    [t("offlineGrace"), formatDate(licensePayload.offline_grace_until)],
+    [t("licenseReceived"), formatDate(licenseState.receivedAtUtc)]
+  ] : [[t("licenseUnavailable"), "—"]];
+  document.querySelector("#license-details").innerHTML = licenseRows.map(([label, value]) =>
+    `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`).join("");
+}
+
+function formatDate(value) {
+  return value ? new Date(value).toLocaleString(language) : "—";
 }
 
 function escapeHtml(value) {
@@ -163,10 +211,40 @@ async function load() {
 
 document.querySelector("#auth-form").addEventListener("submit", async event => {
   event.preventDefault();
-  adminToken = document.querySelector("#admin-token").value;
+  try {
+    const response = await fetch("/api/v1/admin/cloud-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.querySelector("#login-username").value.trim(),
+        password: document.querySelector("#login-password").value
+      })
+    });
+    const model = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const localizedError = model.code ? translations[language]?.[model.code] : null;
+      throw new Error(localizedError || model.error || model.detail || t("requestFailed"));
+    }
+    adminSession = model.sessionToken;
+    recoveryToken = "";
+    sessionStorage.setItem("iwebclassroom-admin-session", adminSession);
+    sessionStorage.removeItem("iwebclassroom-admin-recovery-token");
+    document.querySelector("#login-password").value = "";
+    authPanel.hidden = true;
+    workspace.hidden = false;
+    render(model);
+    notify(t("connectionSaved"));
+  } catch (error) { notify(error.message); }
+});
+
+document.querySelector("#recovery-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  recoveryToken = document.querySelector("#admin-token").value;
+  adminSession = "";
   try {
     await load();
-    sessionStorage.setItem("iwebclassroom-admin-token", adminToken);
+    sessionStorage.setItem("iwebclassroom-admin-recovery-token", recoveryToken);
+    sessionStorage.removeItem("iwebclassroom-admin-session");
     document.querySelector("#admin-token").value = "";
   } catch (error) { notify(error.message); }
 });
@@ -228,4 +306,4 @@ languageSelect.addEventListener("change", () => {
 
 applyLanguage();
 void applyInstallerLanguage();
-if (adminToken) load().catch(error => notify(error.message));
+if (adminSession || recoveryToken) load().catch(error => notify(error.message));

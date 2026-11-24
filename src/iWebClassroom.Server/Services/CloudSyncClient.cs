@@ -56,16 +56,25 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        string? code = null;
         try
         {
             using var document = JsonDocument.Parse(body);
-            body = document.RootElement.TryGetProperty("message", out var message) ? message.GetString() ?? body : body;
+            var root = document.RootElement;
+            body = root.TryGetProperty("message", out var message) ? message.GetString() ?? body : body;
+            code = root.TryGetProperty("code", out var errorCode) ? errorCode.GetString() : null;
         }
         catch (JsonException)
         {
             // Keep the plain response body.
         }
 
-        throw new HttpRequestException($"Cloud API returned {(int)response.StatusCode}: {body}", null, response.StatusCode);
+        throw new CloudApiException($"Cloud API returned {(int)response.StatusCode}: {body}", code, response.StatusCode);
     }
+}
+
+public sealed class CloudApiException(string message, string? code, System.Net.HttpStatusCode statusCode)
+    : HttpRequestException(message, null, statusCode)
+{
+    public string? Code { get; } = code;
 }

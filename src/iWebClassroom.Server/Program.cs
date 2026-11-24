@@ -39,9 +39,11 @@ builder.Services.Configure<CloudSyncOptions>(builder.Configuration.GetSection("C
 builder.Services.AddSingleton<AgentRegistry>();
 builder.Services.AddSingleton<LessonRegistry>();
 builder.Services.AddSingleton<CloudSyncStateStore>();
+builder.Services.AddSingleton<CloudLicenseStore>();
 builder.Services.AddSingleton<CloudConfigurationStore>();
 builder.Services.AddSingleton<CloudSyncClient>();
 builder.Services.AddSingleton<CloudSyncService>();
+builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddSingleton<CommandAuditStore>();
 builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
@@ -74,6 +76,15 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0,
             AutoReplenishment = true
         }));
+    options.AddPolicy("admin-login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -84,6 +95,8 @@ var lessons = app.Services.GetRequiredService<LessonRegistry>();
 await lessons.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudState = app.Services.GetRequiredService<CloudSyncStateStore>();
 await cloudState.InitializeAsync(app.Lifetime.ApplicationStopping);
+var cloudLicense = app.Services.GetRequiredService<CloudLicenseStore>();
+await cloudLicense.InitializeAsync(app.Lifetime.ApplicationStopping);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -162,8 +175,53 @@ app.MapGet("/api/v1/settings", (
     CloudSyncService cloud,
     IConfiguration configuration) =>
     IsAdmin(request, configuration)
-        ? Results.Ok(new { configuration = cloud.Configuration(), cloud = cloud.Status() })
+        ? Results.Ok(new { configuration = cloud.Configuration(), cloud = cloud.Status(), license = cloud.License() })
         : Results.Unauthorized());
+
+app.MapPost("/api/v1/admin/cloud-login", async (
+    CloudConnectRequest credentials,
+    CloudSyncService cloud,
+    AdminSessionService sessions,
+    CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(credentials.Username) || credentials.Username.Length > 160 ||
+        string.IsNullOrEmpty(credentials.Password) || credentials.Password.Length > 512)
+    {
+        return Results.BadRequest(new { error = "As credenciais de sincronização não têm o formato esperado." });
+    }
+
+    try
+    {
+        await cloud.ConnectAsync(credentials, cancellationToken);
+        var session = sessions.Create();
+        return Results.Ok(new
+        {
+            sessionToken = session.Token,
+            session.ExpiresAtUtc,
+            configuration = cloud.Configuration(),
+            cloud = cloud.Status(),
+            license = cloud.License()
+        });
+    }
+    catch (CloudApiException exception)
+    {
+        var code = exception.Code ?? exception.StatusCode switch
+        {
+            System.Net.HttpStatusCode.Unauthorized => "invalid_credentials",
+            System.Net.HttpStatusCode.Forbidden => "inactive_server",
+            _ => "cloud_request_failed"
+        };
+        return Results.BadRequest(new { error = exception.Message, code });
+    }
+    catch (HttpRequestException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message, code = "cloud_unavailable" });
+    }
+    catch (InvalidOperationException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message, code = "cloud_configuration_error" });
+    }
+}).RequireRateLimiting("admin-login");
 
 app.MapPut("/api/v1/settings", async (
     HttpRequest request,
@@ -186,7 +244,7 @@ app.MapPut("/api/v1/settings", async (
     try
     {
         var status = await cloud.UpdateLocalConfigurationAsync(settings, cancellationToken);
-        return Results.Ok(new { configuration = cloud.Configuration(), cloud = status });
+        return Results.Ok(new { configuration = cloud.Configuration(), cloud = status, license = cloud.License() });
     }
     catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
     {
@@ -449,6 +507,12 @@ app.Run();
 
 static bool IsAdmin(HttpRequest request, IConfiguration configuration)
 {
+    var sessions = request.HttpContext.RequestServices.GetRequiredService<AdminSessionService>();
+    if (sessions.IsValid(request.Headers[AdminSessionService.HeaderName].ToString()))
+    {
+        return true;
+    }
+
     var expectedToken = Environment.GetEnvironmentVariable("IWEBCLASSROOM_ADMIN_TOKEN")
                         ?? configuration["Security:AdminToken"];
     return SecretComparer.Equals(request.Headers[HubProtocol.AdminTokenHeader].ToString(), expectedToken);

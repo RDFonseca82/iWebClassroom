@@ -7,10 +7,10 @@
 3. Instale o MSI como administrador e escolha o idioma. Para implantação silenciosa use `msiexec /i <ficheiro.msi> /qn INSTALLLANGUAGE=pt-PT /norestart`.
 4. Configure IIS/ARR como proxy inverso HTTPS para `http://127.0.0.1:7080` e ative WebSockets.
 5. Proteja a pasta `C:\ProgramData\iWebClassroom\Server` e faça cópias de segurança.
-6. Leia as credenciais administrativas em `C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json` e o PIN de professor em `teacher-access.json` na mesma pasta.
+6. Guarde o token administrativo de recuperação existente em `C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json` e leia o PIN de professor em `teacher-access.json` na mesma pasta.
 7. Abra a consola por HTTPS e confirme `/health`.
 8. No portal central, registe o servidor e guarde o utilizador e a palavra-passe técnicos apresentados uma única vez.
-9. Abra `/admin.html` no servidor, introduza o token administrativo e ligue-o à cloud com essas credenciais.
+9. Abra `/admin.html` no servidor e introduza diretamente o utilizador e a palavra-passe técnicos. O servidor obtém o token, a licença e todas as definições na sincronização inicial. A palavra-passe não é guardada.
 
 ## Agentes
 
@@ -41,5 +41,6 @@ Não é necessária qualquer ligação iniciada do servidor para os computadores
 - `releases/*.json`: manifestos de atualização fornecidos aos agentes.
 - `cloud-sync-state.json`: identidade cloud, revisão e token cifrado com DPAPI;
 - `cloud-settings.json`: definições sincronizadas, sem palavras-passe nem tokens.
+- `cloud-license.json`: última licença offline recebida na sincronização cloud.
 
 Por omissão estes dados ficam sob o diretório de conteúdo. Na instalação, devem ser redirecionados para `C:\ProgramData\iWebClassroom\Server` em `appsettings.Local.json`.

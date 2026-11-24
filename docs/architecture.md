@@ -19,11 +19,13 @@ O servidor mantém a identidade permanente do computador, a sala predefinida, a 
 ### Sincronização central
 
 1. O portal cria uma identidade técnica exclusiva para cada servidor, mesmo quando a escola tem vários.
-2. O servidor troca uma vez o utilizador e a palavra-passe por um token opaco através de HTTPS.
+2. O administrador introduz esse utilizador e palavra-passe no painel local; o servidor troca-os por um token opaco através de HTTPS e executa imediatamente a sincronização inicial.
 3. O token fica cifrado com DPAPI ao nível da máquina; a palavra-passe não é guardada.
-4. O servidor envia a revisão conhecida, o hash da configuração e as alterações locais.
-5. O portal incrementa a revisão ao aceitar uma alteração. Uma revisão central mais recente prevalece sobre uma alteração local desatualizada.
-6. A indisponibilidade da Internet não bloqueia aulas nem agentes; a sincronização volta a tentar em segundo plano.
+4. A sincronização devolve as definições e uma licença offline assinada; a última licença recebida fica guardada localmente.
+5. O painel usa uma sessão administrativa aleatória em memória, válida por oito horas, sem expor o token cloud ao navegador.
+6. O servidor envia a revisão conhecida, o hash da configuração e as alterações locais.
+7. O portal incrementa a revisão ao aceitar uma alteração. Uma revisão central mais recente prevalece sobre uma alteração local desatualizada.
+8. A indisponibilidade da Internet não bloqueia aulas nem agentes; a sincronização volta a tentar em segundo plano e o token administrativo local permite acesso de recuperação.
 
 ## Fluxos principais
 
