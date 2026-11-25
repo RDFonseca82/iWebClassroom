@@ -10,6 +10,7 @@ namespace IWebClassroom.Server.Hubs;
 public sealed class ClassroomHub(
     AgentRegistry registry,
     LessonRegistry lessons,
+    ServerMaintenanceState maintenance,
     IOptionsMonitor<ClassroomOptions> options,
     ILogger<ClassroomHub> logger) : Hub
 {
@@ -17,6 +18,12 @@ public sealed class ClassroomHub(
 
     public override async Task OnConnectedAsync()
     {
+        if (maintenance.IsUpdateDrain)
+        {
+            Context.Abort();
+            return;
+        }
+
         var httpContext = Context.GetHttpContext();
         var idValue = httpContext?.Request.Headers[HubProtocol.AgentIdHeader].ToString();
         var token = httpContext?.Request.Headers[HubProtocol.AgentTokenHeader].ToString();
@@ -27,7 +34,19 @@ public sealed class ClassroomHub(
             return;
         }
 
+        if (maintenance.IsUpdateDrain)
+        {
+            Context.Abort();
+            return;
+        }
+
         await registry.AttachConnectionAsync(agentId, Context.ConnectionId, Context.ConnectionAborted);
+        if (maintenance.IsUpdateDrain)
+        {
+            await registry.DetachConnectionAsync(Context.ConnectionId, CancellationToken.None);
+            Context.Abort();
+            return;
+        }
         await Groups.AddToGroupAsync(Context.ConnectionId, AgentGroup(agentId), Context.ConnectionAborted);
         if (lessons.TryGetForAgent(agent, out var lesson))
         {

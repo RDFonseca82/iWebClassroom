@@ -8,6 +8,7 @@ public sealed class CloudSyncService(
     CloudSyncClient client,
     CloudSyncStateStore stateStore,
     CloudLicenseStore licenseStore,
+    CloudApprovedUpdateStore approvedUpdateStore,
     CloudDirectoryStore directoryStore,
     CloudConfigurationStore configurationStore,
     AgentRegistry agents,
@@ -109,6 +110,7 @@ public sealed class CloudSyncService(
 
             var response = await client.SynchronizeAsync(state.ServerId.Value, token, request, cancellationToken);
             await licenseStore.ApplyAsync(response.License, cancellationToken);
+            await approvedUpdateStore.ApplyAsync(response.ServerUpdate, cancellationToken);
             await directoryStore.ApplyAsync(response.Directory, cancellationToken);
             var remoteHash = response.Configuration.Settings.Hash();
             if (!string.Equals(remoteHash, currentHash, StringComparison.OrdinalIgnoreCase))

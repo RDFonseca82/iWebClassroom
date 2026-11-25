@@ -66,6 +66,7 @@ builder.Services.AddSingleton<AgentRegistry>();
 builder.Services.AddSingleton<LessonRegistry>();
 builder.Services.AddSingleton<CloudSyncStateStore>();
 builder.Services.AddSingleton<CloudLicenseStore>();
+builder.Services.AddSingleton<CloudApprovedUpdateStore>();
 builder.Services.AddSingleton<CloudDirectoryStore>();
 builder.Services.AddSingleton<CloudConfigurationStore>();
 builder.Services.AddSingleton<CloudSyncClient>();
@@ -75,6 +76,7 @@ builder.Services.AddSingleton<CloudRoomService>();
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddSingleton<TeacherSessionService>();
 builder.Services.AddSingleton<CommandAuditStore>();
+builder.Services.AddSingleton<ServerMaintenanceState>();
 builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddHttpClient(nameof(CloudSyncClient));
@@ -129,6 +131,8 @@ var cloudState = app.Services.GetRequiredService<CloudSyncStateStore>();
 await cloudState.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudLicense = app.Services.GetRequiredService<CloudLicenseStore>();
 await cloudLicense.InitializeAsync(app.Lifetime.ApplicationStopping);
+var cloudApprovedUpdate = app.Services.GetRequiredService<CloudApprovedUpdateStore>();
+await cloudApprovedUpdate.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudDirectory = app.Services.GetRequiredService<CloudDirectoryStore>();
 await cloudDirectory.InitializeAsync(app.Lifetime.ApplicationStopping);
 
@@ -421,9 +425,10 @@ app.MapPost("/api/v1/rooms/roam", async (
 app.MapGet("/api/v1/settings", (
     HttpRequest request,
     CloudSyncService cloud,
+    CloudApprovedUpdateStore approvedUpdate,
     IConfiguration configuration) =>
     IsAdmin(request, configuration)
-        ? Results.Ok(new { configuration = cloud.Configuration(), cloud = cloud.Status(), license = cloud.License() })
+        ? Results.Ok(new { configuration = cloud.Configuration(), cloud = cloud.Status(), license = cloud.License(), approvedUpdate = approvedUpdate.Snapshot() })
         : Results.Unauthorized());
 
 app.MapPost("/api/v1/admin/cloud-login", async (

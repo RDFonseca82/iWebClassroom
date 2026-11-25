@@ -12,6 +12,10 @@ namespace IWebClassroom.Server.Services;
 public sealed class ServerUpdateWorker(
     IHttpClientFactory httpClientFactory,
     IOptionsMonitor<ServerUpdateOptions> options,
+    CloudApprovedUpdateStore approvedUpdates,
+    AgentRegistry agents,
+    LessonRegistry lessons,
+    ServerMaintenanceState maintenance,
     IWebHostEnvironment environment,
     ILogger<ServerUpdateWorker> logger) : BackgroundService
 {
@@ -22,11 +26,15 @@ public sealed class ServerUpdateWorker(
             try
             {
                 var policy = options.CurrentValue;
-                if (policy.Enabled &&
+                var approval = approvedUpdates.Snapshot().Approval;
+                if (approval is not null &&
+                    IsNewerThanCurrent(approval.Version) &&
+                    !agents.List().Any(agent => agent.IsOnline) &&
+                    lessons.List().Count == 0 &&
                     !string.IsNullOrWhiteSpace(policy.SignerThumbprint) &&
-                    Uri.TryCreate(policy.ManifestUrl, UriKind.Absolute, out var manifestUri) &&
+                    Uri.TryCreate(approval.ManifestUrl, UriKind.Absolute, out var manifestUri) &&
                     manifestUri.Scheme == Uri.UriSchemeHttps &&
-                    await TryStartUpdateAsync(manifestUri, policy, stoppingToken))
+                    await TryStartUpdateAsync(manifestUri, approval, policy, stoppingToken))
                 {
                     Environment.Exit(0);
                     return;
@@ -38,25 +46,27 @@ public sealed class ServerUpdateWorker(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "The automatic server update check failed.");
+                logger.LogError(exception, "The approved server update check failed.");
             }
 
-            var currentPolicy = options.CurrentValue;
-            var interval = currentPolicy.Enabled && !string.IsNullOrWhiteSpace(currentPolicy.SignerThumbprint)
-                ? TimeSpan.FromHours(Math.Clamp(currentPolicy.CheckIntervalHours, 1, 168))
-                : TimeSpan.FromMinutes(5);
-            await Task.Delay(interval, stoppingToken);
+            var pending = approvedUpdates.Snapshot().Approval is { } pendingApproval && IsNewerThanCurrent(pendingApproval.Version);
+            await Task.Delay(pending ? TimeSpan.FromSeconds(30) : TimeSpan.FromMinutes(5), stoppingToken);
         }
     }
 
-    private async Task<bool> TryStartUpdateAsync(Uri manifestUri, ServerUpdateOptions policy, CancellationToken cancellationToken)
+    private async Task<bool> TryStartUpdateAsync(
+        Uri manifestUri,
+        CloudApprovedServerUpdate approval,
+        ServerUpdateOptions policy,
+        CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient(nameof(ServerUpdateWorker));
         var manifest = await client.GetFromJsonAsync<UpdateManifest>(manifestUri, cancellationToken);
         if (manifest is null ||
             !string.Equals(manifest.Component, "server", StringComparison.OrdinalIgnoreCase) ||
             !Version.TryParse(manifest.Version, out var candidateVersion) ||
-            candidateVersion <= (Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0)))
+            Normalize(candidateVersion) != Normalize(ParseVersion(approval.Version)) ||
+            Normalize(candidateVersion) <= Normalize(Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0)))
         {
             return false;
         }
@@ -98,22 +108,53 @@ public sealed class ServerUpdateWorker(
             throw new FileNotFoundException("The update helper is not installed.", updaterPath);
         }
 
-        Process.Start(new ProcessStartInfo
+        maintenance.BeginUpdateDrain();
+        await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+        if (agents.List().Any(agent => agent.IsOnline) || lessons.List().Count > 0)
         {
-            FileName = updaterPath,
-            UseShellExecute = false,
-            ArgumentList =
+            maintenance.CancelUpdateDrain();
+            logger.LogInformation("The approved update is ready but was deferred because an agent or lesson became active.");
+            return false;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
             {
-                "--package", packagePath,
-                "--sha256", manifest.Sha256,
-                "--signer", policy.SignerThumbprint,
-                "--wait-pid", Environment.ProcessId.ToString(),
-                "--service-name", policy.ServiceName
-            }
-        });
-        logger.LogInformation("A signed server update to version {Version} is ready and will now be installed.", candidateVersion);
+                FileName = updaterPath,
+                UseShellExecute = false,
+                ArgumentList =
+                {
+                    "--package", packagePath,
+                    "--sha256", manifest.Sha256,
+                    "--signer", policy.SignerThumbprint,
+                    "--wait-pid", Environment.ProcessId.ToString(),
+                    "--service-name", policy.ServiceName
+                }
+            });
+        }
+        catch
+        {
+            maintenance.CancelUpdateDrain();
+            throw;
+        }
+        logger.LogInformation(
+            "The school-approved signed server update to version {Version} is ready and will now be installed while the server is idle.",
+            candidateVersion);
         return true;
     }
 
     private static string Normalize(string value) => value.Replace(" ", string.Empty, StringComparison.Ordinal);
+
+    private static Version Normalize(Version version) => new(
+        version.Major,
+        version.Minor,
+        Math.Max(0, version.Build),
+        Math.Max(0, version.Revision));
+
+    private static Version ParseVersion(string value) =>
+        Version.TryParse(value, out var version) ? version : new Version(0, 0);
+
+    private static bool IsNewerThanCurrent(string value) =>
+        Normalize(ParseVersion(value)) > Normalize(Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0));
 }

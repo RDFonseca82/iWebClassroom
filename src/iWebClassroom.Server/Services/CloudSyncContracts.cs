@@ -47,7 +47,17 @@ public sealed record CloudSyncResponse(
     [property: JsonPropertyName("server_time")] DateTimeOffset ServerTime,
     [property: JsonPropertyName("configuration")] CloudConfigurationResponse Configuration,
     [property: JsonPropertyName("license")] JsonElement? License,
-    [property: JsonPropertyName("directory")] CloudDirectoryResponse? Directory = null);
+    [property: JsonPropertyName("directory")] CloudDirectoryResponse? Directory = null,
+    [property: JsonPropertyName("server_update")] CloudApprovedServerUpdate? ServerUpdate = null);
+
+public sealed record CloudApprovedServerUpdate(
+    [property: JsonPropertyName("version")] string Version,
+    [property: JsonPropertyName("manifest_url")] string ManifestUrl,
+    [property: JsonPropertyName("release_url")] string? ReleaseUrl,
+    [property: JsonPropertyName("published_at_utc")] DateTimeOffset? PublishedAtUtc,
+    [property: JsonPropertyName("approved_at_utc")] DateTimeOffset ApprovedAtUtc,
+    [property: JsonPropertyName("approved_by_user_id")] string? ApprovedByUserId,
+    [property: JsonPropertyName("approved_by_name")] string? ApprovedByName);
 
 public sealed record CloudConfigurationResponse(
     [property: JsonPropertyName("revision")] long Revision,

@@ -17,7 +17,7 @@ Este repositório contém um MVP funcional com:
 - envio de mensagens aos alunos;
 - espelhamento visível do ecrã do professor para os alunos da mesma sala;
 - registo de auditoria dos comandos, sem guardar o conteúdo das mensagens;
-- atualização automática do agente e do servidor por pacote MSI assinado, SHA-256 e certificado Authenticode fixado localmente;
+- atualização do agente e atualização coordenada dos servidores por pacote MSI assinado, SHA-256, certificado Authenticode e aprovação explícita da escola;
 - scripts de publicação e instalação Windows;
 - pipeline GitHub Actions para compilar e produzir artefactos Windows;
 - sincronização bidirecional das definições entre cada servidor escolar e `cloud.iwebclassroom.app`;
@@ -26,6 +26,7 @@ Este repositório contém um MVP funcional com:
 - versão do servidor sempre visível nas consolas web.
 - ícone do servidor na área de notificação do Windows, com atalhos para administração, consola do professor, estado, versão e cópia do endereço seguro;
 - sincronização leve de professores, PIN e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
+- deteção da release mais recente no GitHub e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
@@ -142,6 +143,24 @@ O portal cloud é mantido no seu projeto de implantação próprio. Este reposit
 
 A versão 0.9.0 acrescenta a tabela `active_room_routes` ao SQL Server do portal. Antes de instalar os novos servidores e agentes, execute `database/sql/2026-11-25_active_room_routes_sqlserver.sql` no projeto do portal ou aplique a migration Laravel `2026_11_25_000011_create_active_room_routes.php`.
 
+## Atualizações dos servidores aprovadas pela escola
+
+O portal cloud consulta a release publicada mais recente de `RDFonseca82/iWebClassroom` através da API do GitHub e guarda o resultado em cache durante dez minutos. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível e o estado da aprovação.
+
+Uma nova versão nunca é autorizada apenas por existir no GitHub. Um administrador da escola tem de escolher **Aprovar vX.Y.Z para todos**. A aprovação é guardada nas definições JSON da escola e enviada a todos os servidores durante a sincronização completa seguinte. Não existe alteração de SQL Server para esta funcionalidade.
+
+Depois de receber a aprovação, cada servidor:
+
+1. confirma que a versão aprovada é superior à instalada;
+2. aguarda até não existir qualquer agente online nem aula ativa;
+3. volta a verificar a condição de 30 em 30 segundos, sem descarregar o MSI enquanto o servidor estiver ocupado;
+4. obtém o manifesto aprovado, exige HTTPS, valida a versão exata, o SHA-256 e a assinatura Authenticode configurada localmente;
+5. instala o MSI, reinicia o serviço e comunica a nova versão na sincronização seguinte.
+
+Os servidores ocupados podem atualizar mais tarde do que os restantes, mas todos recebem exatamente a mesma versão aprovada. Aulas em curso nunca são interrompidas. Cancelar uma aprovação impede servidores que ainda não começaram; não interrompe uma instalação já iniciada. Se não estiver configurada uma impressão digital Authenticode, o portal mostra **Falta certificado de assinatura** e o servidor não instala o pacote.
+
+Para instalações do portal sujeitas ao limite anónimo da API GitHub, configure opcionalmente `PLATFORM_GITHUB_TOKEN`. O repositório pode ser alterado com `PLATFORM_GITHUB_REPOSITORY`; por omissão é `RDFonseca82/iWebClassroom`.
+
 ## Instaladores Windows
 
 Cada release produz dois MSI self-contained, sem necessidade de instalar previamente o .NET:
@@ -154,9 +173,9 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.9.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.9.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.9.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Server-0.10.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.10.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
+msiexec.exe /i iWebClassroom-Agent-0.10.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
@@ -211,15 +230,15 @@ Sem certificado, os MSI podem ser testados e instalados manualmente, mas o Windo
 
 Os projetos de instalação usam WiX Toolset 7.0.1. O ficheiro de projeto aceita a EULA `wix7`; antes de distribuir comercialmente, a organização deve rever os termos [OSMF do WiX](https://docs.firegiant.com/wix/osmf/).
 
-## Atualizações automáticas
+## Segurança das atualizações
 
-As atualizações estão desativadas até existir um certificado de assinatura de código da organização. Para as ativar:
+Mesmo depois da aprovação da escola, as atualizações permanecem bloqueadas até existir um certificado de assinatura de código da organização. Para preparar o canal:
 
 1. assine os MSI do agente e do servidor com Authenticode;
 2. publique os MSI e os manifestos `agent-stable.json` e `server-stable.json` num GitHub Release;
-3. configure a impressão digital do certificado em `update.json` no agente e em `appsettings.Local.json` no servidor;
+3. configure a impressão digital do certificado no portal cloud para todos os servidores e em `update.json` no agente;
 4. disponibilize o manifesto do agente na pasta `releases` do servidor.
 
-O certificado é fixado em cada instalação. Alterar apenas o manifesto remoto não permite instalar software assinado por outro certificado.
+O certificado é fixado em cada instalação. Alterar apenas o manifesto remoto, publicar uma tag ou criar uma release não autoriza nem instala uma versão: continuam a ser necessárias a aprovação da escola, a ausência de computadores ligados e a assinatura esperada.
 
 Consulte [arquitetura](docs/architecture.md), [segurança](docs/security.md) e [implantação](docs/deployment.md).

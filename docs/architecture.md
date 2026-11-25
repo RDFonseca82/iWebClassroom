@@ -27,6 +27,7 @@ O servidor mantém a identidade permanente do computador, a sala predefinida, a 
 7. O servidor envia a revisão conhecida, o hash da configuração e as alterações locais.
 8. O portal incrementa a revisão ao aceitar uma alteração. Uma revisão central mais recente prevalece sobre uma alteração local desatualizada.
 9. A indisponibilidade da Internet não bloqueia aulas nem agentes; a sincronização volta a tentar em segundo plano e o token administrativo local permite acesso de recuperação.
+10. A sincronização completa inclui a versão de servidor aprovada ao nível da escola. Não existir aprovação equivale a não existir atualização autorizada.
 
 ### Diretório multi-servidor de salas temporárias
 
@@ -39,6 +40,15 @@ O servidor mantém a identidade permanente do computador, a sala predefinida, a 
 7. O tráfego da aula não atravessa a cloud. Se a cloud cair depois da entrada, a sessão continua; sem cloud não é possível iniciar uma nova entrada entre servidores.
 
 O portal guarda somente rotas ativas em `active_room_routes`. O administrador define por servidor se aceita novas aulas e o limite simultâneo. Aulas em curso são fixas ao servidor e nunca são migradas automaticamente.
+
+### Atualização coordenada dos servidores
+
+1. O portal consulta a última release GitHub e apresenta-a sem a aprovar automaticamente.
+2. Um administrador aprova a versão para a escola inteira; a aprovação fica em `schools.settings.server_update_approval`.
+3. Todos os servidores recebem o mesmo manifesto e versão na sincronização completa.
+4. O worker local exige uma versão superior à instalada, zero agentes online, zero aulas ativas, HTTPS, SHA-256 correto e assinatura Authenticode coincidente.
+5. Servidores ocupados aguardam e repetem a avaliação a cada 30 segundos. Não existe migração nem interrupção de aulas para atualizar.
+6. Depois do MSI e reinício, o servidor reporta a nova versão à cloud. A aprovação pode permanecer registada: servidores já atualizados ignoram-na.
 
 ## Fluxos principais
 
