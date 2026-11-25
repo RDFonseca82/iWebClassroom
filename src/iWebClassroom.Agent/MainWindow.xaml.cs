@@ -295,7 +295,8 @@ public partial class MainWindow : Window
 
         try
         {
-            var joined = await _roomJoinClient.JoinAsync(_settings, room.LessonId, RoomPinText.Password.Trim(), CancellationToken.None);
+            var studentName = Required(StudentNameText.Text, AgentStrings.StudentName);
+            var joined = await _roomJoinClient.JoinAsync(_settings, room.LessonId, RoomPinText.Password.Trim(), studentName, CancellationToken.None);
             RoomPinText.Clear();
             ActivityText.Text = AgentStrings.Format(nameof(AgentStrings.RoomJoined), joined.RoomName);
         }

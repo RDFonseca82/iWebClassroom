@@ -39,6 +39,17 @@ ManagedHttpsCertificateProvider? managedHttps = null;
 if (!args.Contains("--urls", StringComparer.OrdinalIgnoreCase))
 {
     managedHttps = new ManagedHttpsCertificateProvider(builder.Environment.ContentRootPath, configuredDataDirectory);
+    if (WindowsServiceHelpers.IsWindowsService())
+    {
+        try
+        {
+            managedHttps.InstallRootForLocalMachine();
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"The local HTTPS authority could not be installed in the machine trust store: {exception.Message}");
+        }
+    }
     builder.Services.AddSingleton(managedHttps);
     builder.WebHost.ConfigureKestrel(options =>
     {
@@ -66,6 +77,7 @@ builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddHttpClient(nameof(CloudSyncClient));
 builder.Services.AddHostedService<CloudSyncWorker>();
+builder.Services.AddHostedService<CloudDirectorySyncWorker>();
 builder.Services.AddHostedService<LessonExpirationWorker>();
 builder.Services.AddHostedService<ServerUpdateWorker>();
 builder.Services.AddSignalR(options =>
@@ -219,21 +231,27 @@ app.MapGet("/api/v1/teacher/overview", (
     CloudDirectoryStore directory,
     IOptionsMonitor<ClassroomOptions> classroomOptions,
     IConfiguration configuration) =>
-    TryGetTeacher(request, configuration, out var teacher)
-        ? Results.Ok(new TeacherOverview(
-            agentRegistry.List(),
-            lessonRegistry.List()
-                .Select(lesson => string.Equals(lesson.TeacherId, teacher!.TeacherId, StringComparison.Ordinal)
-                    ? lesson
-                    : lesson with { JoinCode = null })
-                .ToArray(),
-            directory.Current.Classrooms
-                .Select(room => new ClassroomDefinition(room.Id, room.Code, room.Name))
-                .OrderBy(room => room.Name, StringComparer.CurrentCultureIgnoreCase)
-                .ToArray(),
-            teacher!,
-            Math.Clamp(classroomOptions.CurrentValue.DefaultLessonDurationMinutes, 15, 480)))
-        : Results.Unauthorized()).RequireRateLimiting("teacher");
+{
+    if (!TryGetTeacher(request, configuration, out var teacher) || teacher is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var lessons = lessonRegistry.List()
+        .Select(lesson => string.Equals(lesson.TeacherId, teacher.TeacherId, StringComparison.Ordinal)
+            ? lesson
+            : lesson with { JoinCode = null, Participants = [] })
+        .ToArray();
+    return Results.Ok(new TeacherOverview(
+        agentRegistry.List(),
+        lessons,
+        directory.Current.Classrooms
+            .Select(room => new ClassroomDefinition(room.Id, room.Code, room.Name))
+            .OrderBy(room => room.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray(),
+        teacher,
+        Math.Clamp(classroomOptions.CurrentValue.DefaultLessonDurationMinutes, 15, 480)));
+}).RequireRateLimiting("teacher");
 
 app.MapGet("/api/v1/rooms/available", (
     HttpRequest request,
@@ -269,7 +287,12 @@ app.MapPost("/api/v1/rooms/join", async (
         return Results.Unauthorized();
     }
 
-    var lesson = await lessonRegistry.TryJoinAsync(join.LessonId, agent, join.Pin.Trim(), cancellationToken);
+    if (string.IsNullOrWhiteSpace(join.StudentName) || join.StudentName.Trim().Length is > 100)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "StudentNameRequired") });
+    }
+
+    var lesson = await lessonRegistry.TryJoinAsync(join.LessonId, agent, join.Pin.Trim(), join.StudentName.Trim(), cancellationToken);
     if (lesson is null)
     {
         return Results.BadRequest(new { error = ApiText.Get(request, "InvalidRoomPin") });

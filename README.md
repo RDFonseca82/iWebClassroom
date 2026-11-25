@@ -23,10 +23,12 @@ Este repositório contém um MVP funcional com:
 - ligação inicial com as credenciais técnicas do servidor e início de sessão posterior com uma conta de administrador da escola validada pela cloud;
 - HTTPS local gerido, certificado renovado automaticamente e escuta em todas as placas de rede IPv4/IPv6;
 - versão do servidor sempre visível nas consolas web.
+- ícone do servidor na área de notificação do Windows, com atalhos para administração, consola do professor, estado, versão e cópia do endereço seguro;
+- sincronização leve de professores, PIN e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
-Os computadores partilhados são registados uma única vez sem sala fixa. Quando o professor cria uma sala temporária, os alunos escolhem-na na lista e introduzem o PIN temporário mostrado pelo professor. Esse PIN é diferente do PIN pessoal do professor. A sala termina manualmente, ao atingir a duração definida ou quando o professor deixa de estar online.
+Os computadores partilhados são registados uma única vez sem sala fixa. Quando o professor cria uma sala temporária, os alunos escolhem-na na lista e introduzem obrigatoriamente o PIN temporário e o seu nome. O professor vê o nome do aluno associado ao nome do computador. Esse PIN é diferente do PIN pessoal do professor. A sala termina manualmente, ao atingir a duração definida ou quando o professor deixa de estar online.
 
 Nas salas fixas, o administrador cria a sala no portal cloud e associa-a a um servidor local. Os agentes fixos usam o código dessa sala e ligam-se sempre à mesma sala. Só pode existir um professor ativo por sala e cada professor só pode dirigir uma aula de cada vez.
 
@@ -99,7 +101,7 @@ Cada escola pode ter vários servidores. No portal central, registe cada servido
 
 Depois da ligação inicial, a administração local deixa de pedir a credencial técnica e passa a pedir o email e a palavra-passe de um administrador ativo da escola. A cloud valida a palavra-passe; o servidor local sincroniza apenas a identidade, o email e a função do administrador, nunca o respetivo hash. O token local continua disponível exclusivamente como recuperação offline.
 
-A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. A cada 60 segundos são enviados inventário, versões e alterações locais, e recebidas as definições centrais e uma licença atualizada. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
+A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. Professores, alterações de PIN, administradores e salas são consultados num endpoint pequeno a cada 45 segundos; o `ETag` evita transferir dados quando nada mudou. Inventário, configuração e licença usam a sincronização completa a cada cinco minutos. A verificação de novas versões continua independente, por omissão a cada seis horas. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
 
 O token de `bootstrap-secrets.json` permanece disponível no ecrã em **Acesso local de recuperação**, para permitir a administração quando a cloud estiver indisponível.
 
@@ -127,9 +129,9 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.7.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.7.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.7.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Server-0.8.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.8.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
+msiexec.exe /i iWebClassroom-Agent-0.8.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
@@ -145,6 +147,8 @@ Esses ficheiros só podem ser lidos por `SYSTEM` e pelos administradores locais.
 
 O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A URL e o idioma são guardados em `HKLM\SOFTWARE\iWebClassroom\Agent`. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
 
+O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um utilizador entra no Windows. O ícone com o logótipo iWebClassroom permite abrir os dois portais, consultar estado e versão, copiar `https://localhost:7443` e encerrar apenas o ícone sem parar o serviço.
+
 ## Utilização diária
 
 ### Computadores partilhados
@@ -152,8 +156,9 @@ O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entr
 1. O técnico instala cada agente com o modo **Computador partilhado**; não é necessário configurar uma turma ou sala permanente.
 2. O professor abre a consola local, introduz o seu PIN pessoal aprovado e cria uma sala temporária com nome e duração.
 3. O professor mostra aos alunos o PIN temporário da sala.
-4. Em cada computador, o aluno escolhe a sala disponível, introduz o PIN temporário e entra.
-5. A sala termina quando o professor a encerra, quando expira ou quando o professor deixa de estar online.
+4. Em cada computador, o aluno escolhe a sala disponível, escreve obrigatoriamente o seu nome e o PIN temporário e entra.
+5. Na consola, o professor vê o nome do aluno e o computador que lhe está associado.
+6. A sala termina quando o professor a encerra, quando expira ou quando o professor deixa de estar online.
 
 ### Salas fixas
 

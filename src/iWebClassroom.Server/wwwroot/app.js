@@ -6,7 +6,7 @@ const translations = {
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
     studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação",
     notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento",
-    invalidPin: "PIN de professor inválido.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", online: "online", offline: "offline",
+    invalidPin: "PIN de professor inválido.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", online: "online", offline: "offline",
     noRooms: "Ainda não existem salas configuradas.", noTeachers: "Não existem postos de professor configurados.", noAgents: "Ainda não existem computadores de aluno nesta sala.",
     selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione um posto de professor.",
     startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Selecione um posto de professor e inicie a aula.",
@@ -20,7 +20,7 @@ const translations = {
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
     studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application",
     notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring",
-    invalidPin: "Invalid teacher PIN.", selectedOne: "selected", selectedMany: "selected", student: "Student", online: "online", offline: "offline",
+    invalidPin: "Invalid teacher PIN.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", online: "online", offline: "offline",
     noRooms: "There are no configured rooms yet.", noTeachers: "There are no configured teacher workstations.", noAgents: "There are no student computers in this room yet.",
     selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select a teacher workstation.",
     startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Select a teacher workstation and start the lesson.",
@@ -34,7 +34,7 @@ const translations = {
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
     studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación",
     notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación",
-    invalidPin: "PIN de profesor no válido.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", online: "conectado", offline: "desconectado",
+    invalidPin: "PIN de profesor no válido.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", online: "conectado", offline: "desconectado",
     noRooms: "Todavía no hay aulas configuradas.", noTeachers: "No hay puestos de profesor configurados.", noAgents: "Todavía no hay equipos de alumnos en esta aula.",
     selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione un puesto de profesor.",
     startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Seleccione un puesto de profesor e inicie la clase.",
@@ -171,6 +171,7 @@ function renderLessonStatus(lesson) {
 }
 
 function renderAgents(lesson) {
+  const participantNames = new Map((lesson?.participants || []).map(participant => [participant.agentId, participant.studentName]));
   const students = lesson?.isTemporary
     ? state.agents.filter(agent => agent.role === 0 && lesson.memberAgentIds.includes(agent.agentId))
     : state.agents.filter(agent => agent.role === 0 && !agent.isShared && agent.classroomId === elements.room.value);
@@ -182,10 +183,13 @@ function renderAgents(lesson) {
   state.selected = new Set([...state.selected].filter(id => availableIds.has(id)));
   elements.agents.innerHTML = students.length ? students.map(agent => {
     const available = Boolean(lesson?.memberAgentIds.includes(agent.agentId)) && agent.isOnline;
+    const studentName = participantNames.get(agent.agentId);
+    const visibleName = studentName || agent.displayName;
+    const metadata = studentName ? `${t("computer")}: ${agent.displayName} · ${t(agent.isOnline ? "online" : "offline")}` : `${t("student")} · ${t(agent.isOnline ? "online" : "offline")}`;
     return `<label class="agent ${available ? "available" : ""}">
-      <input type="checkbox" value="${agent.agentId}" ${state.selected.has(agent.agentId) ? "checked" : ""} ${available ? "" : "disabled"} aria-label="${escapeHtml(agent.displayName)}">
+      <input type="checkbox" value="${agent.agentId}" ${state.selected.has(agent.agentId) ? "checked" : ""} ${available ? "" : "disabled"} aria-label="${escapeHtml(visibleName)}">
       <span class="status-dot ${agent.isOnline ? "online" : ""}"></span>
-      <span class="agent-details"><span class="agent-name">${escapeHtml(agent.displayName)}</span><span class="agent-meta">${t("student")} · ${t(agent.isOnline ? "online" : "offline")}</span></span>
+      <span class="agent-details"><span class="agent-name">${escapeHtml(visibleName)}</span><span class="agent-meta">${escapeHtml(metadata)}</span></span>
     </label>`;
   }).join("") : `<div class="empty">${t("noAgents")}</div>`;
   elements.agents.querySelectorAll("input").forEach(input => input.addEventListener("change", () => {

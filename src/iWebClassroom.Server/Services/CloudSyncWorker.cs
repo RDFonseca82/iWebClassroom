@@ -29,7 +29,7 @@ public sealed class CloudSyncWorker(
                 logger.LogWarning(exception, "The periodic cloud synchronization attempt failed.");
             }
 
-            var seconds = Math.Clamp(options.CurrentValue.IntervalSeconds, 15, 3600);
+            var seconds = Math.Clamp(options.CurrentValue.IntervalSeconds, 300, 3600);
             await Task.Delay(TimeSpan.FromSeconds(seconds), stoppingToken);
         }
     }

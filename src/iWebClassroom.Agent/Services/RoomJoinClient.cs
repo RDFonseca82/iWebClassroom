@@ -21,10 +21,11 @@ public sealed class RoomJoinClient
         AgentSettings settings,
         Guid lessonId,
         string pin,
+        string studentName,
         CancellationToken cancellationToken)
     {
         using var client = CreateClient(settings);
-        using var response = await client.PostAsJsonAsync("/api/v1/rooms/join", new JoinRoomRequest(lessonId, pin), cancellationToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/rooms/join", new JoinRoomRequest(lessonId, pin, studentName), cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new InvalidOperationException(AgentStrings.InvalidRoomPin);

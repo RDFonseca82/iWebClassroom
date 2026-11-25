@@ -139,6 +139,7 @@ public sealed class LessonRegistry(
         Guid lessonId,
         AgentSummary student,
         string pin,
+        string studentName,
         CancellationToken cancellationToken)
     {
         await _stateLock.WaitAsync(cancellationToken);
@@ -157,7 +158,11 @@ public sealed class LessonRegistry(
             }
 
             var members = (lesson.MemberAgentIds ?? []).Append(student.AgentId).Distinct().ToArray();
-            lesson = lesson with { MemberAgentIds = members };
+            var participants = new Dictionary<Guid, string>(lesson.ParticipantNames ?? new Dictionary<Guid, string>())
+            {
+                [student.AgentId] = studentName.Trim()
+            };
+            lesson = lesson with { MemberAgentIds = members, ParticipantNames = participants };
             _lessons[lessonId] = lesson;
             await PersistAsync(cancellationToken);
             return ToSummary(lesson);
@@ -264,7 +269,12 @@ public sealed class LessonRegistry(
             lesson.JoinCode,
             lesson.StartedAtUtc,
             lesson.ExpiresAtUtc,
-            members);
+            members,
+            (lesson.ParticipantNames ?? new Dictionary<Guid, string>())
+                .Where(item => members.Contains(item.Key))
+                .OrderBy(item => item.Value, StringComparer.CurrentCultureIgnoreCase)
+                .Select(item => new LessonParticipantSummary(item.Key, item.Value))
+                .ToArray());
     }
 
     private async Task PersistAsync(CancellationToken cancellationToken)
@@ -299,5 +309,6 @@ public sealed class LessonRegistry(
         string? JoinCode = null,
         string? JoinPinSalt = null,
         string? JoinPinHash = null,
-        IReadOnlyCollection<Guid>? MemberAgentIds = null);
+        IReadOnlyCollection<Guid>? MemberAgentIds = null,
+        IReadOnlyDictionary<Guid, string>? ParticipantNames = null);
 }

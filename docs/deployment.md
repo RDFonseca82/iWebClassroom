@@ -11,6 +11,7 @@
 7. Abra `https://<nome-ou-ip>:7443` e confirme `/health`. O aviso inicial desaparece automaticamente nos perfis Windows onde o agente concluiu o primeiro registo.
 8. No portal central, registe o servidor e guarde o utilizador e a palavra-passe técnicos apresentados uma única vez.
 9. Abra `/admin.html` e introduza o utilizador e a palavra-passe técnicos apenas na ligação inicial. Depois disso, entre com uma conta de administrador da escola registada na cloud. Nenhuma das palavras-passe é guardada localmente.
+10. Termine e volte a iniciar a sessão Windows, ou execute `iWebClassroom.Server.Tray.exe`, para mostrar o ícone do servidor junto ao relógio.
 
 ### Reinstalar ou substituir o servidor
 
@@ -21,7 +22,7 @@ O portal associa cada credencial técnica a uma única instalação através do 
 1. Publique o agente e o atualizador para `win-x64`.
 2. Implante o MSI por GPO, Intune, Configuration Manager ou manualmente. Na instalação assistida, escolha o idioma e introduza a URL HTTPS do servidor local.
 3. Para instalação silenciosa use `msiexec /i <ficheiro.msi> /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart`. Os idiomas válidos são `pt-PT`, `en-US` e `es-ES`; `SERVERURL` é obrigatório numa primeira instalação silenciosa.
-4. No primeiro início, a URL já aparece preenchida. Introduza o código de inscrição, a sala predefinida e a função do posto. O agente obtém a autoridade local pela porta 7080, instala-a no perfil Windows e continua por HTTPS na porta 7443.
+4. No primeiro início, a URL já aparece preenchida. Introduza o código de inscrição, a sala predefinida e a função do posto. O agente obtém a autoridade local pela porta 7080, instala-a no perfil Windows e continua por HTTPS na porta 7443. Num computador partilhado, cada aluno indica também o seu nome e o PIN da sala temporária em cada entrada.
 5. Depois de todos os computadores estarem inscritos, rode ou desative temporariamente o código de inscrição.
 6. Confirme que a identidade partilhada foi criada em `C:\ProgramData\iWebClassroom\Agent\agent.json`.
 

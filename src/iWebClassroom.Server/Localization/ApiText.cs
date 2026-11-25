@@ -17,6 +17,7 @@ public static class ApiText
         ["InvalidRoom"] = ["A sala deve conter entre 1 e 50 caracteres.", "The room must contain between 1 and 50 characters.", "El aula debe contener entre 1 y 50 caracteres."],
         ["InvalidDuration"] = ["A duração da aula deve estar entre 15 e 480 minutos.", "The lesson duration must be between 15 and 480 minutes.", "La duración de la clase debe estar entre 15 y 480 minutos."],
         ["InvalidRoomPin"] = ["O PIN da sala não é válido ou a sala já terminou.", "The room PIN is invalid or the room has already ended.", "El PIN de la sala no es válido o la sala ya ha terminado."],
+        ["StudentNameRequired"] = ["O nome do aluno é obrigatório e pode ter até 100 caracteres.", "The student name is required and can contain up to 100 characters.", "El nombre del alumno es obligatorio y puede tener hasta 100 caracteres."],
         ["InvalidTeacher"] = ["Selecione um posto de professor válido.", "Select a valid teacher workstation.", "Seleccione un puesto de profesor válido."],
         ["RoomInUse"] = ["A sala ou o posto de professor já tem uma aula ativa.", "The room or teacher workstation already has an active lesson.", "El aula o el puesto del profesor ya tiene una clase activa."],
         ["LessonNotFound"] = ["A aula já terminou ou não existe.", "The lesson has ended or does not exist.", "La clase ha terminado o no existe."],

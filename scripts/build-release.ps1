@@ -26,9 +26,10 @@ if (Test-Path -LiteralPath $artifactsRoot) {
 
 $agentOutput = Join-Path $artifactsRoot 'agent'
 $serverOutput = Join-Path $artifactsRoot 'server'
+$serverTrayOutput = Join-Path $artifactsRoot 'server-tray'
 $updaterOutput = Join-Path $artifactsRoot 'updater'
 $installerBuildRoot = Join-Path $artifactsRoot 'installer-build'
-New-Item -ItemType Directory -Path $agentOutput, $serverOutput, $updaterOutput, $installerBuildRoot | Out-Null
+New-Item -ItemType Directory -Path $agentOutput, $serverOutput, $serverTrayOutput, $updaterOutput, $installerBuildRoot | Out-Null
 
 & $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Updater\iWebClassroom.Updater.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -p:NuGetAudit=false -o $updaterOutput
 if ($LASTEXITCODE -ne 0) { throw 'Publishing the updater failed.' }
@@ -36,6 +37,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Publishing the updater failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Publishing the agent failed.' }
 & $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Server\iWebClassroom.Server.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -p:NuGetAudit=false -o $serverOutput
 if ($LASTEXITCODE -ne 0) { throw 'Publishing the server failed.' }
+& $dotnet publish (Join-Path $repositoryRoot 'src\iWebClassroom.Server.Tray\iWebClassroom.Server.Tray.csproj') -c Release -r $Runtime --self-contained true -p:Version=$Version -p:NuGetAudit=false -o $serverTrayOutput
+if ($LASTEXITCODE -ne 0) { throw 'Publishing the server tray application failed.' }
+Copy-Item -Path (Join-Path $serverTrayOutput '*') -Destination $serverOutput -Recurse -Force
 
 $updaterFiles = @(
     'iWebClassroom.Updater.exe',

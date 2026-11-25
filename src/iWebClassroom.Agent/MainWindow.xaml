@@ -80,6 +80,8 @@
                       HorizontalAlignment="Left" />
             </StackPanel>
             <StackPanel Grid.Column="2">
+              <TextBlock Text="{x:Static loc:AgentStrings.StudentName}" FontWeight="SemiBold" />
+              <TextBox x:Name="StudentNameText" Margin="0,7,0,8" MaxLength="100" />
               <TextBlock Text="{x:Static loc:AgentStrings.RoomPin}" FontWeight="SemiBold" />
               <PasswordBox x:Name="RoomPinText" Margin="0,7,0,8" MaxLength="6" />
               <Button Content="{x:Static loc:AgentStrings.JoinRoom}" Click="JoinRoomButton_Click" />

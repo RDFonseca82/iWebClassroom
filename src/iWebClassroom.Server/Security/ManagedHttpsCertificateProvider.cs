@@ -47,6 +47,18 @@ public sealed class ManagedHttpsCertificateProvider : IDisposable
         lock (_gate) return _rootCertificate.Export(X509ContentType.Cert);
     }
 
+    public void InstallRootForLocalMachine()
+    {
+        using var certificate = X509CertificateLoader.LoadCertificate(ExportRootCertificate());
+        using var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+        store.Open(OpenFlags.ReadWrite);
+        var existing = store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false);
+        if (existing.Count == 0)
+        {
+            store.Add(certificate);
+        }
+    }
+
     public bool RefreshIfRequired()
     {
         lock (_gate)

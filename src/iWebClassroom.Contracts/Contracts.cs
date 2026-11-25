@@ -47,7 +47,9 @@ public sealed record AvailableRoomSummary(
     string TeacherDisplayName,
     DateTimeOffset ExpiresAtUtc);
 
-public sealed record JoinRoomRequest(Guid LessonId, string Pin);
+public sealed record JoinRoomRequest(Guid LessonId, string Pin, string StudentName);
+
+public sealed record LessonParticipantSummary(Guid AgentId, string StudentName);
 
 public sealed record ClassroomCommand(
     Guid CommandId,
@@ -78,7 +80,8 @@ public sealed record LessonSessionSummary(
     string? JoinCode,
     DateTimeOffset StartedAtUtc,
     DateTimeOffset ExpiresAtUtc,
-    IReadOnlyCollection<Guid> MemberAgentIds);
+    IReadOnlyCollection<Guid> MemberAgentIds,
+    IReadOnlyCollection<LessonParticipantSummary> Participants);
 
 public sealed record TeacherOverview(
     IReadOnlyCollection<AgentSummary> Agents,

@@ -127,10 +127,20 @@
       <ComponentRef Id="ServerDataDirectory" />
       <ComponentRef Id="ServerMachineSettings" />
       <ComponentRef Id="ServerInstallerConfiguration" />
+      <ComponentRef Id="ServerTrayStartup" />
     </Feature>
   </Package>
 
   <Fragment>
+    <Component Id="ServerTrayStartup" Directory="INSTALLFOLDER" Bitness="always64">
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+                     Name="iWebClassroom Server"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]iWebClassroom.Server.Tray.exe&quot;"
+                     KeyPath="yes" />
+    </Component>
+
     <Component Id="ServerService" Directory="INSTALLFOLDER" Bitness="always64">
       <File Id="ServerExecutable"
             Source="$(var.PublishDir)\iWebClassroom.Server.exe"

@@ -24,6 +24,7 @@ public static class AgentStrings
         [nameof(AvailableRooms)] = ["Salas disponíveis", "Available rooms", "Aulas disponibles"],
         [nameof(RefreshRooms)] = ["Atualizar", "Refresh", "Actualizar"],
         [nameof(RoomPin)] = ["PIN da sala", "Room PIN", "PIN del aula"],
+        [nameof(StudentName)] = ["Nome do aluno", "Student name", "Nombre del alumno"],
         [nameof(JoinRoom)] = ["Entrar na sala", "Join room", "Entrar en el aula"],
         [nameof(NoRoomsAvailable)] = ["Não existem salas disponíveis neste momento.", "There are no available rooms at this time.", "No hay aulas disponibles en este momento."],
         [nameof(SelectRoom)] = ["Selecione uma sala disponível.", "Select an available room.", "Seleccione un aula disponible."],
@@ -88,6 +89,7 @@ public static class AgentStrings
     public static string AvailableRooms => Text(nameof(AvailableRooms));
     public static string RefreshRooms => Text(nameof(RefreshRooms));
     public static string RoomPin => Text(nameof(RoomPin));
+    public static string StudentName => Text(nameof(StudentName));
     public static string JoinRoom => Text(nameof(JoinRoom));
     public static string NoRoomsAvailable => Text(nameof(NoRoomsAvailable));
     public static string SelectRoom => Text(nameof(SelectRoom));

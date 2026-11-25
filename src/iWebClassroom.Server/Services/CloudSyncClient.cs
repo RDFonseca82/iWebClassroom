@@ -49,6 +49,34 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
                ?? throw new InvalidOperationException("The cloud returned an empty administrator authentication response.");
     }
 
+    public async Task<CloudDirectorySyncResult> SynchronizeDirectoryAsync(
+        Guid serverId,
+        string accessToken,
+        string? etag,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/server/directory");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Add("X-iWebClassroom-Server", serverId.ToString());
+        if (!string.IsNullOrWhiteSpace(etag))
+        {
+            request.Headers.TryAddWithoutValidation("If-None-Match", etag);
+        }
+
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseEtag = response.Headers.ETag?.ToString() ?? etag;
+        if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+        {
+            return new CloudDirectorySyncResult(null, responseEtag, true);
+        }
+
+        await EnsureSuccessAsync(response, cancellationToken);
+        var directory = await response.Content.ReadFromJsonAsync<CloudDirectoryResponse>(JsonOptions, cancellationToken)
+                        ?? throw new InvalidOperationException("The cloud returned an empty school directory response.");
+        return new CloudDirectorySyncResult(directory, responseEtag, false);
+    }
+
     private HttpClient CreateClient()
     {
         var policy = options.CurrentValue;
@@ -93,3 +121,5 @@ public sealed class CloudApiException(string message, string? code, System.Net.H
 {
     public string? Code { get; } = code;
 }
+
+public sealed record CloudDirectorySyncResult(CloudDirectoryResponse? Directory, string? ETag, bool NotModified);

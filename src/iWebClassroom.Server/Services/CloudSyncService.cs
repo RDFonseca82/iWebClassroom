@@ -16,6 +16,8 @@ public sealed class CloudSyncService(
 {
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private readonly SemaphoreSlim _syncLock = new(1, 1);
+    private readonly SemaphoreSlim _directorySyncLock = new(1, 1);
+    private string? _directoryEtag;
 
     public CloudSyncStatus Status()
     {
@@ -145,6 +147,36 @@ public sealed class CloudSyncService(
             await SynchronizeAsync(cancellationToken);
         }
         return Status();
+    }
+
+    public async Task SynchronizeDirectoryAsync(CancellationToken cancellationToken)
+    {
+        await _directorySyncLock.WaitAsync(cancellationToken);
+        try
+        {
+            var state = stateStore.Snapshot();
+            var token = stateStore.GetAccessToken();
+            if (!options.CurrentValue.Enabled || !state.ServerId.HasValue || string.IsNullOrWhiteSpace(token))
+            {
+                return;
+            }
+
+            var result = await client.SynchronizeDirectoryAsync(
+                state.ServerId.Value,
+                token,
+                _directoryEtag,
+                cancellationToken);
+            _directoryEtag = result.ETag;
+            if (!result.NotModified)
+            {
+                await directoryStore.ApplyAsync(result.Directory, cancellationToken);
+                logger.LogInformation("The lightweight school directory synchronization completed.");
+            }
+        }
+        finally
+        {
+            _directorySyncLock.Release();
+        }
     }
 
     public async Task<CloudSyncStatus> DisconnectAsync(CancellationToken cancellationToken)
