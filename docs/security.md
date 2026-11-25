@@ -9,7 +9,7 @@ O iWebClassroom controla computadores de menores e deve ser tratado como softwar
 - segredo administrativo e código de inscrição nunca incluídos no repositório;
 - comparação de segredos em tempo constante;
 - tokens de agente aleatórios, com hash no servidor e DPAPI no cliente;
-- PIN de professor separado do token administrativo e limitado por endereço de origem;
+- código de professor aleatório e de utilização única, guardado apenas como hash, válido durante 10 minutos, limitado a cinco tentativas e separado do token administrativo;
 - comandos tipados, sem shell remoto;
 - lista de aplicações autorizadas validada no servidor e no agente;
 - sessões exclusivas por sala, comandos limitados aos seus membros e publicação de ecrã limitada ao posto `Teacher` escolhido;
@@ -38,7 +38,7 @@ O iWebClassroom controla computadores de menores e deve ser tratado como softwar
 
 - para ambientes geridos, certificado TLS emitido pela PKI da escola ou por autoridade pública e nome DNS estável, em substituição da autoridade local automática;
 - tokens com pelo menos 32 bytes aleatórios e rotação regular do código de inscrição;
-- rotação do PIN de professor e distribuição apenas à equipa docente;
+- configuração e monitorização do serviço SMTP, com SPF, DKIM e DMARC para o domínio de envio;
 - firewall a permitir apenas 443 dos segmentos necessários;
 - conta de serviço dedicada, cópias de segurança de `ProgramData\iWebClassroom` e ACL restrita;
 - certificado Authenticode guardado em HSM ou serviço de assinatura, nunca em ficheiro no repositório;

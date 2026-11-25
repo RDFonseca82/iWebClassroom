@@ -26,7 +26,11 @@ public sealed record AgentSummary(
     DateTimeOffset LastSeenUtc,
     bool IsRoaming = false);
 
-public sealed record TeacherLoginRequest(string Pin);
+public sealed record TeacherAccessRequest(string Email);
+
+public sealed record TeacherAccessVerifyRequest(string Email, string Code);
+
+public sealed record TeacherAccessChallengeResponse(DateTimeOffset ExpiresAtUtc);
 
 public sealed record TeacherSessionResponse(
     string SessionToken,

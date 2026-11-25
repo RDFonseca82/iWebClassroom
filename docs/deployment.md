@@ -7,7 +7,7 @@
 3. Instale o MSI como administrador e escolha o idioma. Para implantação silenciosa use `msiexec /i <ficheiro.msi> /qn INSTALLLANGUAGE=pt-PT /norestart`.
 4. Confirme que as portas TCP 7080 e 7443 estão acessíveis nas VLAN necessárias. O MSI cria regras da Firewall do Windows limitadas à sub-rede local.
 5. Proteja a pasta `C:\ProgramData\iWebClassroom\Server` e faça cópias de segurança.
-6. Guarde o token administrativo de recuperação existente em `C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json`. Os professores usam os PIN pessoais aprovados no portal cloud.
+6. Guarde o token administrativo de recuperação existente em `C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json`. Os professores entram com um código único enviado por email após aprovação no portal cloud.
 7. Abra `https://<nome-ou-ip>:7443` e confirme `/health`. O aviso inicial desaparece automaticamente nos perfis Windows onde o agente concluiu o primeiro registo.
 8. No portal central, registe o servidor e guarde o utilizador e a palavra-passe técnicos apresentados uma única vez.
 9. Abra `/admin.html` e introduza o utilizador e a palavra-passe técnicos apenas na ligação inicial. Depois disso, entre com uma conta de administrador da escola registada na cloud. Nenhuma das palavras-passe é guardada localmente.
@@ -52,6 +52,8 @@ Numa sala fixa, use a mesma sala predefinida em todos os postos de aluno e marqu
 Não é necessária qualquer ligação iniciada do servidor para os computadores dos alunos.
 
 Antes de instalar a versão multi-servidor, execute no SQL Server do portal `database/sql/2026-11-25_active_room_routes_sqlserver.sql` ou aplique a migration Laravel equivalente. Sem esta tabela, a criação local de salas continua em modo degradado, mas a resolução de códigos entre servidores não funciona.
+
+Antes de ativar o acesso de professores por email, execute também `database/sql/2026-11-25_teacher_access_codes_sqlserver.sql` ou aplique a migration Laravel equivalente. Configure o SMTP no `.env` e execute `php artisan config:clear` (ou volte a criar a cache com `php artisan config:cache`) após a publicação.
 
 ## Dados
 

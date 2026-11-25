@@ -15,6 +15,22 @@ public sealed record CloudAdministratorResponse(
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("school_id")] Guid SchoolId);
 
+public sealed record CloudTeacherAccessRequest(
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("locale")] string Locale);
+
+public sealed record CloudTeacherAccessVerifyRequest(
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("code")] string Code);
+
+public sealed record CloudTeacherAccessChallenge(
+    [property: JsonPropertyName("expires_at_utc")] DateTimeOffset ExpiresAtUtc);
+
+public sealed record CloudTeacherAccessIdentity(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("email")] string Email);
+
 public sealed record CloudAuthRequest(
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("password")] string Password,

@@ -1,12 +1,12 @@
 const translations = {
   "pt-PT": {
     teacherConsole: "CONSOLA DO PROFESSOR", language: "Idioma", administration: "Administração", localServer: "Servidor local", checkingServer: "A verificar servidor…", schoolAccess: "Acesso do professor",
-    tokenHelp: "Introduza o PIN de professor. O PIN fica apenas nesta sessão do navegador.", teacherPin: "PIN de professor", enter: "Entrar",
+    tokenHelp: "Introduza o seu e-mail. Enviaremos um código único para confirmar este acesso.", teacherEmail: "E-mail do professor", sendCode: "Enviar código", accessCode: "Código de acesso", codeSent: "Se o e-mail estiver autorizado, receberá um código. Introduza-o abaixo.", changeEmail: "Usar outro e-mail", enter: "Entrar",
     classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Posto do professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
     studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação",
     notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento",
-    invalidPin: "PIN de professor inválido.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", online: "online", offline: "offline",
+    invalidCode: "O código é inválido ou expirou.", invalidEmail: "Introduza um endereço de e-mail válido.", accessUnavailable: "Não foi possível contactar a gestão central. Tente novamente dentro de instantes.", codeRequested: "Se o e-mail estiver autorizado, o código foi enviado.", tooManyRequests: "Foram feitos demasiados pedidos. Aguarde um minuto e tente novamente.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", online: "online", offline: "offline",
     noRooms: "Ainda não existem salas configuradas.", noTeachers: "Não existem postos de professor configurados.", noAgents: "Ainda não existem computadores de aluno nesta sala.",
     selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione um posto de professor.",
     startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Selecione um posto de professor e inicie a aula.",
@@ -15,12 +15,12 @@ const translations = {
   },
   en: {
     teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
-    tokenHelp: "Enter the teacher PIN. The PIN is kept only for this browser session.", teacherPin: "Teacher PIN", enter: "Sign in",
+    tokenHelp: "Enter your email address. We will send a unique code to confirm this access.", teacherEmail: "Teacher email", sendCode: "Send code", accessCode: "Access code", codeSent: "If the email is authorised, you will receive a code. Enter it below.", changeEmail: "Use another email", enter: "Sign in",
     classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Teacher workstation", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
     studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application",
     notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring",
-    invalidPin: "Invalid teacher PIN.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", online: "online", offline: "offline",
+    invalidCode: "The code is invalid or has expired.", invalidEmail: "Enter a valid email address.", accessUnavailable: "Central management could not be reached. Please try again shortly.", codeRequested: "If the email is authorised, the code has been sent.", tooManyRequests: "Too many requests were made. Wait one minute and try again.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", online: "online", offline: "offline",
     noRooms: "There are no configured rooms yet.", noTeachers: "There are no configured teacher workstations.", noAgents: "There are no student computers in this room yet.",
     selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select a teacher workstation.",
     startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Select a teacher workstation and start the lesson.",
@@ -29,12 +29,12 @@ const translations = {
   },
   es: {
     teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
-    tokenHelp: "Introduzca el PIN de profesor. El PIN se conserva solo durante esta sesión del navegador.", teacherPin: "PIN de profesor", enter: "Entrar",
+    tokenHelp: "Introduzca su correo electrónico. Enviaremos un código único para confirmar este acceso.", teacherEmail: "Correo del profesor", sendCode: "Enviar código", accessCode: "Código de acceso", codeSent: "Si el correo está autorizado, recibirá un código. Introdúzcalo abajo.", changeEmail: "Usar otro correo", enter: "Entrar",
     classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Puesto del profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
     studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación",
     notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación",
-    invalidPin: "PIN de profesor no válido.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", online: "conectado", offline: "desconectado",
+    invalidCode: "El código no es válido o ha caducado.", invalidEmail: "Introduzca una dirección de correo válida.", accessUnavailable: "No se pudo contactar con la gestión central. Inténtelo de nuevo en unos instantes.", codeRequested: "Si el correo está autorizado, se ha enviado el código.", tooManyRequests: "Se han realizado demasiadas solicitudes. Espere un minuto e inténtelo de nuevo.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", online: "conectado", offline: "desconectado",
     noRooms: "Todavía no hay aulas configuradas.", noTeachers: "No hay puestos de profesor configurados.", noAgents: "Todavía no hay equipos de alumnos en esta aula.",
     selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione un puesto de profesor.",
     startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Seleccione un puesto de profesor e inicie la clase.",
@@ -47,11 +47,11 @@ const detectedLanguage = navigator.language?.toLowerCase().startsWith("es") ? "e
 const storedLanguage = localStorage.getItem("language");
 const state = {
   session: sessionStorage.getItem("teacher-session") || "", teacher: null, agents: [], lessons: [], fixedRooms: [], selected: new Set(), renderedLessonId: null, durationInitialized: false,
-  language: storedLanguage || detectedLanguage
+  language: storedLanguage || detectedLanguage, pendingEmail: ""
 };
 const elements = {
-  authPanel: document.querySelector("#auth-panel"), workspace: document.querySelector("#workspace"), authForm: document.querySelector("#auth-form"),
-  pin: document.querySelector("#teacher-pin"), agents: document.querySelector("#agents"), room: document.querySelector("#room"), roomMode: document.querySelector("#room-mode"), temporaryRoomName: document.querySelector("#temporary-room-name"), teacher: document.querySelector("#teacher"),
+  authPanel: document.querySelector("#auth-panel"), workspace: document.querySelector("#workspace"), requestForm: document.querySelector("#access-request-form"), verifyForm: document.querySelector("#access-verify-form"),
+  email: document.querySelector("#teacher-email"), code: document.querySelector("#teacher-code"), accessEmail: document.querySelector("#access-email"), agents: document.querySelector("#agents"), room: document.querySelector("#room"), roomMode: document.querySelector("#room-mode"), temporaryRoomName: document.querySelector("#temporary-room-name"), teacher: document.querySelector("#teacher"),
   duration: document.querySelector("#duration"), start: document.querySelector("#start-lesson"), end: document.querySelector("#end-lesson"),
   lessonStatus: document.querySelector("#lesson-status"), count: document.querySelector("#selection-count"), toast: document.querySelector("#toast")
 };
@@ -85,11 +85,18 @@ async function applyInstallerLanguage() {
 
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", "Accept-Language": state.language, ...(state.session ? { "X-Teacher-Session": state.session } : {}), ...(options.headers || {}) } });
-  if (response.status === 401) { logout(); throw new Error(t("invalidPin")); }
+  if (response.status === 401) { logout(); throw new Error(t("invalidCode")); }
   if (!response.ok) {
     const body = await response.text();
     let detail = body;
-    try { const parsed = JSON.parse(body); detail = parsed.error || parsed.detail || body; } catch { /* plain response */ }
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.code === "invalid_email") detail = t("invalidEmail");
+      else if (parsed.code === "invalid_access_code") detail = t("invalidCode");
+      else if (response.status === 429) detail = t("tooManyRequests");
+      else if (parsed.code === "teacher_access_unavailable" || parsed.code === "mail_delivery_failed") detail = t("accessUnavailable");
+      else detail = parsed.error || parsed.detail || parsed.message || body;
+    } catch { /* plain response */ }
     throw new Error(detail || `Erro ${response.status}`);
   }
   return response.status === 204 ? null : response.json();
@@ -100,7 +107,11 @@ function toast(message) {
   window.setTimeout(() => elements.toast.classList.remove("visible"), 3400);
 }
 
-function logout() { state.session = ""; state.teacher = null; sessionStorage.removeItem("teacher-session"); elements.authPanel.hidden = false; elements.workspace.hidden = true; }
+function logout() {
+  state.session = ""; state.teacher = null; state.pendingEmail = ""; sessionStorage.removeItem("teacher-session");
+  elements.code.value = ""; elements.verifyForm.hidden = true; elements.requestForm.hidden = false;
+  elements.authPanel.hidden = false; elements.workspace.hidden = true;
+}
 function currentLesson() {
   return elements.roomMode.value === "temporary"
     ? state.lessons.find(lesson => lesson.isTemporary && lesson.teacherId === state.teacher?.teacherId)
@@ -213,13 +224,27 @@ async function send(kind, payload, targets = selectedIds()) {
   toast(t("actionSent"));
 }
 
-elements.authForm.addEventListener("submit", async event => {
+elements.requestForm.addEventListener("submit", async event => {
   event.preventDefault();
   try {
-    const login = await api("/api/v1/teacher/login", { method: "POST", body: JSON.stringify({ pin: elements.pin.value.trim() }) });
-    state.session = login.sessionToken; sessionStorage.setItem("teacher-session", state.session); elements.pin.value = "";
+    state.pendingEmail = elements.email.value.trim();
+    await api("/api/v1/teacher/access/request", { method: "POST", body: JSON.stringify({ email: state.pendingEmail }) });
+    elements.accessEmail.textContent = state.pendingEmail; elements.requestForm.hidden = true; elements.verifyForm.hidden = false; elements.code.focus();
+    toast(t("codeRequested"));
+  } catch (error) { toast(error.message); }
+});
+
+elements.verifyForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    const login = await api("/api/v1/teacher/access/verify", { method: "POST", body: JSON.stringify({ email: state.pendingEmail, code: elements.code.value.trim() }) });
+    state.session = login.sessionToken; sessionStorage.setItem("teacher-session", state.session); elements.code.value = "";
     await loadOverview(); elements.authPanel.hidden = true; elements.workspace.hidden = false;
-  } catch (error) { toast(t("invalidPin")); }
+  } catch (error) { toast(error.message); }
+});
+
+document.querySelector("#change-email").addEventListener("click", () => {
+  state.pendingEmail = ""; elements.code.value = ""; elements.verifyForm.hidden = true; elements.requestForm.hidden = false; elements.email.focus();
 });
 
 elements.start.addEventListener("click", async () => {

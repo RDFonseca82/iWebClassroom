@@ -12,23 +12,8 @@ public sealed class TeacherSessionService(CloudDirectoryStore directory)
     private static readonly TimeSpan OnlineWindow = TimeSpan.FromSeconds(75);
     private readonly ConcurrentDictionary<string, Session> _sessions = new(StringComparer.Ordinal);
 
-    public TeacherSessionResponse? Create(string pin)
+    public TeacherSessionResponse Create(CloudTeacherAccessIdentity teacher)
     {
-        if (pin is not { Length: 6 } || pin.Any(character => !char.IsAsciiDigit(character)))
-        {
-            return null;
-        }
-
-        var matches = directory.Current.Teachers
-            .Where(teacher => PinHasher.Verify(pin, teacher.PinSalt, teacher.PinHash))
-            .Take(2)
-            .ToArray();
-        if (matches.Length != 1)
-        {
-            return null;
-        }
-
-        var teacher = matches[0];
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
         var now = DateTimeOffset.UtcNow;
         var session = new Session(

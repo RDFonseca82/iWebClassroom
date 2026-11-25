@@ -22,7 +22,7 @@ O servidor mantém a identidade permanente do computador, a sala predefinida, a 
 2. O administrador introduz esse utilizador e palavra-passe no painel local; o servidor troca-os por um token opaco através de HTTPS e executa imediatamente a sincronização inicial.
 3. O token fica cifrado com DPAPI ao nível da máquina; a palavra-passe não é guardada.
 4. A sincronização completa devolve definições e licença offline a cada cinco minutos; a última licença recebida fica guardada localmente.
-5. Um pedido separado e condicional, executado aproximadamente a cada 45 segundos, recebe apenas professores, PIN, administradores e salas. Com `ETag`, uma escola sem alterações recebe apenas `304 Not Modified`.
+5. Um pedido separado e condicional, executado aproximadamente a cada 45 segundos, recebe apenas professores autorizados, administradores e salas. Com `ETag`, uma escola sem alterações recebe apenas `304 Not Modified`.
 6. O painel usa uma sessão administrativa aleatória em memória, válida por oito horas, sem expor o token cloud ao navegador.
 7. O servidor envia a revisão conhecida, o hash da configuração e as alterações locais.
 8. O portal incrementa a revisão ao aceitar uma alteração. Uma revisão central mais recente prevalece sobre uma alteração local desatualizada.
@@ -62,7 +62,7 @@ O portal guarda somente rotas ativas em `active_room_routes`. O administrador de
 
 ### Sessão de aula
 
-1. O professor autentica-se com um PIN próprio, escolhe a sala e o posto de professor e carrega em **Iniciar aula**.
+1. O professor indica o email; o servidor local pede à cloud um código único de seis algarismos, enviado por email e válido durante 10 minutos. Após validação, é criada uma sessão local de oito horas e o professor escolhe a sala e o posto.
 2. O servidor cria uma sessão com duração limitada e impede outra sessão simultânea na mesma sala ou no mesmo posto de professor.
 3. Todos os agentes `Student` cuja sala predefinida corresponde à sala são membros da sessão, incluindo equipamentos que se liguem mais tarde.
 4. O servidor adiciona as ligações SignalR ao grupo `lesson:<id>` e limita os comandos aos membros da sessão.
@@ -84,7 +84,7 @@ O portal guarda somente rotas ativas em `active_room_routes`. O administrador de
 
 ## Evolução prevista
 
-- contas individuais de professores, SSO Microsoft Entra ID e permissões por turma;
+- SSO Microsoft Entra ID e permissões por turma;
 - WebRTC com SFU para maior fluidez, áudio e menor consumo do servidor;
 - inventário de aplicações por escola e grupos dinâmicos;
 - serviço Windows separado da aplicação interativa para reforçar a proteção local das credenciais e executar políticas privilegiadas;

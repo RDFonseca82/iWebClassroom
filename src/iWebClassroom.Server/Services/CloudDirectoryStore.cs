@@ -95,11 +95,7 @@ public sealed record CloudTeacherEntry(
     [property: JsonPropertyName("name")]
     string Name,
     [property: JsonPropertyName("email")]
-    string Email,
-    [property: JsonPropertyName("pin_salt")]
-    string PinSalt,
-    [property: JsonPropertyName("pin_hash")]
-    string PinHash);
+    string Email);
 
 public sealed record CloudClassroomEntry(
     [property: JsonPropertyName("id")]

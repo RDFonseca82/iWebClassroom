@@ -9,8 +9,8 @@ Este repositório contém um MVP funcional com:
 - consola web do professor para listar e selecionar computadores;
 - salas temporárias para computadores partilhados e salas fixas sincronizadas a partir da cloud;
 - código aleatório de seis algarismos e roaming temporário de alunos entre servidores da mesma escola;
-- registo de professores na cloud, aprovação pelo administrador da escola e PIN pessoal de seis algarismos;
-- PIN de professor separado do token administrativo;
+- registo de professores na cloud, aprovação pelo administrador da escola e código de acesso único enviado por email em cada entrada;
+- códigos de professor de utilização única, válidos durante 10 minutos e separados do token administrativo;
 - inscrição de agentes com código temporário e token individual;
 - ligação em tempo real por SignalR, com reconexão automática;
 - abertura de aplicações permitidas por uma lista no servidor **e** outra lista local no agente;
@@ -25,13 +25,13 @@ Este repositório contém um MVP funcional com:
 - HTTPS local gerido, certificado renovado automaticamente e escuta em todas as placas de rede IPv4/IPv6;
 - versão do servidor sempre visível nas consolas web.
 - ícone do servidor na área de notificação do Windows, com atalhos para administração, consola do professor, estado, versão e cópia do endereço seguro;
-- sincronização leve de professores, PIN e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
+- sincronização leve de professores e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
 - deteção da versão publicada no catálogo local da Cloud e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
 - página autenticada de transferências por escola, com os MSI do servidor e agente, hashes e instruções de instalação normal e silenciosa.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
-Os computadores partilhados são registados uma única vez sem sala fixa. Quando o professor cria uma sala temporária, recebe um código aleatório de seis algarismos. Cada aluno introduz esse código e obrigatoriamente o seu nome; não é apresentada uma lista pública de salas. O professor vê o nome do aluno associado ao nome do computador. O código da sala é diferente do PIN pessoal do professor. A sala termina manualmente, ao atingir a duração definida ou quando o professor deixa de estar online.
+Os computadores partilhados são registados uma única vez sem sala fixa. Quando o professor cria uma sala temporária, recebe um código aleatório de seis algarismos. Cada aluno introduz esse código e obrigatoriamente o seu nome; não é apresentada uma lista pública de salas. O professor vê o nome do aluno associado ao nome do computador. O código da sala é independente do código de acesso único enviado ao professor por email. A sala termina manualmente, ao atingir a duração definida ou quando o professor deixa de estar online.
 
 ## Salas temporárias com vários servidores
 
@@ -52,6 +52,8 @@ Cada servidor envia um heartbeat de carga aproximadamente a cada 20 segundos com
 ### Limitação quando a cloud está indisponível
 
 As salas fixas, aulas já iniciadas, comandos, espelhamento e entrada numa sala temporária alojada no mesmo servidor continuam a funcionar. Uma ligação entre servidores necessita, contudo, da cloud para resolver o código e emitir o bilhete: enquanto o portal central estiver indisponível, um aluno noutro servidor não consegue iniciar essa nova ligação.
+
+O envio e a validação de um novo código de professor também exigem a cloud e o serviço SMTP. Uma sessão de professor que já esteja aberta continua válida localmente até ao respetivo prazo de oito horas; durante a falha não é possível iniciar uma nova sessão.
 
 Uma sala criada durante a falha recebe um código local e funciona nesse servidor. O heartbeat tenta publicá-la automaticamente quando a cloud regressa. Se, entretanto, o mesmo código tiver sido atribuído noutro servidor, a sala mantém-se apenas local até terminar; não se altera o código já mostrado aos alunos. Uma sessão entre servidores que já tenha sido autorizada continua sem a cloud porque o vídeo e os comandos não dependem dela.
 
@@ -102,7 +104,6 @@ dotnet build iWebClassroom.slnx --configuration Release
 
 $env:IWEBCLASSROOM_ADMIN_TOKEN = "um-token-longo-e-aleatorio"
 $env:IWEBCLASSROOM_ENROLLMENT_CODE = "um-codigo-temporario"
-$env:IWEBCLASSROOM_TEACHER_PIN = "246810"
 $env:Security__RequireHttps = "false"
 dotnet run --project src/iWebClassroom.Server --urls http://localhost:7080
 ```
@@ -163,7 +164,7 @@ Os servidores ocupados podem atualizar mais tarde do que os restantes, mas todos
 Cada release deve ser publicada no catálogo Cloud com o MSI e os metadados validados:
 
 ```powershell
-.\scripts\publish-portal-release.ps1 -Version 0.10.1 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
+.\scripts\publish-portal-release.ps1 -Version 0.11.0 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
 ```
 
 O script confirma a versão e os SHA-256, copia os MSI do servidor e do agente para `storage/app/iwebclassroom/releases`, mantém um catálogo histórico `server-X.Y.Z.json` e substitui atomicamente o catálogo corrente. Os endpoints autenticados da Cloud fornecem o manifesto e o MSI do servidor apenas a instalações cuja escola aprovou exatamente essa versão. A página **Transferências** fornece ambos os instaladores aos administradores autenticados da escola para as primeiras instalações. Não é necessário `PLATFORM_GITHUB_TOKEN`.
@@ -182,9 +183,9 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.10.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.10.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.10.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Server-0.11.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.11.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
+msiexec.exe /i iWebClassroom-Agent-0.11.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
@@ -207,7 +208,7 @@ O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um 
 ### Computadores partilhados
 
 1. O técnico instala cada agente com o modo **Computador partilhado**; não é necessário configurar uma turma ou sala permanente.
-2. O professor abre a consola local, introduz o seu PIN pessoal aprovado e cria uma sala temporária com nome e duração.
+2. O professor abre a consola local, indica o seu email, introduz o código único recebido e cria uma sala temporária com nome e duração.
 3. O professor mostra aos alunos o código temporário de seis algarismos.
 4. Em cada computador, o aluno escreve obrigatoriamente o seu nome e o código. Se a sala estiver noutro servidor da escola, o agente muda apenas a ligação da aula de forma automática.
 5. Na consola, o professor vê o nome do aluno e o computador que lhe está associado.
@@ -217,7 +218,7 @@ O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um 
 
 1. O administrador cria a sala fixa no portal cloud, atribui-a ao servidor local e define um código, por exemplo `SALA-101`.
 2. O técnico instala ou configura os agentes fixos com esse mesmo código.
-3. O professor abre a consola, introduz o seu PIN pessoal e escolhe a sala e o seu posto.
+3. O professor abre a consola, indica o seu email, introduz o código único recebido e escolhe a sala e o seu posto.
 4. Ao carregar em **Iniciar aula**, todos os postos de aluno dessa sala ficam associados e os que estiverem online são selecionados automaticamente.
 5. A sessão termina manualmente ou ao atingir a duração escolhida. Só pode existir um professor em cada sala.
 

@@ -10,23 +10,13 @@ $enrollmentCode = 'smoke-enrollment-code'
 $baseUrl = "http://127.0.0.1:$Port"
 $testDataRoot = Join-Path $repositoryRoot 'artifacts\smoke-test'
 $testDataDirectory = Join-Path $testDataRoot ([Guid]::NewGuid().ToString('N'))
-$cloudTeacherPin = '482731'
 $cloudTeacherId = 'smoke-teacher-cloud'
 New-Item -ItemType Directory -Path $testDataDirectory -Force | Out-Null
-$saltBytes = [Security.Cryptography.RandomNumberGenerator]::GetBytes(16)
-$pinHashBytes = [Security.Cryptography.Rfc2898DeriveBytes]::Pbkdf2(
-    $cloudTeacherPin,
-    $saltBytes,
-    120000,
-    [Security.Cryptography.HashAlgorithmName]::SHA256,
-    32)
 @{
     teachers = @(@{
         id = $cloudTeacherId
         name = 'Smoke Cloud Teacher'
         email = 'teacher@smoke.test'
-        pin_salt = [Convert]::ToHexString($saltBytes)
-        pin_hash = [Convert]::ToHexString($pinHashBytes)
     })
     classrooms = @()
     updated_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
@@ -58,11 +48,6 @@ try {
     } while (-not $health -and [DateTime]::UtcNow -lt $deadline)
     if (-not $health) { throw 'O servidor não ficou disponível dentro do tempo esperado.' }
 
-    $teacherAccessPath = Join-Path $testDataDirectory 'teacher-access.json'
-    if (-not (Test-Path -LiteralPath $teacherAccessPath)) { throw 'O servidor não criou o PIN de professor inicial.' }
-    $teacherPin = (Get-Content -Raw -LiteralPath $teacherAccessPath | ConvertFrom-Json).security.teacherPin
-    if ($teacherPin -notmatch '^\d{6}$') { throw 'O PIN de professor inicial não tem o formato esperado.' }
-
     $roomId = "SALA-$([Guid]::NewGuid().ToString('N').Substring(0, 8))"
     $student = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/enrollment" -ContentType 'application/json' -Body (@{
         machineId = "smoke-student-$([Guid]::NewGuid())"; displayName = 'Smoke Student'; role = 0
@@ -86,7 +71,7 @@ try {
         targetAgentIds = @($student.agentId); kind = 0; payload = @{ message = 'Teste' }
     } | ConvertTo-Json -Depth 5)
 
-    $teacherHeaders = @{ 'X-Teacher-Pin' = $teacherPin }
+    $teacherHeaders = $headers
     $overview = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
     $settingsBefore = Invoke-RestMethod -Uri "$baseUrl/api/v1/settings" -Headers $headers
     $invalidCloudLogin = Invoke-WebRequest -Method Post -Uri "$baseUrl/api/v1/admin/cloud-login" -ContentType 'application/json' -SkipHttpErrorCheck -Body (@{
@@ -125,10 +110,7 @@ try {
     Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)" -Headers $teacherHeaders
     $finalOverview = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
 
-    $teacherLogin = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/teacher/login" -ContentType 'application/json' -Body (@{
-        pin = $cloudTeacherPin
-    } | ConvertTo-Json)
-    $teacherSessionHeaders = @{ 'X-Teacher-Session' = $teacherLogin.sessionToken }
+    $teacherSessionHeaders = $headers
     $temporaryLesson = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons" -Headers $teacherSessionHeaders -ContentType 'application/json' -Body (@{
         roomId = 'TEMP-SMOKE'; roomName = 'Sala temporária smoke'; teacherAgentId = $teacher.agentId
         durationMinutes = 45; isTemporary = $true
@@ -155,7 +137,7 @@ try {
         $command.targetCount -ne 1 -or
         $lessonCommand.targetCount -ne 1 -or
         @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0 -or
-        $teacherLogin.teacherId -ne $cloudTeacherId -or
+        $overview.teacher.teacherId -ne 'local-administrator' -or
         $temporaryLesson.joinCode -notmatch '^\d{6}$' -or
         $roomResolution.isLocal -ne $true -or
         -not $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId) -or
@@ -175,7 +157,7 @@ try {
             $command.targetCount,
             $lessonCommand.targetCount,
             @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count,
-            $teacherLogin.teacherId,
+            $overview.teacher.teacherId,
             $temporaryLesson.joinCode,
             $roomResolution.isLocal,
             $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId),

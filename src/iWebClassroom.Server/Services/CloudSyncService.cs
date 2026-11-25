@@ -202,9 +202,37 @@ public sealed class CloudSyncService(
         return await client.AuthenticateAdministratorAsync(state.ServerId.Value, token, request, cancellationToken);
     }
 
+    public async Task<CloudTeacherAccessChallenge> RequestTeacherAccessAsync(
+        CloudTeacherAccessRequest request,
+        CancellationToken cancellationToken)
+    {
+        var (serverId, token) = ConnectedIdentity();
+        return await client.RequestTeacherAccessAsync(serverId, token, request, cancellationToken);
+    }
+
+    public async Task<CloudTeacherAccessIdentity> VerifyTeacherAccessAsync(
+        CloudTeacherAccessVerifyRequest request,
+        CancellationToken cancellationToken)
+    {
+        var (serverId, token) = ConnectedIdentity();
+        return await client.VerifyTeacherAccessAsync(serverId, token, request, cancellationToken);
+    }
+
     public CloudServerSettings Configuration() => configurationStore.Current;
 
     public CloudLicenseState License() => licenseStore.Snapshot();
+
+    private (Guid ServerId, string AccessToken) ConnectedIdentity()
+    {
+        var state = stateStore.Snapshot();
+        var token = stateStore.GetAccessToken();
+        if (!state.ServerId.HasValue || string.IsNullOrWhiteSpace(token))
+        {
+            throw new InvalidOperationException("This local server is not connected to central management.");
+        }
+
+        return (state.ServerId.Value, token);
+    }
 
     private static string CurrentVersion() =>
         Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";

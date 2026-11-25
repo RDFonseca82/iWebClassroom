@@ -231,12 +231,65 @@ app.MapGet("/api/v1/agents", (HttpRequest request, AgentRegistry agentRegistry, 
         ? Results.Ok(agentRegistry.List())
         : Results.Unauthorized());
 
-app.MapPost("/api/v1/teacher/login", (
-    TeacherLoginRequest credentials,
-    TeacherSessionService sessions) =>
+app.MapPost("/api/v1/teacher/access/request", async (
+    TeacherAccessRequest credentials,
+    HttpRequest httpRequest,
+    CloudSyncService cloud,
+    CancellationToken cancellationToken) =>
 {
-    var session = sessions.Create(credentials.Pin.Trim());
-    return session is null ? Results.Unauthorized() : Results.Ok(session);
+    var email = credentials.Email?.Trim() ?? string.Empty;
+    if (email.Length > 254 || !System.Net.Mail.MailAddress.TryCreate(email, out _))
+    {
+        return Results.BadRequest(new { code = "invalid_email" });
+    }
+
+    try
+    {
+        var challenge = await cloud.RequestTeacherAccessAsync(
+            new CloudTeacherAccessRequest(email, TeacherAccessLocale(httpRequest)), cancellationToken);
+        return Results.Ok(new TeacherAccessChallengeResponse(challenge.ExpiresAtUtc));
+    }
+    catch (CloudApiException exception)
+    {
+        var status = exception.StatusCode == System.Net.HttpStatusCode.TooManyRequests
+            ? StatusCodes.Status429TooManyRequests
+            : StatusCodes.Status503ServiceUnavailable;
+        return Results.Json(new { code = exception.Code ?? "teacher_access_unavailable" }, statusCode: status);
+    }
+    catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
+    {
+        return Results.Json(new { code = "teacher_access_unavailable" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+}).RequireRateLimiting("teacher");
+
+app.MapPost("/api/v1/teacher/access/verify", async (
+    TeacherAccessVerifyRequest credentials,
+    CloudSyncService cloud,
+    TeacherSessionService sessions,
+    CancellationToken cancellationToken) =>
+{
+    var email = credentials.Email?.Trim() ?? string.Empty;
+    var code = credentials.Code?.Trim() ?? string.Empty;
+    if (email.Length > 254 || !System.Net.Mail.MailAddress.TryCreate(email, out _) ||
+        code.Length != 6 || code.Any(character => !char.IsAsciiDigit(character)))
+    {
+        return Results.BadRequest(new { code = "invalid_access_code" });
+    }
+
+    try
+    {
+        var teacher = await cloud.VerifyTeacherAccessAsync(
+            new CloudTeacherAccessVerifyRequest(email, code), cancellationToken);
+        return Results.Ok(sessions.Create(teacher));
+    }
+    catch (CloudApiException exception) when (exception.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.UnprocessableEntity)
+    {
+        return Results.Json(new { code = exception.Code ?? "invalid_access_code" }, statusCode: StatusCodes.Status401Unauthorized);
+    }
+    catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
+    {
+        return Results.Json(new { code = "teacher_access_unavailable" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).RequireRateLimiting("teacher");
 
 app.MapGet("/api/v1/teacher/overview", (
@@ -896,10 +949,7 @@ static bool TryGetTeacher(HttpRequest request, IConfiguration configuration, out
         return true;
     }
 
-    var expectedPin = Environment.GetEnvironmentVariable("IWEBCLASSROOM_TEACHER_PIN")
-                      ?? configuration["Security:TeacherPin"];
-    if (SecretComparer.Equals(request.Headers[HubProtocol.TeacherPinHeader].ToString(), expectedPin) ||
-        IsAdmin(request, configuration))
+    if (IsAdmin(request, configuration))
     {
         teacher = new TeacherIdentity("local-administrator", "Administrador local");
         return true;
@@ -907,6 +957,13 @@ static bool TryGetTeacher(HttpRequest request, IConfiguration configuration, out
 
     teacher = null;
     return false;
+}
+
+static string TeacherAccessLocale(HttpRequest request)
+{
+    var language = request.Headers.AcceptLanguage.ToString().ToLowerInvariant();
+    return language.StartsWith("en", StringComparison.Ordinal) ? "en" :
+        language.StartsWith("es", StringComparison.Ordinal) ? "es" : "pt";
 }
 
 static bool TryAuthenticateAgent(HttpRequest request, AgentRegistry registry)

@@ -49,6 +49,32 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
                ?? throw new InvalidOperationException("The cloud returned an empty administrator authentication response.");
     }
 
+    public async Task<CloudTeacherAccessChallenge> RequestTeacherAccessAsync(
+        Guid serverId,
+        string accessToken,
+        CloudTeacherAccessRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/teacher-access/request", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CloudTeacherAccessChallenge>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException("The cloud returned an empty teacher access response.");
+    }
+
+    public async Task<CloudTeacherAccessIdentity> VerifyTeacherAccessAsync(
+        Guid serverId,
+        string accessToken,
+        CloudTeacherAccessVerifyRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/teacher-access/verify", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CloudTeacherAccessIdentity>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException("The cloud returned an empty teacher verification response.");
+    }
+
     public async Task<CloudDirectorySyncResult> SynchronizeDirectoryAsync(
         Guid serverId,
         string accessToken,
