@@ -115,10 +115,6 @@ public partial class MainWindow : Window
             StatusText.Text = AgentStrings.Connected;
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
             SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
-            if (_settings.IsShared)
-            {
-                await RefreshRoomsAsync();
-            }
             _ = CheckForUpdatesAsync();
         }
         catch (Exception exception)
@@ -263,47 +259,84 @@ public partial class MainWindow : Window
         SharedRoomsPanel.Visibility = shared && _connection.IsConnected ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private async void RefreshRoomsButton_Click(object sender, RoutedEventArgs e) => await RefreshRoomsAsync();
-
-    private async Task RefreshRoomsAsync()
-    {
-        if (!_settings.IsShared || _settings.AgentId == Guid.Empty)
-        {
-            return;
-        }
-
-        try
-        {
-            var rooms = await _roomJoinClient.ListAsync(_settings, CancellationToken.None);
-            AvailableRoomsCombo.ItemsSource = rooms;
-            AvailableRoomsCombo.SelectedIndex = rooms.Count > 0 ? 0 : -1;
-            ActivityText.Text = rooms.Count == 0 ? AgentStrings.NoRoomsAvailable : string.Empty;
-        }
-        catch (Exception exception)
-        {
-            ActivityText.Text = exception.Message;
-        }
-    }
-
     private async void JoinRoomButton_Click(object sender, RoutedEventArgs e)
     {
-        if (AvailableRoomsCombo.SelectedItem is not AvailableRoomSummary room)
+        var roomCode = RoomCodeText.Text.Trim();
+        if (roomCode.Length != 6 || roomCode.Any(character => !char.IsAsciiDigit(character)))
         {
-            MessageBox.Show(this, AgentStrings.SelectRoom, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, AgentStrings.InvalidRoomCode, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
+        SetBusy(true, AgentStrings.Connecting);
         try
         {
             var studentName = Required(StudentNameText.Text, AgentStrings.StudentName);
-            var joined = await _roomJoinClient.JoinAsync(_settings, room.LessonId, RoomPinText.Password.Trim(), studentName, CancellationToken.None);
-            RoomPinText.Clear();
+            var resolution = await _roomJoinClient.ResolveAsync(_settings, roomCode, studentName, CancellationToken.None);
+            LessonSessionSummary joined;
+            if (resolution.IsLocal && resolution.Lesson is not null)
+            {
+                await _connection.ConnectAsync(_settings, CancellationToken.None);
+                joined = resolution.Lesson;
+            }
+            else
+            {
+                joined = await JoinRemoteRoomAsync(resolution);
+            }
+
+            RoomCodeText.Clear();
             ActivityText.Text = AgentStrings.Format(nameof(AgentStrings.RoomJoined), joined.RoomName);
         }
         catch (Exception exception)
         {
             MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+        finally
+        {
+            SetBusy(false, ActivityText.Text);
+        }
+    }
+
+    private async Task<LessonSessionSummary> JoinRemoteRoomAsync(ResolveRoomResponse resolution)
+    {
+        if (string.IsNullOrWhiteSpace(resolution.HandoffToken) || resolution.ServerUrls.Count == 0)
+        {
+            throw new InvalidOperationException(AgentStrings.RoomLookupUnavailable);
+        }
+
+        Exception? lastError = null;
+        foreach (var serverUrl in resolution.ServerUrls)
+        {
+            if (!Uri.TryCreate(serverUrl, UriKind.Absolute, out var destination))
+            {
+                continue;
+            }
+
+            try
+            {
+                var secureDestination = await _trustBootstrapper.EnsureTrustedForRoomAsync(
+                    destination, resolution.HandoffToken, CancellationToken.None);
+                var roaming = await _roomJoinClient.RoamAsync(
+                    secureDestination, resolution.HandoffToken, CancellationToken.None);
+                var roamingSettings = _settings with
+                {
+                    ServerUrl = secureDestination.ToString().TrimEnd('/'),
+                    AgentId = roaming.Enrollment.AgentId,
+                    AgentToken = roaming.Enrollment.AgentToken,
+                    Role = AgentRole.Student,
+                    ClassroomId = "PARTILHADO",
+                    IsShared = true
+                };
+                await _connection.ConnectAsync(roamingSettings, CancellationToken.None);
+                return roaming.Lesson;
+            }
+            catch (Exception exception)
+            {
+                lastError = exception;
+            }
+        }
+
+        throw new InvalidOperationException(lastError?.Message ?? AgentStrings.RoomLookupUnavailable);
     }
 
     private static string Required(string value, string field)

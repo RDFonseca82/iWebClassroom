@@ -21,6 +21,15 @@ public sealed class ServerTrustBootstrapper
             request.Headers.Add(HubProtocol.AgentTokenHeader, agentToken);
         }, cancellationToken);
 
+    public async Task<Uri> EnsureTrustedForRoomAsync(
+        Uri configuredServer,
+        string handoffToken,
+        CancellationToken cancellationToken) =>
+        await EnsureTrustedAsync(configuredServer, request =>
+        {
+            request.Headers.Add("X-Room-Handoff", handoffToken);
+        }, cancellationToken);
+
     private static async Task<Uri> EnsureTrustedAsync(
         Uri configuredServer,
         Action<HttpRequestMessage> authorize,

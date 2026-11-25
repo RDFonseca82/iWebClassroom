@@ -70,6 +70,8 @@ builder.Services.AddSingleton<CloudDirectoryStore>();
 builder.Services.AddSingleton<CloudConfigurationStore>();
 builder.Services.AddSingleton<CloudSyncClient>();
 builder.Services.AddSingleton<CloudSyncService>();
+builder.Services.AddSingleton<LocalServerEndpointProvider>();
+builder.Services.AddSingleton<CloudRoomService>();
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddSingleton<TeacherSessionService>();
 builder.Services.AddSingleton<CommandAuditStore>();
@@ -78,6 +80,7 @@ builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Time
 builder.Services.AddHttpClient(nameof(CloudSyncClient));
 builder.Services.AddHostedService<CloudSyncWorker>();
 builder.Services.AddHostedService<CloudDirectorySyncWorker>();
+builder.Services.AddHostedService<CloudRoomHeartbeatWorker>();
 builder.Services.AddHostedService<LessonExpirationWorker>();
 builder.Services.AddHostedService<ServerUpdateWorker>();
 builder.Services.AddSignalR(options =>
@@ -156,7 +159,12 @@ app.MapGet("/api/v1/version", () => Results.Ok(new
     version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0"
 }));
 
-app.MapGet("/api/v1/certificate/root", (HttpRequest request, IConfiguration configuration, AgentRegistry agentRegistry) =>
+app.MapGet("/api/v1/certificate/root", async (
+    HttpRequest request,
+    IConfiguration configuration,
+    AgentRegistry agentRegistry,
+    CloudRoomService cloudRooms,
+    CancellationToken cancellationToken) =>
 {
     if (managedHttps is null)
     {
@@ -168,7 +176,10 @@ app.MapGet("/api/v1/certificate/root", (HttpRequest request, IConfiguration conf
     var enrollmentAuthorized = !string.IsNullOrWhiteSpace(expectedCode) &&
                                SecretComparer.Equals(request.Headers["X-Enrollment-Code"].ToString(), expectedCode);
     var agentAuthorized = TryAuthenticateAgentWithSummary(request, agentRegistry, out _);
-    if (!enrollmentAuthorized && !agentAuthorized)
+    var handoffToken = request.Headers["X-Room-Handoff"].ToString();
+    var handoffAuthorized = !string.IsNullOrWhiteSpace(handoffToken) &&
+                            await cloudRooms.ValidateTicketAsync(handoffToken, cancellationToken) is not null;
+    if (!enrollmentAuthorized && !agentAuthorized && !handoffAuthorized)
     {
         return Results.Unauthorized();
     }
@@ -304,6 +315,107 @@ app.MapPost("/api/v1/rooms/join", async (
     }
 
     return Results.Ok(lesson);
+}).RequireRateLimiting("teacher");
+
+app.MapPost("/api/v1/rooms/resolve", async (
+    HttpRequest request,
+    ResolveRoomRequest resolve,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    CloudRoomService cloudRooms,
+    IHubContext<ClassroomHub> hub,
+    CancellationToken cancellationToken) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null ||
+        !agent.IsShared || agent.Role != AgentRole.Student)
+    {
+        return Results.Unauthorized();
+    }
+
+    var code = resolve.Code.Trim();
+    if (code.Length != 6 || code.Any(character => !char.IsAsciiDigit(character)))
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "InvalidRoomCode") });
+    }
+
+    if (string.IsNullOrWhiteSpace(resolve.StudentName) || resolve.StudentName.Trim().Length > 100)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "StudentNameRequired") });
+    }
+
+    if (lessonRegistry.TryGetByJoinCode(code, out var localRoom))
+    {
+        var joined = await lessonRegistry.TryJoinAsync(
+            localRoom!.LessonId, agent, code, resolve.StudentName.Trim(), cancellationToken);
+        if (joined is null)
+        {
+            return Results.BadRequest(new { error = ApiText.Get(request, "InvalidRoomPin") });
+        }
+
+        foreach (var connectionId in agentRegistry.GetConnectionIds(agent.AgentId))
+        {
+            await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(joined.LessonId), cancellationToken);
+        }
+
+        return Results.Ok(new ResolveRoomResponse(true, joined.RoomName, [], null, joined));
+    }
+
+    try
+    {
+        var remote = await cloudRooms.ResolveAsync(code, agent, resolve.StudentName.Trim(), cancellationToken);
+        return Results.Ok(new ResolveRoomResponse(false, remote.RoomName, remote.HostUrls, remote.HandoffToken, null));
+    }
+    catch (CloudApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "InvalidRoomPin") });
+    }
+    catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
+    {
+        return Results.Problem(ApiText.Get(request, "CloudRoomUnavailable"), statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+}).RequireRateLimiting("teacher");
+
+app.MapPost("/api/v1/rooms/roam", async (
+    HttpRequest request,
+    RoamingJoinRequest roaming,
+    CloudRoomService cloudRooms,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    IHubContext<ClassroomHub> hub,
+    CancellationToken cancellationToken) =>
+{
+    var claims = await cloudRooms.ValidateTicketAsync(roaming.HandoffToken, cancellationToken);
+    if (claims is null || !lessonRegistry.TryGet(claims.LessonUid, out var localRoom) || localRoom is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var enrollment = await agentRegistry.EnrollRoamingAsync(new EnrollmentRequest(
+        claims.MachineId,
+        claims.ComputerName,
+        AgentRole.Student,
+        "PARTILHADO",
+        string.Empty,
+        true), cancellationToken);
+    if (!agentRegistry.TryAuthenticate(enrollment.AgentId, enrollment.AgentToken, out var roamingAgent) || roamingAgent is null)
+    {
+        return Results.Problem(ApiText.Get(request, "RoamingUnavailable"), statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    var joined = await lessonRegistry.TryJoinAsync(
+        claims.LessonUid, roamingAgent, claims.RoomCode, claims.StudentName, cancellationToken);
+    if (joined is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    foreach (var connectionId in agentRegistry.GetConnectionIds(roamingAgent.AgentId))
+    {
+        await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(joined.LessonId), cancellationToken);
+    }
+
+    var serverUrl = $"https://{request.Host.Host}:{(request.Host.Port ?? 7443)}";
+    return Results.Ok(new RoamingJoinResponse(serverUrl, enrollment, joined));
 }).RequireRateLimiting("teacher");
 
 app.MapGet("/api/v1/settings", (
@@ -506,6 +618,7 @@ app.MapPost("/api/v1/lessons", async (
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
     CloudDirectoryStore directory,
+    CloudRoomService cloudRooms,
     IHubContext<ClassroomHub> hub,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
@@ -545,6 +658,25 @@ app.MapPost("/api/v1/lessons", async (
         return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidTeacher") });
     }
 
+    var lessonUid = Guid.NewGuid();
+    CloudRoomAllocationResponse? cloudAllocation = null;
+    if (request.IsTemporary)
+    {
+        try
+        {
+            cloudAllocation = await cloudRooms.TryAllocateAsync(
+                lessonUid,
+                request.RoomName!.Trim(),
+                teacherIdentity!,
+                DateTimeOffset.UtcNow.AddMinutes(request.DurationMinutes),
+                cancellationToken);
+        }
+        catch (CloudApiException exception) when (exception.Code is "server_capacity_reached" or "server_not_accepting_rooms")
+        {
+            return Results.Conflict(new { error = ApiText.Get(httpRequest, "ServerAtCapacity") });
+        }
+    }
+
     var lesson = await lessonRegistry.TryStartAsync(
         request.RoomId.Trim(),
         teacher,
@@ -552,9 +684,16 @@ app.MapPost("/api/v1/lessons", async (
         request.IsTemporary,
         request.IsTemporary ? request.RoomName : fixedRoom?.Name,
         TimeSpan.FromMinutes(request.DurationMinutes),
-        cancellationToken);
+        cancellationToken,
+        lessonUid,
+        cloudAllocation?.RoomCode,
+        cloudAllocation is not null);
     if (lesson is null)
     {
+        if (cloudAllocation is not null)
+        {
+            await cloudRooms.EndAsync(lessonUid, cancellationToken);
+        }
         return Results.Conflict(new { error = ApiText.Get(httpRequest, "RoomInUse") });
     }
 
@@ -574,6 +713,7 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
     HttpRequest httpRequest,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    CloudRoomService cloudRooms,
     IHubContext<ClassroomHub> hub,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
@@ -595,6 +735,11 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
         return Results.NotFound();
     }
 
+    if (lesson.IsTemporary)
+    {
+        await cloudRooms.EndAsync(lesson.LessonId, cancellationToken);
+    }
+
     await hub.Clients.Group(ClassroomHub.LessonGroup(lessonId))
         .SendAsync(HubProtocol.ScreenStopped, cancellationToken);
     foreach (var agentId in lesson.MemberAgentIds)
@@ -604,6 +749,7 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
             await hub.Groups.RemoveFromGroupAsync(connectionId, ClassroomHub.LessonGroup(lessonId), cancellationToken);
         }
     }
+    await agentRegistry.RemoveRoamingAsync(lesson.MemberAgentIds, cancellationToken);
 
     return Results.NoContent();
 }).RequireRateLimiting("teacher");

@@ -69,3 +69,56 @@ public sealed record CloudSyncStatus(
     string? LastError,
     bool Conflict,
     string CloudUrl);
+
+public sealed record CloudRoomAllocationRequest(
+    [property: JsonPropertyName("lesson_uid")] Guid LessonUid,
+    [property: JsonPropertyName("room_name")] string RoomName,
+    [property: JsonPropertyName("teacher_id")] string TeacherId,
+    [property: JsonPropertyName("teacher_name")] string TeacherName,
+    [property: JsonPropertyName("host_urls")] IReadOnlyCollection<string> HostUrls,
+    [property: JsonPropertyName("expires_at_utc")] DateTimeOffset ExpiresAtUtc);
+
+public sealed record CloudRoomAllocationResponse(
+    [property: JsonPropertyName("lesson_uid")] Guid LessonUid,
+    [property: JsonPropertyName("room_code")] string RoomCode,
+    [property: JsonPropertyName("expires_at_utc")] DateTimeOffset ExpiresAtUtc);
+
+public sealed record CloudRoomResolveRequest(
+    [property: JsonPropertyName("room_code")] string RoomCode,
+    [property: JsonPropertyName("machine_id")] string MachineId,
+    [property: JsonPropertyName("computer_name")] string ComputerName,
+    [property: JsonPropertyName("student_name")] string StudentName);
+
+public sealed record CloudRoomResolveResponse(
+    [property: JsonPropertyName("room_name")] string RoomName,
+    [property: JsonPropertyName("host_urls")] IReadOnlyCollection<string> HostUrls,
+    [property: JsonPropertyName("handoff_token")] string HandoffToken,
+    [property: JsonPropertyName("ticket_expires_at_utc")] DateTimeOffset TicketExpiresAtUtc);
+
+public sealed record CloudRoomTicketRequest(
+    [property: JsonPropertyName("handoff_token")] string HandoffToken);
+
+public sealed record CloudRoomTicketClaims(
+    [property: JsonPropertyName("lesson_uid")] Guid LessonUid,
+    [property: JsonPropertyName("room_code")] string RoomCode,
+    [property: JsonPropertyName("machine_id")] string MachineId,
+    [property: JsonPropertyName("computer_name")] string ComputerName,
+    [property: JsonPropertyName("student_name")] string StudentName,
+    [property: JsonPropertyName("expires_at_utc")] DateTimeOffset ExpiresAtUtc);
+
+public sealed record CloudRoomHeartbeatRequest(
+    [property: JsonPropertyName("host_urls")] IReadOnlyCollection<string> HostUrls,
+    [property: JsonPropertyName("active_lessons")] int ActiveLessons,
+    [property: JsonPropertyName("online_agents")] int OnlineAgents,
+    [property: JsonPropertyName("working_set_bytes")] long WorkingSetBytes,
+    [property: JsonPropertyName("available_memory_bytes")] long AvailableMemoryBytes,
+    [property: JsonPropertyName("rooms")] IReadOnlyCollection<CloudRoomHeartbeatEntry> Rooms);
+
+public sealed record CloudRoomHeartbeatEntry(
+    [property: JsonPropertyName("lesson_uid")] Guid LessonUid,
+    [property: JsonPropertyName("room_code")] string RoomCode,
+    [property: JsonPropertyName("room_name")] string RoomName,
+    [property: JsonPropertyName("teacher_id")] string TeacherId,
+    [property: JsonPropertyName("teacher_name")] string TeacherName,
+    [property: JsonPropertyName("expires_at_utc")] DateTimeOffset ExpiresAtUtc,
+    [property: JsonPropertyName("participant_count")] int ParticipantCount);

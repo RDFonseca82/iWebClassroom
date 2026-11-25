@@ -22,7 +22,7 @@ O portal associa cada credencial técnica a uma única instalação através do 
 1. Publique o agente e o atualizador para `win-x64`.
 2. Implante o MSI por GPO, Intune, Configuration Manager ou manualmente. Na instalação assistida, escolha o idioma e introduza a URL HTTPS do servidor local.
 3. Para instalação silenciosa use `msiexec /i <ficheiro.msi> /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart`. Os idiomas válidos são `pt-PT`, `en-US` e `es-ES`; `SERVERURL` é obrigatório numa primeira instalação silenciosa.
-4. No primeiro início, a URL já aparece preenchida. Introduza o código de inscrição, a sala predefinida e a função do posto. O agente obtém a autoridade local pela porta 7080, instala-a no perfil Windows e continua por HTTPS na porta 7443. Num computador partilhado, cada aluno indica também o seu nome e o PIN da sala temporária em cada entrada.
+4. No primeiro início, a URL já aparece preenchida. Introduza o código de inscrição, a sala predefinida e a função do posto. O agente obtém a autoridade local pela porta 7080, instala-a no perfil Windows e continua por HTTPS na porta 7443. Num computador partilhado, cada aluno indica o seu nome e o código de seis algarismos da sala. Para roaming, a porta 7443 de todos os servidores deve estar acessível a partir de todas as VLAN dos alunos.
 5. Depois de todos os computadores estarem inscritos, rode ou desative temporariamente o código de inscrição.
 6. Confirme que a identidade partilhada foi criada em `C:\ProgramData\iWebClassroom\Agent\agent.json`.
 
@@ -35,9 +35,11 @@ Numa sala fixa, use a mesma sala predefinida em todos os postos de aluno e marqu
 | Agentes no primeiro registo | Servidor local | TCP 7080 | obtenção autenticada da autoridade local e redirecionamento HTTPS |
 | Professores/alunos | Servidor local | TCP 7443 | painel, API e WebSocket SignalR por HTTPS |
 | Servidor | GitHub Releases | TCP 443 | atualizações, se ativas |
-| Servidor | `cloud.iwebclassroom.app` | TCP 443 | autenticação e sincronização central |
+| Servidor | `cloud.iwebclassroom.app` | TCP 443 | autenticação, sincronização, diretório de salas, bilhetes de roaming e heartbeat de carga |
 
 Não é necessária qualquer ligação iniciada do servidor para os computadores dos alunos.
+
+Antes de instalar a versão multi-servidor, execute no SQL Server do portal `database/sql/2026-11-25_active_room_routes_sqlserver.sql` ou aplique a migration Laravel equivalente. Sem esta tabela, a criação local de salas continua em modo degradado, mas a resolução de códigos entre servidores não funciona.
 
 ## Dados
 

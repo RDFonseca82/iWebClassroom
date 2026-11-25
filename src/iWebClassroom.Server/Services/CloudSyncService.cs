@@ -96,9 +96,9 @@ public sealed class CloudSyncService(
                 state.InstanceUid,
                 CurrentVersion(),
                 CurrentVersion(),
-                agentList.Count,
+                agentList.Count(item => !item.IsRoaming),
                 agentList
-                    .Where(item => !item.IsShared)
+                    .Where(item => !item.IsRoaming && !item.IsShared)
                     .Select(item => item.ClassroomId)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Count(),

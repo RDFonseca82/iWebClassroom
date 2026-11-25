@@ -77,6 +77,71 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         return new CloudDirectorySyncResult(directory, responseEtag, false);
     }
 
+    public async Task<CloudRoomAllocationResponse> AllocateRoomAsync(
+        Guid serverId,
+        string accessToken,
+        CloudRoomAllocationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/allocate", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CloudRoomAllocationResponse>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException("The cloud returned an empty room allocation response.");
+    }
+
+    public async Task<CloudRoomResolveResponse> ResolveRoomAsync(
+        Guid serverId,
+        string accessToken,
+        CloudRoomResolveRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/resolve", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CloudRoomResolveResponse>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException("The cloud returned an empty room resolution response.");
+    }
+
+    public async Task<CloudRoomTicketClaims> RedeemRoomTicketAsync(
+        Guid serverId,
+        string accessToken,
+        CloudRoomTicketRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/redeem", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CloudRoomTicketClaims>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException("The cloud returned an empty room ticket response.");
+    }
+
+    public async Task SendRoomHeartbeatAsync(
+        Guid serverId,
+        string accessToken,
+        CloudRoomHeartbeatRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/heartbeat", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task EndRoomAsync(Guid serverId, string accessToken, Guid lessonUid, CancellationToken cancellationToken)
+    {
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.DeleteAsync($"/api/v1/server/rooms/{lessonUid:D}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    private HttpClient CreateAuthorizedClient(Guid serverId, string accessToken)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        client.DefaultRequestHeaders.Add("X-iWebClassroom-Server", serverId.ToString());
+        return client;
+    }
+
     private HttpClient CreateClient()
     {
         var policy = options.CurrentValue;

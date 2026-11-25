@@ -23,7 +23,8 @@ public sealed record AgentSummary(
     string ClassroomId,
     bool IsShared,
     bool IsOnline,
-    DateTimeOffset LastSeenUtc);
+    DateTimeOffset LastSeenUtc,
+    bool IsRoaming = false);
 
 public sealed record TeacherLoginRequest(string Pin);
 
@@ -48,6 +49,22 @@ public sealed record AvailableRoomSummary(
     DateTimeOffset ExpiresAtUtc);
 
 public sealed record JoinRoomRequest(Guid LessonId, string Pin, string StudentName);
+
+public sealed record ResolveRoomRequest(string Code, string StudentName);
+
+public sealed record ResolveRoomResponse(
+    bool IsLocal,
+    string RoomName,
+    IReadOnlyCollection<string> ServerUrls,
+    string? HandoffToken,
+    LessonSessionSummary? Lesson);
+
+public sealed record RoamingJoinRequest(string HandoffToken);
+
+public sealed record RoamingJoinResponse(
+    string ServerUrl,
+    EnrollmentResponse Enrollment,
+    LessonSessionSummary Lesson);
 
 public sealed record LessonParticipantSummary(Guid AgentId, string StudentName);
 
@@ -78,6 +95,7 @@ public sealed record LessonSessionSummary(
     string RoomName,
     bool IsTemporary,
     string? JoinCode,
+    bool IsCloudRouted,
     DateTimeOffset StartedAtUtc,
     DateTimeOffset ExpiresAtUtc,
     IReadOnlyCollection<Guid> MemberAgentIds,

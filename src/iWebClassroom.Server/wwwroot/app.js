@@ -11,7 +11,7 @@ const translations = {
     selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione um posto de professor.",
     startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Selecione um posto de professor e inicie a aula.",
     lessonActive: "Aula ativa em {room} · {online}/{total} computadores online · termina às {time}", lessonStarted: "A aula foi iniciada e os computadores foram associados automaticamente.",
-    lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível", enterRoomName: "Indique um nome para a sala temporária.", temporaryPin: "PIN de entrada: {pin}", teacherWelcome: "Sessão de {name}. Escolha uma sala fixa ou crie uma sala temporária."
+    lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível", enterRoomName: "Indique um nome para a sala temporária.", temporaryPin: "Código da sala: {pin}", teacherWelcome: "Sessão de {name}. Escolha uma sala fixa ou crie uma sala temporária."
   },
   en: {
     teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
@@ -25,7 +25,7 @@ const translations = {
     selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select a teacher workstation.",
     startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Select a teacher workstation and start the lesson.",
     lessonActive: "Lesson active in {room} · {online}/{total} computers online · ends at {time}", lessonStarted: "The lesson started and the computers were added automatically.",
-    lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable", enterRoomName: "Enter a name for the temporary room.", temporaryPin: "Entry PIN: {pin}", teacherWelcome: "Session for {name}. Choose a fixed room or create a temporary room."
+    lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable", enterRoomName: "Enter a name for the temporary room.", temporaryPin: "Room code: {pin}", teacherWelcome: "Session for {name}. Choose a fixed room or create a temporary room."
   },
   es: {
     teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
@@ -39,7 +39,7 @@ const translations = {
     selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione un puesto de profesor.",
     startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Seleccione un puesto de profesor e inicie la clase.",
     lessonActive: "Clase activa en {room} · {online}/{total} equipos conectados · termina a las {time}", lessonStarted: "La clase se inició y los equipos se añadieron automáticamente.",
-    lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible", enterRoomName: "Indique un nombre para el aula temporal.", temporaryPin: "PIN de entrada: {pin}", teacherWelcome: "Sesión de {name}. Elija un aula fija o cree un aula temporal."
+    lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible", enterRoomName: "Indique un nombre para el aula temporal.", temporaryPin: "Código del aula: {pin}", teacherWelcome: "Sesión de {name}. Elija un aula fija o cree un aula temporal."
   }
 };
 

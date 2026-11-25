@@ -134,10 +134,10 @@ try {
         durationMinutes = 45; isTemporary = $true
     } | ConvertTo-Json)
     $sharedHeaders = @{ 'X-Agent-Id' = $sharedStudent.agentId; 'X-Agent-Token' = $sharedStudent.agentToken }
-    $availableRooms = @(Invoke-RestMethod -Uri "$baseUrl/api/v1/rooms/available" -Headers $sharedHeaders)
-    $joinedTemporaryLesson = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/rooms/join" -Headers $sharedHeaders -ContentType 'application/json' -Body (@{
-        lessonId = $temporaryLesson.lessonId; pin = $temporaryLesson.joinCode; studentName = 'Aluno Smoke'
+    $roomResolution = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/rooms/resolve" -Headers $sharedHeaders -ContentType 'application/json' -Body (@{
+        code = $temporaryLesson.joinCode; studentName = 'Aluno Smoke'
     } | ConvertTo-Json)
+    $joinedTemporaryLesson = $roomResolution.lesson
     Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/v1/lessons/$($temporaryLesson.lessonId)" -Headers $teacherSessionHeaders
 
     if ($health.status -ne 'healthy' -or
@@ -157,10 +157,10 @@ try {
         @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0 -or
         $teacherLogin.teacherId -ne $cloudTeacherId -or
         $temporaryLesson.joinCode -notmatch '^\d{6}$' -or
-        $availableRooms.Count -ne 1 -or
+        $roomResolution.isLocal -ne $true -or
         -not $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId) -or
         $joinedTemporaryLesson.participants[0].studentName -ne 'Aluno Smoke') {
-        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; rooms={16}; joined={17}; participant={18}." -f
+        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; local={16}; joined={17}; participant={18}." -f
             $health.status,
             $agents.Count,
             $overview.agents.Count,
@@ -177,7 +177,7 @@ try {
             @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count,
             $teacherLogin.teacherId,
             $temporaryLesson.joinCode,
-            $availableRooms.Count,
+            $roomResolution.isLocal,
             $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId),
             $joinedTemporaryLesson.participants[0].studentName)
     }

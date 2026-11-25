@@ -67,6 +67,15 @@ public sealed class LessonRegistry(
         return false;
     }
 
+    public bool TryGetByJoinCode(string joinCode, out LessonSessionSummary? lesson)
+    {
+        var persisted = _lessons.Values.FirstOrDefault(item =>
+            IsActive(item) && item.IsTemporary &&
+            string.Equals(item.JoinCode, joinCode, StringComparison.Ordinal));
+        lesson = persisted is null ? null : ToSummary(persisted);
+        return lesson is not null;
+    }
+
     public bool TryGetForAgent(AgentSummary agent, out LessonSessionSummary? lesson)
     {
         var persisted = _lessons.Values.Where(IsActive).FirstOrDefault(item =>
@@ -85,7 +94,10 @@ public sealed class LessonRegistry(
         bool isTemporary,
         string? roomName,
         TimeSpan duration,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Guid? lessonId = null,
+        string? requestedJoinCode = null,
+        bool isCloudRouted = false)
     {
         await _stateLock.WaitAsync(cancellationToken);
         try
@@ -101,8 +113,12 @@ public sealed class LessonRegistry(
 
             var now = DateTimeOffset.UtcNow;
             var joinCode = isTemporary
-                ? System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", System.Globalization.CultureInfo.InvariantCulture)
+                ? string.IsNullOrWhiteSpace(requestedJoinCode) ? CreateUniqueJoinCode() : requestedJoinCode.Trim()
                 : null;
+            if (joinCode is { Length: not 6 } || (joinCode is not null && joinCode.Any(character => !char.IsAsciiDigit(character))))
+            {
+                throw new ArgumentException("A temporary room code must contain exactly six digits.", nameof(requestedJoinCode));
+            }
             var pin = joinCode is null ? (Salt: (string?)null, Hash: (string?)null) : PinHasher.Create(joinCode);
             var members = agents.List()
                 .Where(agent => agent.AgentId == teacher.AgentId ||
@@ -112,7 +128,7 @@ public sealed class LessonRegistry(
                 .Distinct()
                 .ToArray();
             var lesson = new PersistedLesson(
-                Guid.NewGuid(),
+                lessonId ?? Guid.NewGuid(),
                 roomId,
                 teacher.AgentId,
                 teacherIdentity.DisplayName,
@@ -124,7 +140,9 @@ public sealed class LessonRegistry(
                 joinCode,
                 pin.Salt,
                 pin.Hash,
-                members);
+                members,
+                null,
+                isCloudRouted);
             _lessons[lesson.LessonId] = lesson;
             await PersistAsync(cancellationToken);
             return ToSummary(lesson);
@@ -267,6 +285,7 @@ public sealed class LessonRegistry(
             string.IsNullOrWhiteSpace(lesson.RoomName) ? lesson.RoomId : lesson.RoomName,
             lesson.IsTemporary,
             lesson.JoinCode,
+            lesson.IsCloudRouted,
             lesson.StartedAtUtc,
             lesson.ExpiresAtUtc,
             members,
@@ -275,6 +294,22 @@ public sealed class LessonRegistry(
                 .OrderBy(item => item.Value, StringComparer.CurrentCultureIgnoreCase)
                 .Select(item => new LessonParticipantSummary(item.Key, item.Value))
                 .ToArray());
+    }
+
+    private string CreateUniqueJoinCode()
+    {
+        for (var attempt = 0; attempt < 32; attempt++)
+        {
+            var candidate = System.Security.Cryptography.RandomNumberGenerator
+                .GetInt32(0, 1_000_000)
+                .ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
+            if (!_lessons.Values.Any(item => IsActive(item) && string.Equals(item.JoinCode, candidate, StringComparison.Ordinal)))
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException("A unique temporary room code could not be generated.");
     }
 
     private async Task PersistAsync(CancellationToken cancellationToken)
@@ -310,5 +345,6 @@ public sealed class LessonRegistry(
         string? JoinPinSalt = null,
         string? JoinPinHash = null,
         IReadOnlyCollection<Guid>? MemberAgentIds = null,
-        IReadOnlyDictionary<Guid, string>? ParticipantNames = null);
+        IReadOnlyDictionary<Guid, string>? ParticipantNames = null,
+        bool IsCloudRouted = false);
 }

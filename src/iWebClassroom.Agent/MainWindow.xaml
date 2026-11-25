@@ -74,16 +74,15 @@
               <ColumnDefinition Width="190" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-              <TextBlock Text="{x:Static loc:AgentStrings.AvailableRooms}" FontWeight="SemiBold" />
-              <ComboBox x:Name="AvailableRoomsCombo" Margin="0,7,0,8" DisplayMemberPath="RoomName" />
-              <Button Content="{x:Static loc:AgentStrings.RefreshRooms}" Click="RefreshRoomsButton_Click"
-                      HorizontalAlignment="Left" />
+              <TextBlock Text="{x:Static loc:AgentStrings.JoinByCode}" FontWeight="SemiBold" />
+              <TextBlock Text="{x:Static loc:AgentStrings.JoinByCodeHelp}" Margin="0,7,0,0"
+                         Foreground="#67736F" TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Text="{x:Static loc:AgentStrings.StudentName}" FontWeight="SemiBold" />
               <TextBox x:Name="StudentNameText" Margin="0,7,0,8" MaxLength="100" />
-              <TextBlock Text="{x:Static loc:AgentStrings.RoomPin}" FontWeight="SemiBold" />
-              <PasswordBox x:Name="RoomPinText" Margin="0,7,0,8" MaxLength="6" />
+              <TextBlock Text="{x:Static loc:AgentStrings.RoomCode}" FontWeight="SemiBold" />
+              <TextBox x:Name="RoomCodeText" Margin="0,7,0,8" MaxLength="6" />
               <Button Content="{x:Static loc:AgentStrings.JoinRoom}" Click="JoinRoomButton_Click" />
             </StackPanel>
           </Grid>

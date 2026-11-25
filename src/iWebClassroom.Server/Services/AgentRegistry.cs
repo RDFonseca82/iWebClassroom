@@ -49,8 +49,18 @@ public sealed class AgentRegistry(
     }
 
     public async Task<EnrollmentResponse> EnrollAsync(EnrollmentRequest request, CancellationToken cancellationToken)
+        => await EnrollCoreAsync(request, false, cancellationToken);
+
+    public async Task<EnrollmentResponse> EnrollRoamingAsync(EnrollmentRequest request, CancellationToken cancellationToken)
+        => await EnrollCoreAsync(request, true, cancellationToken);
+
+    private async Task<EnrollmentResponse> EnrollCoreAsync(
+        EnrollmentRequest request,
+        bool isRoaming,
+        CancellationToken cancellationToken)
     {
         var existing = _agents.Values.FirstOrDefault(item =>
+            item.IsRoaming == isRoaming &&
             string.Equals(item.MachineId, request.MachineId, StringComparison.OrdinalIgnoreCase));
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
         var now = DateTimeOffset.UtcNow;
@@ -63,7 +73,8 @@ public sealed class AgentRegistry(
             request.IsShared,
             SecretComparer.Hash(token),
             false,
-            now);
+            now,
+            isRoaming);
 
         _agents[agent.AgentId] = agent;
         await PersistAsync(cancellationToken);
@@ -136,6 +147,23 @@ public sealed class AgentRegistry(
             .Select(ToSummary)
             .ToArray();
 
+    public async Task RemoveRoamingAsync(IEnumerable<Guid> agentIds, CancellationToken cancellationToken)
+    {
+        var changed = false;
+        foreach (var agentId in agentIds.Distinct())
+        {
+            if (_agents.TryGetValue(agentId, out var agent) && agent.IsRoaming)
+            {
+                changed |= _agents.TryRemove(agentId, out _);
+            }
+        }
+
+        if (changed)
+        {
+            await PersistAsync(cancellationToken);
+        }
+    }
+
     private async Task PersistAsync(CancellationToken cancellationToken)
     {
         await _persistenceLock.WaitAsync(cancellationToken);
@@ -144,7 +172,11 @@ public sealed class AgentRegistry(
             var temporaryPath = $"{_filePath}.{Guid.NewGuid():N}.tmp";
             await using (var stream = File.Create(temporaryPath))
             {
-                await JsonSerializer.SerializeAsync(stream, _agents.Values.OrderBy(item => item.AgentId), JsonOptions, cancellationToken);
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    _agents.Values.Where(item => !item.IsRoaming).OrderBy(item => item.AgentId),
+                    JsonOptions,
+                    cancellationToken);
             }
 
             File.Move(temporaryPath, _filePath, true);
@@ -156,7 +188,7 @@ public sealed class AgentRegistry(
     }
 
     private static AgentSummary ToSummary(PersistedAgent agent) =>
-        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc);
+        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc, agent.IsRoaming);
 
     private static string ResolvePath(string root, string configuredPath, string fileName)
     {
@@ -175,5 +207,6 @@ public sealed class AgentRegistry(
         bool IsShared,
         string TokenHash,
         bool IsOnline,
-        DateTimeOffset LastSeenUtc);
+        DateTimeOffset LastSeenUtc,
+        bool IsRoaming = false);
 }

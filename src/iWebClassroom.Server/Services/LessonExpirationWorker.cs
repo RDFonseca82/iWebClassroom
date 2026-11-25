@@ -8,6 +8,7 @@ public sealed class LessonExpirationWorker(
     LessonRegistry lessons,
     TeacherSessionService teacherSessions,
     AgentRegistry agents,
+    CloudRoomService cloudRooms,
     IHubContext<ClassroomHub> hub,
     ILogger<LessonExpirationWorker> logger) : BackgroundService
 {
@@ -20,6 +21,10 @@ public sealed class LessonExpirationWorker(
             var disconnected = await lessons.EndTemporaryForOfflineTeachersAsync(teacherSessions, stoppingToken);
             foreach (var lesson in expired.Concat(disconnected))
             {
+                if (lesson.IsTemporary)
+                {
+                    await cloudRooms.EndAsync(lesson.LessonId, stoppingToken);
+                }
                 await hub.Clients.Group(ClassroomHub.LessonGroup(lesson.LessonId))
                     .SendAsync(HubProtocol.ScreenStopped, stoppingToken);
                 foreach (var agentId in lesson.MemberAgentIds)
@@ -29,6 +34,7 @@ public sealed class LessonExpirationWorker(
                         await hub.Groups.RemoveFromGroupAsync(connectionId, ClassroomHub.LessonGroup(lesson.LessonId), stoppingToken);
                     }
                 }
+                await agents.RemoveRoamingAsync(lesson.MemberAgentIds, stoppingToken);
 
                 logger.LogInformation("Lesson {LessonId} in room {RoomId} expired.", lesson.LessonId, lesson.RoomId);
             }

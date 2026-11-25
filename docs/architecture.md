@@ -3,9 +3,9 @@
 ## Componentes
 
 ```text
-Gestão central <── HTTPS/token ──> Servidor da escola
-                                      │
-Professor ── HTTPS ──> Consola web ───┤
+Gestão central <── HTTPS/token ──> Servidores da escola
+                    diretório/carga       │
+Professor ── HTTPS ──> Consola web ───────┤
                               │
                               │ SignalR sobre WebSocket (TLS)
                     ┌─────────┴─────────┐
@@ -27,6 +27,18 @@ O servidor mantém a identidade permanente do computador, a sala predefinida, a 
 7. O servidor envia a revisão conhecida, o hash da configuração e as alterações locais.
 8. O portal incrementa a revisão ao aceitar uma alteração. Uma revisão central mais recente prevalece sobre uma alteração local desatualizada.
 9. A indisponibilidade da Internet não bloqueia aulas nem agentes; a sincronização volta a tentar em segundo plano e o token administrativo local permite acesso de recuperação.
+
+### Diretório multi-servidor de salas temporárias
+
+1. O servidor do professor pede à cloud um código aleatório de seis algarismos e publica os seus endereços HTTPS locais.
+2. Um heartbeat de 20 segundos mantém a rota da sala, a expiração e a carga do servidor. Rotas sem heartbeat são removidas.
+3. O agente tenta primeiro o código no servidor habitual. Só consulta a cloud quando a sala não é local.
+4. A cloud resolve o código apenas dentro da escola do servidor que fez o pedido e emite um bilhete cifrado de dois minutos, vinculado ao computador e ao servidor de destino.
+5. O servidor de destino valida o bilhete na cloud, cria credenciais temporárias para o agente e associa o nome do aluno à aula.
+6. O agente liga o SignalR diretamente ao destino, sem substituir a identidade persistente do servidor habitual.
+7. O tráfego da aula não atravessa a cloud. Se a cloud cair depois da entrada, a sessão continua; sem cloud não é possível iniciar uma nova entrada entre servidores.
+
+O portal guarda somente rotas ativas em `active_room_routes`. O administrador define por servidor se aceita novas aulas e o limite simultâneo. Aulas em curso são fixas ao servidor e nunca são migradas automaticamente.
 
 ## Fluxos principais
 
