@@ -3,6 +3,8 @@ param(
     [Parameter(Mandatory)] [string]$SourcePath,
     [Parameter(Mandatory)] [ValidatePattern('^https?://')] [string]$ServerUrl,
     [ValidateSet('pt-PT', 'en-US', 'es-ES')] [string]$Language = 'pt-PT',
+    [ValidateSet('Fixed', 'Shared')] [string]$AssignmentMode = 'Fixed',
+    [ValidatePattern('^[A-Za-z0-9_-]{1,50}$')] [string]$ClassroomId = 'SALA-1',
     [string]$Destination = "$env:ProgramFiles\iWebClassroom\Agent",
     [string]$SignerThumbprint = ''
 )
@@ -48,6 +50,8 @@ $agentRegistryPath = 'HKLM:\SOFTWARE\iWebClassroom\Agent'
 New-Item -Path $agentRegistryPath -Force | Out-Null
 Set-ItemProperty -Path $agentRegistryPath -Name 'ServerUrl' -Value $ServerUrl.Trim().TrimEnd('/')
 Set-ItemProperty -Path $agentRegistryPath -Name 'InstallLanguage' -Value $Language
+Set-ItemProperty -Path $agentRegistryPath -Name 'AssignmentMode' -Value $AssignmentMode
+Set-ItemProperty -Path $agentRegistryPath -Name 'ClassroomId' -Value $ClassroomId
 Start-Process -FilePath $installedExecutable
 
 Write-Host 'Agente instalado. Conclua a inscrição na janela que foi aberta.'

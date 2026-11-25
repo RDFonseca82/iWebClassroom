@@ -2,7 +2,7 @@ const translations = {
   "pt-PT": {
     teacherConsole: "CONSOLA DO PROFESSOR", language: "Idioma", administration: "Administração", localServer: "Servidor local", checkingServer: "A verificar servidor…", schoolAccess: "Acesso do professor",
     tokenHelp: "Introduza o PIN de professor. O PIN fica apenas nesta sessão do navegador.", teacherPin: "PIN de professor", enter: "Entrar",
-    classroom: "Sala", teacherWorkstation: "Posto do professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
+    classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Posto do professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
     studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação",
     notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento",
@@ -11,12 +11,12 @@ const translations = {
     selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione um posto de professor.",
     startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Selecione um posto de professor e inicie a aula.",
     lessonActive: "Aula ativa em {room} · {online}/{total} computadores online · termina às {time}", lessonStarted: "A aula foi iniciada e os computadores foram associados automaticamente.",
-    lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível"
+    lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível", enterRoomName: "Indique um nome para a sala temporária.", temporaryPin: "PIN de entrada: {pin}", teacherWelcome: "Sessão de {name}. Escolha uma sala fixa ou crie uma sala temporária."
   },
   en: {
     teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
     tokenHelp: "Enter the teacher PIN. The PIN is kept only for this browser session.", teacherPin: "Teacher PIN", enter: "Sign in",
-    classroom: "Room", teacherWorkstation: "Teacher workstation", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
+    classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Teacher workstation", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
     studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application",
     notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring",
@@ -25,12 +25,12 @@ const translations = {
     selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select a teacher workstation.",
     startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Select a teacher workstation and start the lesson.",
     lessonActive: "Lesson active in {room} · {online}/{total} computers online · ends at {time}", lessonStarted: "The lesson started and the computers were added automatically.",
-    lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable"
+    lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable", enterRoomName: "Enter a name for the temporary room.", temporaryPin: "Entry PIN: {pin}", teacherWelcome: "Session for {name}. Choose a fixed room or create a temporary room."
   },
   es: {
     teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
     tokenHelp: "Introduzca el PIN de profesor. El PIN se conserva solo durante esta sesión del navegador.", teacherPin: "PIN de profesor", enter: "Entrar",
-    classroom: "Aula", teacherWorkstation: "Puesto del profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
+    classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Puesto del profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
     studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación",
     notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación",
@@ -39,19 +39,19 @@ const translations = {
     selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione un puesto de profesor.",
     startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Seleccione un puesto de profesor e inicie la clase.",
     lessonActive: "Clase activa en {room} · {online}/{total} equipos conectados · termina a las {time}", lessonStarted: "La clase se inició y los equipos se añadieron automáticamente.",
-    lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible"
+    lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible", enterRoomName: "Indique un nombre para el aula temporal.", temporaryPin: "PIN de entrada: {pin}", teacherWelcome: "Sesión de {name}. Elija un aula fija o cree un aula temporal."
   }
 };
 
 const detectedLanguage = navigator.language?.toLowerCase().startsWith("es") ? "es" : navigator.language?.toLowerCase().startsWith("en") ? "en" : "pt-PT";
 const storedLanguage = localStorage.getItem("language");
 const state = {
-  pin: sessionStorage.getItem("teacher-pin") || "", agents: [], lessons: [], selected: new Set(), renderedLessonId: null, durationInitialized: false,
+  session: sessionStorage.getItem("teacher-session") || "", teacher: null, agents: [], lessons: [], fixedRooms: [], selected: new Set(), renderedLessonId: null, durationInitialized: false,
   language: storedLanguage || detectedLanguage
 };
 const elements = {
   authPanel: document.querySelector("#auth-panel"), workspace: document.querySelector("#workspace"), authForm: document.querySelector("#auth-form"),
-  pin: document.querySelector("#teacher-pin"), agents: document.querySelector("#agents"), room: document.querySelector("#room"), teacher: document.querySelector("#teacher"),
+  pin: document.querySelector("#teacher-pin"), agents: document.querySelector("#agents"), room: document.querySelector("#room"), roomMode: document.querySelector("#room-mode"), temporaryRoomName: document.querySelector("#temporary-room-name"), teacher: document.querySelector("#teacher"),
   duration: document.querySelector("#duration"), start: document.querySelector("#start-lesson"), end: document.querySelector("#end-lesson"),
   lessonStatus: document.querySelector("#lesson-status"), count: document.querySelector("#selection-count"), toast: document.querySelector("#toast")
 };
@@ -84,7 +84,7 @@ async function applyInstallerLanguage() {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", "Accept-Language": state.language, "X-Teacher-Pin": state.pin, ...(options.headers || {}) } });
+  const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", "Accept-Language": state.language, ...(state.session ? { "X-Teacher-Session": state.session } : {}), ...(options.headers || {}) } });
   if (response.status === 401) { logout(); throw new Error(t("invalidPin")); }
   if (!response.ok) {
     const body = await response.text();
@@ -100,8 +100,12 @@ function toast(message) {
   window.setTimeout(() => elements.toast.classList.remove("visible"), 3400);
 }
 
-function logout() { state.pin = ""; sessionStorage.removeItem("teacher-pin"); elements.authPanel.hidden = false; elements.workspace.hidden = true; }
-function currentLesson() { return state.lessons.find(lesson => lesson.roomId === elements.room.value); }
+function logout() { state.session = ""; state.teacher = null; sessionStorage.removeItem("teacher-session"); elements.authPanel.hidden = false; elements.workspace.hidden = true; }
+function currentLesson() {
+  return elements.roomMode.value === "temporary"
+    ? state.lessons.find(lesson => lesson.isTemporary && lesson.teacherId === state.teacher?.teacherId)
+    : state.lessons.find(lesson => !lesson.isTemporary && lesson.roomId === elements.room.value);
+}
 function selectedIds() { return [...elements.agents.querySelectorAll("input:checked")].map(input => input.value); }
 function escapeHtml(value) { const node = document.createElement("span"); node.textContent = value ?? ""; return node.innerHTML; }
 
@@ -109,6 +113,8 @@ async function loadOverview() {
   const overview = await api("/api/v1/teacher/overview");
   state.agents = overview.agents || [];
   state.lessons = overview.lessons || [];
+  state.fixedRooms = overview.fixedRooms || [];
+  state.teacher = overview.teacher || state.teacher;
   if (!state.durationInitialized && overview.defaultLessonDurationMinutes) {
     const duration = String(overview.defaultLessonDurationMinutes);
     if (![...elements.duration.options].some(option => option.value === duration)) {
@@ -122,9 +128,11 @@ async function loadOverview() {
 
 function renderOverview() {
   const previousRoom = elements.room.value;
-  const rooms = [...new Set(state.agents.filter(agent => agent.role === 0).map(agent => agent.classroomId))].sort((a, b) => a.localeCompare(b));
-  elements.room.innerHTML = rooms.length ? rooms.map(room => `<option value="${escapeHtml(room)}">${escapeHtml(room)}</option>`).join("") : `<option value="">${t("noRooms")}</option>`;
-  elements.room.value = rooms.includes(previousRoom) ? previousRoom : (rooms[0] || "");
+  const roomMap = new Map(state.fixedRooms.map(room => [room.code, room.name]));
+  state.agents.filter(agent => agent.role === 0 && !agent.isShared).forEach(agent => { if (!roomMap.has(agent.classroomId)) roomMap.set(agent.classroomId, agent.classroomId); });
+  const rooms = [...roomMap.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  elements.room.innerHTML = rooms.length ? rooms.map(([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)}</option>`).join("") : `<option value="">${t("noRooms")}</option>`;
+  elements.room.value = rooms.some(([code]) => code === previousRoom) ? previousRoom : (rooms[0]?.[0] || "");
 
   const teachers = state.agents.filter(agent => agent.role === 1).sort((a, b) => a.displayName.localeCompare(b.displayName));
   elements.teacher.innerHTML = teachers.length
@@ -132,13 +140,18 @@ function renderOverview() {
     : `<option value="">${t("noTeachers")}</option>`;
 
   const lesson = currentLesson();
+  const ownedLesson = Boolean(lesson && lesson.teacherId === state.teacher?.teacherId);
   if (lesson) elements.teacher.value = lesson.teacherAgentId;
   elements.teacher.disabled = Boolean(lesson);
   elements.duration.disabled = Boolean(lesson);
   elements.start.hidden = Boolean(lesson);
-  elements.end.hidden = !lesson;
-  elements.start.disabled = !rooms.length || !teachers.length;
-  setActionsEnabled(Boolean(lesson));
+  elements.end.hidden = !ownedLesson;
+  const temporary = elements.roomMode.value === "temporary";
+  document.querySelector("#fixed-room-field").hidden = temporary;
+  document.querySelector("#temporary-room-field").hidden = !temporary;
+  elements.start.disabled = (!temporary && !rooms.length) || !teachers.length;
+  document.querySelector("#teacher-welcome").textContent = state.teacher ? t("teacherWelcome", { name: state.teacher.displayName }) : t("lessonReady");
+  setActionsEnabled(ownedLesson);
   renderLessonStatus(lesson);
   renderAgents(lesson);
 }
@@ -153,11 +166,14 @@ function renderLessonStatus(lesson) {
   const online = students.filter(agent => agent.isOnline).length;
   const time = new Intl.DateTimeFormat(state.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(lesson.expiresAtUtc));
   elements.lessonStatus.className = "lesson-status card active";
-  elements.lessonStatus.textContent = t("lessonActive", { room: lesson.roomId, online, total: students.length, time });
+  const base = t("lessonActive", { room: lesson.roomName || lesson.roomId, online, total: students.length, time });
+  elements.lessonStatus.textContent = lesson.isTemporary && lesson.joinCode ? `${base} · ${t("temporaryPin", { pin: lesson.joinCode })}` : base;
 }
 
 function renderAgents(lesson) {
-  const students = state.agents.filter(agent => agent.role === 0 && agent.classroomId === elements.room.value);
+  const students = lesson?.isTemporary
+    ? state.agents.filter(agent => agent.role === 0 && lesson.memberAgentIds.includes(agent.agentId))
+    : state.agents.filter(agent => agent.role === 0 && !agent.isShared && agent.classroomId === elements.room.value);
   if (lesson?.lessonId !== state.renderedLessonId) {
     state.selected = new Set(students.filter(agent => agent.isOnline && lesson?.memberAgentIds.includes(agent.agentId)).map(agent => agent.agentId));
     state.renderedLessonId = lesson?.lessonId || null;
@@ -194,14 +210,22 @@ async function send(kind, payload, targets = selectedIds()) {
 }
 
 elements.authForm.addEventListener("submit", async event => {
-  event.preventDefault(); state.pin = elements.pin.value.trim(); sessionStorage.setItem("teacher-pin", state.pin);
-  try { await loadOverview(); elements.authPanel.hidden = true; elements.workspace.hidden = false; } catch (error) { toast(error.message); }
+  event.preventDefault();
+  try {
+    const login = await api("/api/v1/teacher/login", { method: "POST", body: JSON.stringify({ pin: elements.pin.value.trim() }) });
+    state.session = login.sessionToken; sessionStorage.setItem("teacher-session", state.session); elements.pin.value = "";
+    await loadOverview(); elements.authPanel.hidden = true; elements.workspace.hidden = false;
+  } catch (error) { toast(t("invalidPin")); }
 });
 
 elements.start.addEventListener("click", async () => {
   if (!elements.teacher.value) return toast(t("selectTeacher"));
   try {
-    await api("/api/v1/lessons", { method: "POST", body: JSON.stringify({ roomId: elements.room.value, teacherAgentId: elements.teacher.value, durationMinutes: Number(elements.duration.value) }) });
+    const temporary = elements.roomMode.value === "temporary";
+    const roomName = elements.temporaryRoomName.value.trim();
+    if (temporary && !roomName) return toast(t("enterRoomName"));
+    const roomId = temporary ? `TEMP-${Date.now().toString(36)}`.toUpperCase() : elements.room.value;
+    await api("/api/v1/lessons", { method: "POST", body: JSON.stringify({ roomId, teacherAgentId: elements.teacher.value, durationMinutes: Number(elements.duration.value), isTemporary: temporary, roomName: temporary ? roomName : null }) });
     await loadOverview(); toast(t("lessonStarted"));
   } catch (error) { toast(error.message); }
 });
@@ -213,6 +237,7 @@ elements.end.addEventListener("click", async () => {
 });
 
 elements.room.addEventListener("change", renderOverview);
+elements.roomMode.addEventListener("change", renderOverview);
 document.querySelector("#language").addEventListener("change", event => { state.language = event.target.value; localStorage.setItem("language", state.language); applyLanguage(); });
 document.querySelector("#refresh").addEventListener("click", () => loadOverview().catch(error => toast(error.message)));
 document.querySelector("#select-all").addEventListener("click", () => {
@@ -231,5 +256,5 @@ document.querySelectorAll("[data-command]").forEach(button => button.addEventLis
 applyLanguage();
 void applyInstallerLanguage();
 fetch("/health").then(response => { if (!response.ok) throw new Error(); document.querySelector("#server-dot").classList.add("online"); document.querySelector("#server-status").dataset.i18n = "serverAvailable"; applyLanguage(); }).catch(() => { document.querySelector("#server-status").dataset.i18n = "serverUnavailable"; applyLanguage(); });
-if (state.pin) loadOverview().then(() => { elements.authPanel.hidden = true; elements.workspace.hidden = false; }).catch(() => logout());
-window.setInterval(() => { if (state.pin) loadOverview().catch(() => {}); }, 10000);
+if (state.session) loadOverview().then(() => { elements.authPanel.hidden = true; elements.workspace.hidden = false; }).catch(() => logout());
+window.setInterval(() => { if (state.session) loadOverview().catch(() => {}); }, 10000);

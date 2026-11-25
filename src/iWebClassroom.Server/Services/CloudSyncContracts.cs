@@ -37,7 +37,8 @@ public sealed record CloudConfigurationRequest(
 public sealed record CloudSyncResponse(
     [property: JsonPropertyName("server_time")] DateTimeOffset ServerTime,
     [property: JsonPropertyName("configuration")] CloudConfigurationResponse Configuration,
-    [property: JsonPropertyName("license")] JsonElement? License);
+    [property: JsonPropertyName("license")] JsonElement? License,
+    [property: JsonPropertyName("directory")] CloudDirectoryResponse? Directory = null);
 
 public sealed record CloudConfigurationResponse(
     [property: JsonPropertyName("revision")] long Revision,

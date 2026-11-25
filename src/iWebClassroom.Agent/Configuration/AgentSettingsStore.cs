@@ -27,9 +27,18 @@ public sealed class AgentSettingsStore
         if (!File.Exists(_legacyPath))
         {
             var installedServerUrl = InstallerPreferences.ServerUrl();
-            return string.IsNullOrWhiteSpace(installedServerUrl)
-                ? AgentSettings.Empty
-                : AgentSettings.Empty with { ServerUrl = installedServerUrl.Trim().TrimEnd('/') };
+            return AgentSettings.Empty with
+            {
+                ServerUrl = string.IsNullOrWhiteSpace(installedServerUrl)
+                    ? AgentSettings.Empty.ServerUrl
+                    : installedServerUrl.Trim().TrimEnd('/'),
+                ClassroomId = InstallerPreferences.IsSharedComputer()
+                    ? "PARTILHADO"
+                    : string.IsNullOrWhiteSpace(InstallerPreferences.ClassroomId())
+                        ? AgentSettings.Empty.ClassroomId
+                        : InstallerPreferences.ClassroomId()!.Trim(),
+                IsShared = InstallerPreferences.IsSharedComputer()
+            };
         }
 
         var legacy = await LoadFromAsync(_legacyPath, machineScope: false, cancellationToken);
@@ -60,7 +69,8 @@ public sealed class AgentSettingsStore
                 UserSecretProtector.Protect(settings.AgentToken),
                 settings.DisplayName,
                 settings.Role,
-                settings.ClassroomId);
+                settings.ClassroomId,
+                settings.IsShared);
             await JsonSerializer.SerializeAsync(stream, persisted, JsonOptions, cancellationToken);
         }
 
@@ -83,7 +93,8 @@ public sealed class AgentSettingsStore
                         : UserSecretProtector.UnprotectForCurrentUser(persisted.ProtectedAgentToken),
                     persisted.DisplayName,
                     persisted.Role,
-                    persisted.ClassroomId);
+                    persisted.ClassroomId,
+                    persisted.IsShared);
         }
         catch (Exception exception) when (exception is JsonException or FormatException or Win32Exception or IOException or UnauthorizedAccessException)
         {
@@ -97,5 +108,6 @@ public sealed class AgentSettingsStore
         string ProtectedAgentToken,
         string DisplayName,
         IWebClassroom.Contracts.AgentRole Role,
-        string ClassroomId);
+        string ClassroomId,
+        bool IsShared = false);
 }

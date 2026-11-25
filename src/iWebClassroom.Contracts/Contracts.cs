@@ -7,7 +7,8 @@ public sealed record EnrollmentRequest(
     string DisplayName,
     AgentRole Role,
     string ClassroomId,
-    string EnrollmentCode);
+    string EnrollmentCode,
+    bool IsShared = false);
 
 public sealed record EnrollmentResponse(
     Guid AgentId,
@@ -20,8 +21,33 @@ public sealed record AgentSummary(
     string DisplayName,
     AgentRole Role,
     string ClassroomId,
+    bool IsShared,
     bool IsOnline,
     DateTimeOffset LastSeenUtc);
+
+public sealed record TeacherLoginRequest(string Pin);
+
+public sealed record TeacherSessionResponse(
+    string SessionToken,
+    string TeacherId,
+    string TeacherName,
+    DateTimeOffset ExpiresAtUtc);
+
+public sealed record TeacherIdentity(string TeacherId, string DisplayName);
+
+public sealed record ClassroomDefinition(
+    string ClassroomId,
+    string Code,
+    string Name);
+
+public sealed record AvailableRoomSummary(
+    Guid LessonId,
+    string RoomId,
+    string RoomName,
+    string TeacherDisplayName,
+    DateTimeOffset ExpiresAtUtc);
+
+public sealed record JoinRoomRequest(Guid LessonId, string Pin);
 
 public sealed record ClassroomCommand(
     Guid CommandId,
@@ -37,13 +63,19 @@ public sealed record CommandRequest(
 public sealed record StartLessonRequest(
     string RoomId,
     Guid TeacherAgentId,
-    int DurationMinutes = 180);
+    int DurationMinutes = 180,
+    bool IsTemporary = false,
+    string? RoomName = null);
 
 public sealed record LessonSessionSummary(
     Guid LessonId,
     string RoomId,
     Guid TeacherAgentId,
+    string TeacherId,
     string TeacherDisplayName,
+    string RoomName,
+    bool IsTemporary,
+    string? JoinCode,
     DateTimeOffset StartedAtUtc,
     DateTimeOffset ExpiresAtUtc,
     IReadOnlyCollection<Guid> MemberAgentIds);
@@ -51,6 +83,8 @@ public sealed record LessonSessionSummary(
 public sealed record TeacherOverview(
     IReadOnlyCollection<AgentSummary> Agents,
     IReadOnlyCollection<LessonSessionSummary> Lessons,
+    IReadOnlyCollection<ClassroomDefinition> FixedRooms,
+    TeacherIdentity Teacher,
     int DefaultLessonDurationMinutes);
 
 public sealed record UpdateManifest(

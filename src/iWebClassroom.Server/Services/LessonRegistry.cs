@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using IWebClassroom.Contracts;
 using IWebClassroom.Server.Configuration;
+using IWebClassroom.Server.Security;
 using Microsoft.Extensions.Options;
 
 namespace IWebClassroom.Server.Services;
@@ -70,7 +71,9 @@ public sealed class LessonRegistry(
     {
         var persisted = _lessons.Values.Where(IsActive).FirstOrDefault(item =>
             item.TeacherAgentId == agent.AgentId ||
-            (agent.Role == AgentRole.Student && string.Equals(item.RoomId, agent.ClassroomId, StringComparison.OrdinalIgnoreCase)));
+            (agent.Role == AgentRole.Student &&
+             ((item.MemberAgentIds?.Contains(agent.AgentId) ?? false) ||
+              (!item.IsTemporary && !agent.IsShared && string.Equals(item.RoomId, agent.ClassroomId, StringComparison.OrdinalIgnoreCase)))));
         lesson = persisted is null ? null : ToSummary(persisted);
         return lesson is not null;
     }
@@ -78,6 +81,9 @@ public sealed class LessonRegistry(
     public async Task<LessonSessionSummary?> TryStartAsync(
         string roomId,
         AgentSummary teacher,
+        TeacherIdentity teacherIdentity,
+        bool isTemporary,
+        string? roomName,
         TimeSpan duration,
         CancellationToken cancellationToken)
     {
@@ -87,20 +93,72 @@ public sealed class LessonRegistry(
             if (_lessons.Values.Any(item =>
                     IsActive(item) &&
                     (string.Equals(item.RoomId, roomId, StringComparison.OrdinalIgnoreCase) ||
-                     item.TeacherAgentId == teacher.AgentId)))
+                     item.TeacherAgentId == teacher.AgentId ||
+                     string.Equals(item.TeacherId, teacherIdentity.TeacherId, StringComparison.Ordinal))))
             {
                 return null;
             }
 
             var now = DateTimeOffset.UtcNow;
+            var joinCode = isTemporary
+                ? System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", System.Globalization.CultureInfo.InvariantCulture)
+                : null;
+            var pin = joinCode is null ? (Salt: (string?)null, Hash: (string?)null) : PinHasher.Create(joinCode);
+            var members = agents.List()
+                .Where(agent => agent.AgentId == teacher.AgentId ||
+                                (!isTemporary && agent.Role == AgentRole.Student && !agent.IsShared &&
+                                 string.Equals(agent.ClassroomId, roomId, StringComparison.OrdinalIgnoreCase)))
+                .Select(agent => agent.AgentId)
+                .Distinct()
+                .ToArray();
             var lesson = new PersistedLesson(
                 Guid.NewGuid(),
                 roomId,
                 teacher.AgentId,
-                teacher.DisplayName,
+                teacherIdentity.DisplayName,
                 now,
-                now.Add(duration));
+                now.Add(duration),
+                teacherIdentity.TeacherId,
+                string.IsNullOrWhiteSpace(roomName) ? roomId : roomName.Trim(),
+                isTemporary,
+                joinCode,
+                pin.Salt,
+                pin.Hash,
+                members);
             _lessons[lesson.LessonId] = lesson;
+            await PersistAsync(cancellationToken);
+            return ToSummary(lesson);
+        }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
+
+    public async Task<LessonSessionSummary?> TryJoinAsync(
+        Guid lessonId,
+        AgentSummary student,
+        string pin,
+        CancellationToken cancellationToken)
+    {
+        await _stateLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_lessons.TryGetValue(lessonId, out var lesson) ||
+                !IsActive(lesson) ||
+                !lesson.IsTemporary ||
+                student.Role != AgentRole.Student ||
+                !student.IsShared ||
+                string.IsNullOrWhiteSpace(lesson.JoinPinSalt) ||
+                string.IsNullOrWhiteSpace(lesson.JoinPinHash) ||
+                !PinHasher.Verify(pin, lesson.JoinPinSalt, lesson.JoinPinHash))
+            {
+                return null;
+            }
+
+            var members = (lesson.MemberAgentIds ?? []).Append(student.AgentId).Distinct().ToArray();
+            lesson = lesson with { MemberAgentIds = members };
+            _lessons[lessonId] = lesson;
             await PersistAsync(cancellationToken);
             return ToSummary(lesson);
         }
@@ -153,14 +211,45 @@ public sealed class LessonRegistry(
         }
     }
 
+    public async Task<IReadOnlyCollection<LessonSessionSummary>> EndTemporaryForOfflineTeachersAsync(
+        TeacherSessionService sessions,
+        CancellationToken cancellationToken)
+    {
+        await _stateLock.WaitAsync(cancellationToken);
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var ended = _lessons.Values
+                .Where(item => item.IsTemporary && IsActive(item) && !sessions.IsOnline(item.TeacherId, now))
+                .ToArray();
+            foreach (var lesson in ended)
+            {
+                _lessons.TryRemove(lesson.LessonId, out _);
+            }
+
+            if (ended.Length > 0)
+            {
+                await PersistAsync(cancellationToken);
+            }
+
+            return ended.Select(ToSummary).ToArray();
+        }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
+
     public bool IsMember(Guid lessonId, Guid agentId) =>
         TryGet(lessonId, out var lesson) && lesson!.MemberAgentIds.Contains(agentId);
 
     private LessonSessionSummary ToSummary(PersistedLesson lesson)
     {
+        var persistedMembers = (lesson.MemberAgentIds ?? []).ToHashSet();
         var members = agents.List()
-            .Where(agent => agent.AgentId == lesson.TeacherAgentId ||
-                            (agent.Role == AgentRole.Student && string.Equals(agent.ClassroomId, lesson.RoomId, StringComparison.OrdinalIgnoreCase)))
+            .Where(agent => agent.AgentId == lesson.TeacherAgentId || persistedMembers.Contains(agent.AgentId) ||
+                            (!lesson.IsTemporary && agent.Role == AgentRole.Student && !agent.IsShared &&
+                             string.Equals(agent.ClassroomId, lesson.RoomId, StringComparison.OrdinalIgnoreCase)))
             .Select(agent => agent.AgentId)
             .Distinct()
             .ToArray();
@@ -168,7 +257,11 @@ public sealed class LessonRegistry(
             lesson.LessonId,
             lesson.RoomId,
             lesson.TeacherAgentId,
+            string.IsNullOrWhiteSpace(lesson.TeacherId) ? $"agent:{lesson.TeacherAgentId:N}" : lesson.TeacherId,
             lesson.TeacherDisplayName,
+            string.IsNullOrWhiteSpace(lesson.RoomName) ? lesson.RoomId : lesson.RoomName,
+            lesson.IsTemporary,
+            lesson.JoinCode,
             lesson.StartedAtUtc,
             lesson.ExpiresAtUtc,
             members);
@@ -199,5 +292,12 @@ public sealed class LessonRegistry(
         Guid TeacherAgentId,
         string TeacherDisplayName,
         DateTimeOffset StartedAtUtc,
-        DateTimeOffset ExpiresAtUtc);
+        DateTimeOffset ExpiresAtUtc,
+        string TeacherId = "",
+        string RoomName = "",
+        bool IsTemporary = false,
+        string? JoinCode = null,
+        string? JoinPinSalt = null,
+        string? JoinPinHash = null,
+        IReadOnlyCollection<Guid>? MemberAgentIds = null);
 }

@@ -6,6 +6,7 @@ namespace IWebClassroom.Server.Services;
 
 public sealed class LessonExpirationWorker(
     LessonRegistry lessons,
+    TeacherSessionService teacherSessions,
     AgentRegistry agents,
     IHubContext<ClassroomHub> hub,
     ILogger<LessonExpirationWorker> logger) : BackgroundService
@@ -16,7 +17,8 @@ public sealed class LessonExpirationWorker(
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             var expired = await lessons.EndExpiredAsync(stoppingToken);
-            foreach (var lesson in expired)
+            var disconnected = await lessons.EndTemporaryForOfflineTeachersAsync(teacherSessions, stoppingToken);
+            foreach (var lesson in expired.Concat(disconnected))
             {
                 await hub.Clients.Group(ClassroomHub.LessonGroup(lesson.LessonId))
                     .SendAsync(HubProtocol.ScreenStopped, stoppingToken);

@@ -15,11 +15,12 @@ public sealed class EnrollmentClient
         string displayName,
         AgentRole role,
         string classroomId,
+        bool isShared,
         CancellationToken cancellationToken)
     {
         using var client = new HttpClient { BaseAddress = serverUri, Timeout = TimeSpan.FromSeconds(20) };
         client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue(CultureInfo.CurrentUICulture.Name));
-        var request = new EnrollmentRequest(MachineIdentity.Get(), displayName, role, classroomId, enrollmentCode);
+        var request = new EnrollmentRequest(MachineIdentity.Get(), displayName, role, classroomId, enrollmentCode, isShared);
         using var response = await client.PostAsJsonAsync("/api/v1/enrollment", request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -39,6 +40,7 @@ public sealed class EnrollmentClient
             enrollment.AgentToken,
             displayName,
             role,
-            classroomId);
+            classroomId,
+            isShared);
     }
 }

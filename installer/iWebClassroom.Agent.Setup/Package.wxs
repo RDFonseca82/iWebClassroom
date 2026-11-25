@@ -26,6 +26,22 @@
                       Type="raw"
                       Bitness="always64" />
     </Property>
+    <Property Id="ASSIGNMENTMODE" Value="Fixed" Secure="yes">
+      <RegistrySearch Id="InstalledAgentAssignmentMode"
+                      Root="HKLM"
+                      Key="SOFTWARE\iWebClassroom\Agent"
+                      Name="AssignmentMode"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+    <Property Id="CLASSROOMID" Value="SALA-1" Secure="yes">
+      <RegistrySearch Id="InstalledAgentClassroomId"
+                      Root="HKLM"
+                      Key="SOFTWARE\iWebClassroom\Agent"
+                      Name="ClassroomId"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
 
     <CustomAction Id="RequireServerUrl"
                   Error="Specify SERVERURL, for example SERVERURL=https://classroom.school.local. / Indique SERVERURL. / Indique SERVERURL." />
@@ -40,7 +56,7 @@
       <TextStyle Id="DlgTitleFont" FaceName="Segoe UI" Size="13" Bold="yes" />
       <Property Id="DefaultUIFont" Value="DlgFont8" />
 
-      <Dialog Id="AgentConfigurationDlg" Width="370" Height="270" Title="iWebClassroom Agent">
+      <Dialog Id="AgentConfigurationDlg" Width="370" Height="350" Title="iWebClassroom Agent">
         <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" TabSkip="no"
                  Text="{\DlgTitleFont}Instalação / Setup / Instalación" />
         <Control Id="Description" Type="Text" X="20" Y="43" Width="330" Height="28" Transparent="yes" NoPrefix="yes"
@@ -53,16 +69,29 @@
             <ListItem Text="Español" Value="es-ES" />
           </ComboBox>
         </Control>
-        <Control Id="ServerUrlLabel" Type="Text" X="20" Y="132" Width="330" Height="15"
+        <Control Id="AssignmentModeLabel" Type="Text" X="20" Y="132" Width="330" Height="15"
+                 Text="Utilização / Usage / Uso" />
+        <Control Id="AssignmentMode" Type="ComboBox" X="20" Y="149" Width="330" Height="18" Property="ASSIGNMENTMODE" ComboList="yes">
+          <ComboBox Property="ASSIGNMENTMODE">
+            <ListItem Text="Sala fixa / Fixed room / Aula fija" Value="Fixed" />
+            <ListItem Text="Computador partilhado / Shared computer / Equipo compartido" Value="Shared" />
+          </ComboBox>
+        </Control>
+        <Control Id="ClassroomIdLabel" Type="Text" X="20" Y="181" Width="330" Height="15"
+                 Text="Código da sala fixa / Fixed room code / Código del aula fija" />
+        <Control Id="ClassroomId" Type="Edit" X="20" Y="198" Width="200" Height="18" Property="CLASSROOMID" />
+        <Control Id="ClassroomIdHint" Type="Text" X="225" Y="195" Width="125" Height="30" Transparent="yes" NoPrefix="yes"
+                 Text="Ignorado no modo partilhado / Ignored in shared mode / Ignorado en modo compartido" />
+        <Control Id="ServerUrlLabel" Type="Text" X="20" Y="225" Width="330" Height="15"
                  Text="Endereço do servidor local / Local server address / Dirección del servidor local" />
-        <Control Id="ServerUrl" Type="Edit" X="20" Y="150" Width="330" Height="18" Property="SERVERURL" />
-        <Control Id="ServerUrlHint" Type="Text" X="20" Y="173" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
+        <Control Id="ServerUrl" Type="Edit" X="20" Y="243" Width="330" Height="18" Property="SERVERURL" />
+        <Control Id="ServerUrlHint" Type="Text" X="20" Y="266" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
                  Text="Ex.: https://classroom.escola.local — HTTPS é obrigatório fora de localhost." />
-        <Control Id="BottomLine" Type="Line" X="0" Y="225" Width="370" Height="0" />
-        <Control Id="Cancel" Type="PushButton" X="220" Y="239" Width="65" Height="18" Cancel="yes" Text="Cancelar / Cancel">
+        <Control Id="BottomLine" Type="Line" X="0" Y="305" Width="370" Height="0" />
+        <Control Id="Cancel" Type="PushButton" X="220" Y="319" Width="65" Height="18" Cancel="yes" Text="Cancelar / Cancel">
           <Publish Event="EndDialog" Value="Exit" />
         </Control>
-        <Control Id="Install" Type="PushButton" X="292" Y="239" Width="58" Height="18" Default="yes" Text="Instalar / Install">
+        <Control Id="Install" Type="PushButton" X="292" Y="319" Width="58" Height="18" Default="yes" Text="Instalar / Install">
           <Publish Event="SpawnDialog" Value="MissingServerDlg" Condition="NOT SERVERURL" />
           <Publish Event="EndDialog" Value="Return" Condition="SERVERURL" />
         </Control>
@@ -203,6 +232,16 @@
                      Name="ServerUrl"
                      Type="string"
                      Value="[SERVERURL]" />
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Agent"
+                     Name="AssignmentMode"
+                     Type="string"
+                     Value="[ASSIGNMENTMODE]" />
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\iWebClassroom\Agent"
+                     Name="ClassroomId"
+                     Type="string"
+                     Value="[CLASSROOMID]" />
       <RegistryValue Root="HKLM"
                      Key="SOFTWARE\iWebClassroom\Agent"
                      Name="InstallLanguage"

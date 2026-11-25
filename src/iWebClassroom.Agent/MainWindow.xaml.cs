@@ -13,6 +13,7 @@ public partial class MainWindow : Window
 {
     private readonly AgentSettingsStore _settingsStore = new();
     private readonly EnrollmentClient _enrollmentClient = new();
+    private readonly RoomJoinClient _roomJoinClient = new();
     private readonly ClassroomConnection _connection = new();
     private readonly ApplicationCatalog _applications = new();
     private readonly ScreenCaptureService _screenCapture = new();
@@ -48,6 +49,8 @@ public partial class MainWindow : Window
         DisplayNameText.Text = _settings.DisplayName;
         ClassroomText.Text = _settings.ClassroomId;
         RoleCombo.SelectedIndex = _settings.Role == AgentRole.Teacher ? 1 : 0;
+        SharedComputerCheck.IsChecked = _settings.IsShared;
+        UpdateAssignmentMode();
         IdentityText.Text = _settings.AgentId == Guid.Empty ? AgentStrings.NotEnrolled : _settings.AgentId.ToString();
     }
 
@@ -58,7 +61,8 @@ public partial class MainWindow : Window
         return !string.Equals(_settings.ServerUrl.TrimEnd('/'), ServerUrlText.Text.Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ||
                !string.Equals(_settings.DisplayName, DisplayNameText.Text.Trim(), StringComparison.Ordinal) ||
                !string.Equals(_settings.ClassroomId, ClassroomText.Text.Trim(), StringComparison.Ordinal) ||
-               _settings.Role != SelectedRole();
+               _settings.Role != SelectedRole() ||
+               _settings.IsShared != (SharedComputerCheck.IsChecked == true);
     }
 
     private async Task ConnectAsync(bool reenroll)
@@ -84,7 +88,8 @@ public partial class MainWindow : Window
                     EnrollmentCodeText.Password,
                     Required(DisplayNameText.Text, AgentStrings.ComputerNameField),
                     SelectedRole(),
-                    Required(ClassroomText.Text, AgentStrings.ClassroomField),
+                    SharedComputerCheck.IsChecked == true ? "PARTILHADO" : Required(ClassroomText.Text, AgentStrings.ClassroomField),
+                    SharedComputerCheck.IsChecked == true,
                     CancellationToken.None);
                 await _settingsStore.SaveAsync(_settings);
                 EnrollmentCodeText.Clear();
@@ -94,6 +99,11 @@ public partial class MainWindow : Window
             await _connection.ConnectAsync(_settings, CancellationToken.None);
             StatusText.Text = AgentStrings.Connected;
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
+            SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
+            if (_settings.IsShared)
+            {
+                await RefreshRoomsAsync();
+            }
             _ = CheckForUpdatesAsync();
         }
         catch (Exception exception)
@@ -216,6 +226,69 @@ public partial class MainWindow : Window
     private AgentRole SelectedRole() => ((ComboBoxItem)RoleCombo.SelectedItem).Tag?.ToString() == "Teacher"
         ? AgentRole.Teacher
         : AgentRole.Student;
+
+    private void SharedComputerCheck_Changed(object sender, RoutedEventArgs e) => UpdateAssignmentMode();
+
+    private void UpdateAssignmentMode()
+    {
+        if (ClassroomText is null || RoleCombo is null || SharedRoomsPanel is null)
+        {
+            return;
+        }
+
+        var shared = SharedComputerCheck.IsChecked == true;
+        ClassroomText.IsEnabled = !shared;
+        RoleCombo.IsEnabled = !shared;
+        if (shared)
+        {
+            ClassroomText.Text = "PARTILHADO";
+            RoleCombo.SelectedIndex = 0;
+        }
+
+        SharedRoomsPanel.Visibility = shared && _connection.IsConnected ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void RefreshRoomsButton_Click(object sender, RoutedEventArgs e) => await RefreshRoomsAsync();
+
+    private async Task RefreshRoomsAsync()
+    {
+        if (!_settings.IsShared || _settings.AgentId == Guid.Empty)
+        {
+            return;
+        }
+
+        try
+        {
+            var rooms = await _roomJoinClient.ListAsync(_settings, CancellationToken.None);
+            AvailableRoomsCombo.ItemsSource = rooms;
+            AvailableRoomsCombo.SelectedIndex = rooms.Count > 0 ? 0 : -1;
+            ActivityText.Text = rooms.Count == 0 ? AgentStrings.NoRoomsAvailable : string.Empty;
+        }
+        catch (Exception exception)
+        {
+            ActivityText.Text = exception.Message;
+        }
+    }
+
+    private async void JoinRoomButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (AvailableRoomsCombo.SelectedItem is not AvailableRoomSummary room)
+        {
+            MessageBox.Show(this, AgentStrings.SelectRoom, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var joined = await _roomJoinClient.JoinAsync(_settings, room.LessonId, RoomPinText.Password.Trim(), CancellationToken.None);
+            RoomPinText.Clear();
+            ActivityText.Text = AgentStrings.Format(nameof(AgentStrings.RoomJoined), joined.RoomName);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
 
     private static string Required(string value, string field)
     {

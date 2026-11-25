@@ -13,4 +13,5 @@ public static class HubProtocol
     public const string AgentTokenHeader = "X-Agent-Token";
     public const string AdminTokenHeader = "X-Admin-Token";
     public const string TeacherPinHeader = "X-Teacher-Pin";
+    public const string TeacherSessionHeader = "X-Teacher-Session";
 }

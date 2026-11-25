@@ -10,6 +10,27 @@ $enrollmentCode = 'smoke-enrollment-code'
 $baseUrl = "http://127.0.0.1:$Port"
 $testDataRoot = Join-Path $repositoryRoot 'artifacts\smoke-test'
 $testDataDirectory = Join-Path $testDataRoot ([Guid]::NewGuid().ToString('N'))
+$cloudTeacherPin = '482731'
+$cloudTeacherId = 'smoke-teacher-cloud'
+New-Item -ItemType Directory -Path $testDataDirectory -Force | Out-Null
+$saltBytes = [Security.Cryptography.RandomNumberGenerator]::GetBytes(16)
+$pinHashBytes = [Security.Cryptography.Rfc2898DeriveBytes]::Pbkdf2(
+    $cloudTeacherPin,
+    $saltBytes,
+    120000,
+    [Security.Cryptography.HashAlgorithmName]::SHA256,
+    32)
+@{
+    teachers = @(@{
+        id = $cloudTeacherId
+        name = 'Smoke Cloud Teacher'
+        email = 'teacher@smoke.test'
+        pin_salt = [Convert]::ToHexString($saltBytes)
+        pin_hash = [Convert]::ToHexString($pinHashBytes)
+    })
+    classrooms = @()
+    updated_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
+} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $testDataDirectory 'cloud-directory.json') -Encoding UTF8
 
 $startInfo = [Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = $dotnet
@@ -54,6 +75,10 @@ try {
     $outsideStudent = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/enrollment" -ContentType 'application/json' -Body (@{
         machineId = "smoke-outside-$([Guid]::NewGuid())"; displayName = 'Outside Student'; role = 0
         classroomId = 'OUTRA-SALA'; enrollmentCode = $enrollmentCode
+    } | ConvertTo-Json)
+    $sharedStudent = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/enrollment" -ContentType 'application/json' -Body (@{
+        machineId = "smoke-shared-$([Guid]::NewGuid())"; displayName = 'Shared Student'; role = 0
+        classroomId = 'PARTILHADO'; enrollmentCode = $enrollmentCode; isShared = $true
     } | ConvertTo-Json)
     $headers = @{ 'X-Admin-Token' = $adminToken }
     $agents = @(Invoke-RestMethod -Uri "$baseUrl/api/v1/agents" -Headers $headers)
@@ -100,6 +125,21 @@ try {
     Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)" -Headers $teacherHeaders
     $finalOverview = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
 
+    $teacherLogin = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/teacher/login" -ContentType 'application/json' -Body (@{
+        pin = $cloudTeacherPin
+    } | ConvertTo-Json)
+    $teacherSessionHeaders = @{ 'X-Teacher-Session' = $teacherLogin.sessionToken }
+    $temporaryLesson = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons" -Headers $teacherSessionHeaders -ContentType 'application/json' -Body (@{
+        roomId = 'TEMP-SMOKE'; roomName = 'Sala temporária smoke'; teacherAgentId = $teacher.agentId
+        durationMinutes = 45; isTemporary = $true
+    } | ConvertTo-Json)
+    $sharedHeaders = @{ 'X-Agent-Id' = $sharedStudent.agentId; 'X-Agent-Token' = $sharedStudent.agentToken }
+    $availableRooms = @(Invoke-RestMethod -Uri "$baseUrl/api/v1/rooms/available" -Headers $sharedHeaders)
+    $joinedTemporaryLesson = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/rooms/join" -Headers $sharedHeaders -ContentType 'application/json' -Body (@{
+        lessonId = $temporaryLesson.lessonId; pin = $temporaryLesson.joinCode
+    } | ConvertTo-Json)
+    Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/v1/lessons/$($temporaryLesson.lessonId)" -Headers $teacherSessionHeaders
+
     if ($health.status -ne 'healthy' -or
         $agents.Count -lt 1 -or
         $overview.agents.Count -lt 3 -or
@@ -114,8 +154,12 @@ try {
         $overviewAfterSettings.defaultLessonDurationMinutes -ne 75 -or
         $command.targetCount -ne 1 -or
         $lessonCommand.targetCount -ne 1 -or
-        @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0) {
-        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}." -f
+        @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0 -or
+        $teacherLogin.teacherId -ne $cloudTeacherId -or
+        $temporaryLesson.joinCode -notmatch '^\d{6}$' -or
+        $availableRooms.Count -ne 1 -or
+        -not $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId)) {
+        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; rooms={16}; joined={17}." -f
             $health.status,
             $agents.Count,
             $overview.agents.Count,
@@ -129,7 +173,11 @@ try {
             $overviewAfterSettings.defaultLessonDurationMinutes,
             $command.targetCount,
             $lessonCommand.targetCount,
-            @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count)
+            @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count,
+            $teacherLogin.teacherId,
+            $temporaryLesson.joinCode,
+            $availableRooms.Count,
+            $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId))
     }
     Write-Host 'Smoke test passed.'
 }

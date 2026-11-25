@@ -10,6 +10,10 @@ public static class InstallerPreferences
 
     public static string? ServerUrl() => Read("ServerUrl");
 
+    public static string? ClassroomId() => Read("ClassroomId");
+
+    public static bool IsSharedComputer() => string.Equals(Read("AssignmentMode"), "Shared", StringComparison.OrdinalIgnoreCase);
+
     public static string Language()
     {
         var configured = Read("InstallLanguage")?.ToLowerInvariant();

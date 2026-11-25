@@ -8,6 +8,7 @@ public sealed class CloudSyncService(
     CloudSyncClient client,
     CloudSyncStateStore stateStore,
     CloudLicenseStore licenseStore,
+    CloudDirectoryStore directoryStore,
     CloudConfigurationStore configurationStore,
     AgentRegistry agents,
     IOptionsMonitor<CloudSyncOptions> options,
@@ -94,7 +95,11 @@ public sealed class CloudSyncService(
                 CurrentVersion(),
                 CurrentVersion(),
                 agentList.Count,
-                agentList.Select(item => item.ClassroomId).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+                agentList
+                    .Where(item => !item.IsShared)
+                    .Select(item => item.ClassroomId)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count(),
                 new CloudConfigurationRequest(
                     state.ConfigurationRevision,
                     !string.Equals(currentHash, state.ConfigurationHash, StringComparison.OrdinalIgnoreCase),
@@ -102,6 +107,7 @@ public sealed class CloudSyncService(
 
             var response = await client.SynchronizeAsync(state.ServerId.Value, token, request, cancellationToken);
             await licenseStore.ApplyAsync(response.License, cancellationToken);
+            await directoryStore.ApplyAsync(response.Directory, cancellationToken);
             var remoteHash = response.Configuration.Settings.Hash();
             if (!string.Equals(remoteHash, currentHash, StringComparison.OrdinalIgnoreCase))
             {

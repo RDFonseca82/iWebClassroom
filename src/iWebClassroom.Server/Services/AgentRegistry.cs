@@ -60,6 +60,7 @@ public sealed class AgentRegistry(
             request.DisplayName,
             request.Role,
             request.ClassroomId,
+            request.IsShared,
             SecretComparer.Hash(token),
             false,
             now);
@@ -155,7 +156,7 @@ public sealed class AgentRegistry(
     }
 
     private static AgentSummary ToSummary(PersistedAgent agent) =>
-        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsOnline, agent.LastSeenUtc);
+        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc);
 
     private static string ResolvePath(string root, string configuredPath, string fileName)
     {
@@ -171,6 +172,7 @@ public sealed class AgentRegistry(
         string DisplayName,
         AgentRole Role,
         string ClassroomId,
+        bool IsShared,
         string TokenHash,
         bool IsOnline,
         DateTimeOffset LastSeenUtc);

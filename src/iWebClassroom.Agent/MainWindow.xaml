@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:IWebClassroom.Agent.Localization"
-        Title="iWebClassroom" Width="680" Height="650" MinWidth="560" MinHeight="560"
+        Title="iWebClassroom" Width="760" Height="760" MinWidth="620" MinHeight="620"
         Background="{StaticResource PaperBrush}" WindowStartupLocation="CenterScreen">
   <Grid>
     <Grid.RowDefinitions>
@@ -26,6 +26,10 @@
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
       <Grid Margin="28">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="18" />
@@ -52,9 +56,36 @@
             <ComboBoxItem Content="{x:Static loc:AgentStrings.Teacher}" Tag="Teacher" />
           </ComboBox>
 
+          <CheckBox x:Name="SharedComputerCheck" Content="{x:Static loc:AgentStrings.SharedComputer}"
+                    ToolTip="{x:Static loc:AgentStrings.SharedComputerHint}" Margin="0,8,0,4"
+                    Checked="SharedComputerCheck_Changed" Unchecked="SharedComputerCheck_Changed" />
+
           <TextBlock Text="{x:Static loc:AgentStrings.Identity}" FontWeight="SemiBold" />
           <TextBlock x:Name="IdentityText" Margin="0,7,0,15" Foreground="#67736F" TextWrapping="Wrap" />
         </StackPanel>
+
+        <Border x:Name="SharedRoomsPanel" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,22,0,0"
+                Padding="18" CornerRadius="10" Background="White" BorderBrush="#DDE4E1" BorderThickness="1"
+                Visibility="Collapsed">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="16" />
+              <ColumnDefinition Width="190" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="{x:Static loc:AgentStrings.AvailableRooms}" FontWeight="SemiBold" />
+              <ComboBox x:Name="AvailableRoomsCombo" Margin="0,7,0,8" DisplayMemberPath="RoomName" />
+              <Button Content="{x:Static loc:AgentStrings.RefreshRooms}" Click="RefreshRoomsButton_Click"
+                      HorizontalAlignment="Left" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="{x:Static loc:AgentStrings.RoomPin}" FontWeight="SemiBold" />
+              <PasswordBox x:Name="RoomPinText" Margin="0,7,0,8" MaxLength="6" />
+              <Button Content="{x:Static loc:AgentStrings.JoinRoom}" Click="JoinRoomButton_Click" />
+            </StackPanel>
+          </Grid>
+        </Border>
       </Grid>
     </ScrollViewer>
 

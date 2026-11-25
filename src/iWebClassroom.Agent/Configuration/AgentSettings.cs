@@ -8,7 +8,8 @@ public sealed record AgentSettings(
     string AgentToken,
     string DisplayName,
     AgentRole Role,
-    string ClassroomId)
+    string ClassroomId,
+    bool IsShared)
 {
     public static AgentSettings Empty { get; } = new(
         "https://localhost:7443",
@@ -16,5 +17,6 @@ public sealed record AgentSettings(
         string.Empty,
         Environment.MachineName,
         AgentRole.Student,
-        "SALA-1");
+        "SALA-1",
+        false);
 }

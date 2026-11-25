@@ -40,10 +40,12 @@ builder.Services.AddSingleton<AgentRegistry>();
 builder.Services.AddSingleton<LessonRegistry>();
 builder.Services.AddSingleton<CloudSyncStateStore>();
 builder.Services.AddSingleton<CloudLicenseStore>();
+builder.Services.AddSingleton<CloudDirectoryStore>();
 builder.Services.AddSingleton<CloudConfigurationStore>();
 builder.Services.AddSingleton<CloudSyncClient>();
 builder.Services.AddSingleton<CloudSyncService>();
 builder.Services.AddSingleton<AdminSessionService>();
+builder.Services.AddSingleton<TeacherSessionService>();
 builder.Services.AddSingleton<CommandAuditStore>();
 builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
@@ -97,6 +99,8 @@ var cloudState = app.Services.GetRequiredService<CloudSyncStateStore>();
 await cloudState.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudLicense = app.Services.GetRequiredService<CloudLicenseStore>();
 await cloudLicense.InitializeAsync(app.Lifetime.ApplicationStopping);
+var cloudDirectory = app.Services.GetRequiredService<CloudDirectoryStore>();
+await cloudDirectory.InitializeAsync(app.Lifetime.ApplicationStopping);
 
 if (!app.Environment.IsDevelopment())
 {
@@ -157,18 +161,84 @@ app.MapGet("/api/v1/agents", (HttpRequest request, AgentRegistry agentRegistry, 
         ? Results.Ok(agentRegistry.List())
         : Results.Unauthorized());
 
+app.MapPost("/api/v1/teacher/login", (
+    TeacherLoginRequest credentials,
+    TeacherSessionService sessions) =>
+{
+    var session = sessions.Create(credentials.Pin.Trim());
+    return session is null ? Results.Unauthorized() : Results.Ok(session);
+}).RequireRateLimiting("teacher");
+
 app.MapGet("/api/v1/teacher/overview", (
     HttpRequest request,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    CloudDirectoryStore directory,
     IOptionsMonitor<ClassroomOptions> classroomOptions,
     IConfiguration configuration) =>
-    IsTeacher(request, configuration)
+    TryGetTeacher(request, configuration, out var teacher)
         ? Results.Ok(new TeacherOverview(
             agentRegistry.List(),
-            lessonRegistry.List(),
+            lessonRegistry.List()
+                .Select(lesson => string.Equals(lesson.TeacherId, teacher!.TeacherId, StringComparison.Ordinal)
+                    ? lesson
+                    : lesson with { JoinCode = null })
+                .ToArray(),
+            directory.Current.Classrooms
+                .Select(room => new ClassroomDefinition(room.Id, room.Code, room.Name))
+                .OrderBy(room => room.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToArray(),
+            teacher!,
             Math.Clamp(classroomOptions.CurrentValue.DefaultLessonDurationMinutes, 15, 480)))
         : Results.Unauthorized()).RequireRateLimiting("teacher");
+
+app.MapGet("/api/v1/rooms/available", (
+    HttpRequest request,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null || !agent.IsShared || agent.Role != AgentRole.Student)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(lessonRegistry.List()
+        .Where(lesson => lesson.IsTemporary)
+        .Select(lesson => new AvailableRoomSummary(
+            lesson.LessonId,
+            lesson.RoomId,
+            lesson.RoomName,
+            lesson.TeacherDisplayName,
+            lesson.ExpiresAtUtc))
+        .ToArray());
+});
+
+app.MapPost("/api/v1/rooms/join", async (
+    HttpRequest request,
+    JoinRoomRequest join,
+    AgentRegistry agentRegistry,
+    LessonRegistry lessonRegistry,
+    IHubContext<ClassroomHub> hub,
+    CancellationToken cancellationToken) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null || !agent.IsShared || agent.Role != AgentRole.Student)
+    {
+        return Results.Unauthorized();
+    }
+
+    var lesson = await lessonRegistry.TryJoinAsync(join.LessonId, agent, join.Pin.Trim(), cancellationToken);
+    if (lesson is null)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "InvalidRoomPin") });
+    }
+
+    foreach (var connectionId in agentRegistry.GetConnectionIds(agent.AgentId))
+    {
+        await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(lesson.LessonId), cancellationToken);
+    }
+
+    return Results.Ok(lesson);
+}).RequireRateLimiting("teacher");
 
 app.MapGet("/api/v1/settings", (
     HttpRequest request,
@@ -315,16 +385,31 @@ app.MapPost("/api/v1/lessons", async (
     StartLessonRequest request,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    CloudDirectoryStore directory,
     IHubContext<ClassroomHub> hub,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
-    if (!IsTeacher(httpRequest, configuration))
+    if (!TryGetTeacher(httpRequest, configuration, out var teacherIdentity))
     {
         return Results.Unauthorized();
     }
 
     if (request.RoomId is not { Length: >= 1 and <= 50 } || request.RoomId.Any(char.IsControl))
+    {
+        return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidRoom") });
+    }
+
+    var fixedRoom = directory.Current.Classrooms.FirstOrDefault(room =>
+        string.Equals(room.Code, request.RoomId.Trim(), StringComparison.OrdinalIgnoreCase));
+    if (request.IsTemporary)
+    {
+        if (request.RoomName is not { Length: >= 1 and <= 80 } || request.RoomName.Any(char.IsControl))
+        {
+            return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidRoom") });
+        }
+    }
+    else if (directory.Current.Classrooms.Count > 0 && fixedRoom is null)
     {
         return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidRoom") });
     }
@@ -343,6 +428,9 @@ app.MapPost("/api/v1/lessons", async (
     var lesson = await lessonRegistry.TryStartAsync(
         request.RoomId.Trim(),
         teacher,
+        teacherIdentity!,
+        request.IsTemporary,
+        request.IsTemporary ? request.RoomName : fixedRoom?.Name,
         TimeSpan.FromMinutes(request.DurationMinutes),
         cancellationToken);
     if (lesson is null)
@@ -370,9 +458,15 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
-    if (!IsTeacher(httpRequest, configuration))
+    if (!TryGetTeacher(httpRequest, configuration, out var teacherIdentity))
     {
         return Results.Unauthorized();
+    }
+
+    if (!lessonRegistry.TryGet(lessonId, out var existing) ||
+        !string.Equals(existing!.TeacherId, teacherIdentity!.TeacherId, StringComparison.Ordinal))
+    {
+        return Results.NotFound();
     }
 
     var lesson = await lessonRegistry.EndAsync(lessonId, cancellationToken);
@@ -406,7 +500,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
-    if (!IsTeacher(httpRequest, configuration))
+    if (!TryGetTeacher(httpRequest, configuration, out var teacherIdentity))
     {
         return Results.Unauthorized();
     }
@@ -414,6 +508,11 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     if (!lessonRegistry.TryGet(lessonId, out var lesson))
     {
         return Results.NotFound(new { error = ApiText.Get(httpRequest, "LessonNotFound") });
+    }
+
+    if (!string.Equals(lesson!.TeacherId, teacherIdentity!.TeacherId, StringComparison.Ordinal))
+    {
+        return Results.Forbid();
     }
 
     var validationError = ValidateCommand(httpRequest, request, options.CurrentValue);
@@ -518,18 +617,37 @@ static bool IsAdmin(HttpRequest request, IConfiguration configuration)
     return SecretComparer.Equals(request.Headers[HubProtocol.AdminTokenHeader].ToString(), expectedToken);
 }
 
-static bool IsTeacher(HttpRequest request, IConfiguration configuration)
+static bool TryGetTeacher(HttpRequest request, IConfiguration configuration, out TeacherIdentity? teacher)
 {
+    var sessions = request.HttpContext.RequestServices.GetRequiredService<TeacherSessionService>();
+    if (sessions.TryGet(request.Headers[TeacherSessionService.HeaderName].ToString(), out teacher))
+    {
+        return true;
+    }
+
     var expectedPin = Environment.GetEnvironmentVariable("IWEBCLASSROOM_TEACHER_PIN")
                       ?? configuration["Security:TeacherPin"];
-    return SecretComparer.Equals(request.Headers[HubProtocol.TeacherPinHeader].ToString(), expectedPin) ||
-           IsAdmin(request, configuration);
+    if (SecretComparer.Equals(request.Headers[HubProtocol.TeacherPinHeader].ToString(), expectedPin) ||
+        IsAdmin(request, configuration))
+    {
+        teacher = new TeacherIdentity("local-administrator", "Administrador local");
+        return true;
+    }
+
+    teacher = null;
+    return false;
 }
 
 static bool TryAuthenticateAgent(HttpRequest request, AgentRegistry registry)
 {
+    return TryAuthenticateAgentWithSummary(request, registry, out _);
+}
+
+static bool TryAuthenticateAgentWithSummary(HttpRequest request, AgentRegistry registry, out AgentSummary? agent)
+{
+    agent = null;
     return Guid.TryParse(request.Headers[HubProtocol.AgentIdHeader].ToString(), out var agentId) &&
-           registry.TryAuthenticate(agentId, request.Headers[HubProtocol.AgentTokenHeader].ToString(), out _);
+           registry.TryAuthenticate(agentId, request.Headers[HubProtocol.AgentTokenHeader].ToString(), out agent);
 }
 
 static Dictionary<string, string[]> ValidateEnrollment(HttpRequest httpRequest, EnrollmentRequest request)
