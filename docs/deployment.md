@@ -15,14 +15,14 @@
 
 ### Aprovar uma atualização do servidor
 
-1. Publique no GitHub Release o MSI assinado e `server-stable.json`.
+1. Produza o MSI assinado e `server-stable.json`, depois execute `scripts/publish-portal-release.ps1` para os copiar para o catálogo do portal Cloud.
 2. Confirme na área **Servidores** do portal que aparece a nova versão.
 3. Configure a impressão digital Authenticode na configuração sincronizada dos servidores.
 4. Selecione **Aprovar para todos**. Não é necessário aprovar servidor a servidor.
 5. Aguarde: cada servidor sincroniza a aprovação e instala quando não tiver agentes online nem aulas ativas.
 6. Confirme no portal que todos reportam a versão aprovada. Um servidor que permaneça numa versão anterior está ocupado, offline ou sem certificado de assinatura configurado.
 
-A aprovação utiliza o JSON `schools.settings`, não requer migração SQL. Num repositório GitHub privado, `PLATFORM_GITHUB_TOKEN` é obrigatório no portal; num repositório público é opcional e aumenta o limite de consultas. Nunca configure esse token nos servidores locais.
+A aprovação utiliza o JSON `schools.settings`, não requer migração SQL nem token GitHub. O portal guarda o catálogo e os MSI em `storage/app/iwebclassroom/releases`; esta pasta deve ser preservada entre deployments e incluída na estratégia de backup.
 
 ### Reinstalar ou substituir o servidor
 
@@ -45,8 +45,7 @@ Numa sala fixa, use a mesma sala predefinida em todos os postos de aluno e marqu
 | --- | --- | --- | --- |
 | Agentes no primeiro registo | Servidor local | TCP 7080 | obtenção autenticada da autoridade local e redirecionamento HTTPS |
 | Professores/alunos | Servidor local | TCP 7443 | painel, API e WebSocket SignalR por HTTPS |
-| Servidor | GitHub Releases | TCP 443 | atualizações, se ativas |
-| Servidor | `cloud.iwebclassroom.app` | TCP 443 | autenticação, sincronização, diretório de salas, bilhetes de roaming e heartbeat de carga |
+| Servidor | `cloud.iwebclassroom.app` | TCP 443 | autenticação, sincronização, atualizações aprovadas, diretório de salas, bilhetes de roaming e heartbeat de carga |
 
 Não é necessária qualquer ligação iniciada do servidor para os computadores dos alunos.
 

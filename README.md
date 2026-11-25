@@ -26,7 +26,7 @@ Este repositório contém um MVP funcional com:
 - versão do servidor sempre visível nas consolas web.
 - ícone do servidor na área de notificação do Windows, com atalhos para administração, consola do professor, estado, versão e cópia do endereço seguro;
 - sincronização leve de professores, PIN e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
-- deteção da release mais recente no GitHub e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
+- deteção da versão publicada no catálogo local da Cloud e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
@@ -145,7 +145,7 @@ A versão 0.9.0 acrescenta a tabela `active_room_routes` ao SQL Server do portal
 
 ## Atualizações dos servidores aprovadas pela escola
 
-O portal cloud consulta a release publicada mais recente de `RDFonseca82/iWebClassroom` através da API do GitHub e guarda o resultado em cache durante dez minutos. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível e o estado da aprovação.
+O portal cloud lê o catálogo local `storage/app/iwebclassroom/releases/server-current.json`. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível na Cloud e o estado da aprovação. O funcionamento normal não consulta a API GitHub.
 
 Uma nova versão nunca é autorizada apenas por existir no GitHub. Um administrador da escola tem de escolher **Aprovar vX.Y.Z para todos**. A aprovação é guardada nas definições JSON da escola e enviada a todos os servidores durante a sincronização completa seguinte. Não existe alteração de SQL Server para esta funcionalidade.
 
@@ -159,7 +159,13 @@ Depois de receber a aprovação, cada servidor:
 
 Os servidores ocupados podem atualizar mais tarde do que os restantes, mas todos recebem exatamente a mesma versão aprovada. Aulas em curso nunca são interrompidas. Cancelar uma aprovação impede servidores que ainda não começaram; não interrompe uma instalação já iniciada. Se não estiver configurada uma impressão digital Authenticode, o portal mostra **Falta certificado de assinatura** e o servidor não instala o pacote.
 
-Configure `PLATFORM_GITHUB_TOKEN` no portal quando o repositório GitHub for privado; num repositório público é opcional e aumenta o limite de consultas. O token permanece apenas na Cloud: o manifesto e o MSI privados são disponibilizados aos servidores por endpoints autenticados da API iWebClassroom, que validam a aprovação da escola e redirecionam o download sem revelar a credencial GitHub. O repositório pode ser alterado com `PLATFORM_GITHUB_REPOSITORY`; por omissão é `RDFonseca82/iWebClassroom`.
+Cada release deve ser publicada no catálogo Cloud com o MSI e os metadados validados:
+
+```powershell
+.\scripts\publish-portal-release.ps1 -Version 0.10.1 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
+```
+
+O script confirma a versão e o SHA-256, copia o MSI para `storage/app/iwebclassroom/releases`, mantém um catálogo histórico `server-X.Y.Z.json` e substitui atomicamente o catálogo corrente. Os endpoints autenticados da Cloud fornecem o manifesto e o MSI apenas a servidores cuja escola aprovou exatamente essa versão. Não é necessário `PLATFORM_GITHUB_TOKEN`.
 
 ## Instaladores Windows
 
@@ -235,7 +241,7 @@ Os projetos de instalação usam WiX Toolset 7.0.1. O ficheiro de projeto aceita
 Mesmo depois da aprovação da escola, as atualizações permanecem bloqueadas até existir um certificado de assinatura de código da organização. Para preparar o canal:
 
 1. assine os MSI do agente e do servidor com Authenticode;
-2. publique os MSI e os manifestos `agent-stable.json` e `server-stable.json` num GitHub Release;
+2. publique os MSI e os manifestos num GitHub Release para arquivo e copie o servidor para o catálogo Cloud com `publish-portal-release.ps1`;
 3. configure a impressão digital do certificado no portal cloud para todos os servidores e em `update.json` no agente;
 4. disponibilize o manifesto do agente na pasta `releases` do servidor.
 
