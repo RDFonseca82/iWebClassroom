@@ -84,8 +84,9 @@ async function applyInstallerLanguage() {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", "Accept-Language": state.language, ...(state.session ? { "X-Teacher-Session": state.session } : {}), ...(options.headers || {}) } });
-  if (response.status === 401) { logout(); throw new Error(t("invalidCode")); }
+  const { keepAccessFlow = false, ...fetchOptions } = options;
+  const response = await fetch(path, { ...fetchOptions, headers: { "Content-Type": "application/json", "Accept-Language": state.language, ...(state.session ? { "X-Teacher-Session": state.session } : {}), ...(fetchOptions.headers || {}) } });
+  if (response.status === 401) { if (!keepAccessFlow) logout(); throw new Error(t("invalidCode")); }
   if (!response.ok) {
     const body = await response.text();
     let detail = body;
@@ -237,7 +238,7 @@ elements.requestForm.addEventListener("submit", async event => {
 elements.verifyForm.addEventListener("submit", async event => {
   event.preventDefault();
   try {
-    const login = await api("/api/v1/teacher/access/verify", { method: "POST", body: JSON.stringify({ email: state.pendingEmail, code: elements.code.value.trim() }) });
+    const login = await api("/api/v1/teacher/access/verify", { method: "POST", keepAccessFlow: true, body: JSON.stringify({ email: state.pendingEmail, code: elements.code.value.trim() }) });
     state.session = login.sessionToken; sessionStorage.setItem("teacher-session", state.session); elements.code.value = "";
     await loadOverview(); elements.authPanel.hidden = true; elements.workspace.hidden = false;
   } catch (error) { toast(error.message); }

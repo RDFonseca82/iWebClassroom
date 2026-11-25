@@ -164,7 +164,7 @@ Os servidores ocupados podem atualizar mais tarde do que os restantes, mas todos
 Cada release deve ser publicada no catálogo Cloud com o MSI e os metadados validados:
 
 ```powershell
-.\scripts\publish-portal-release.ps1 -Version 0.11.0 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
+.\scripts\publish-portal-release.ps1 -Version 0.11.1 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
 ```
 
 O script confirma a versão e os SHA-256, copia os MSI do servidor e do agente para `storage/app/iwebclassroom/releases`, mantém um catálogo histórico `server-X.Y.Z.json` e substitui atomicamente o catálogo corrente. Os endpoints autenticados da Cloud fornecem o manifesto e o MSI do servidor apenas a instalações cuja escola aprovou exatamente essa versão. A página **Transferências** fornece ambos os instaladores aos administradores autenticados da escola para as primeiras instalações. Não é necessário `PLATFORM_GITHUB_TOKEN`.
@@ -183,9 +183,9 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.11.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.11.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.11.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Server-0.11.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.11.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
+msiexec.exe /i iWebClassroom-Agent-0.11.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
