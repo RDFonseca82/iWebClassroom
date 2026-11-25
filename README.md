@@ -159,7 +159,7 @@ Depois de receber a aprovação, cada servidor:
 
 Os servidores ocupados podem atualizar mais tarde do que os restantes, mas todos recebem exatamente a mesma versão aprovada. Aulas em curso nunca são interrompidas. Cancelar uma aprovação impede servidores que ainda não começaram; não interrompe uma instalação já iniciada. Se não estiver configurada uma impressão digital Authenticode, o portal mostra **Falta certificado de assinatura** e o servidor não instala o pacote.
 
-Para instalações do portal sujeitas ao limite anónimo da API GitHub, configure opcionalmente `PLATFORM_GITHUB_TOKEN`. O repositório pode ser alterado com `PLATFORM_GITHUB_REPOSITORY`; por omissão é `RDFonseca82/iWebClassroom`.
+Configure `PLATFORM_GITHUB_TOKEN` no portal quando o repositório GitHub for privado; num repositório público é opcional e aumenta o limite de consultas. O token permanece apenas na Cloud: o manifesto e o MSI privados são disponibilizados aos servidores por endpoints autenticados da API iWebClassroom, que validam a aprovação da escola e redirecionam o download sem revelar a credencial GitHub. O repositório pode ser alterado com `PLATFORM_GITHUB_REPOSITORY`; por omissão é `RDFonseca82/iWebClassroom`.
 
 ## Instaladores Windows
 
@@ -173,9 +173,9 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.10.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.10.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.10.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Server-0.10.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.10.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
+msiexec.exe /i iWebClassroom-Agent-0.10.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.

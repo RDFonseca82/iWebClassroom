@@ -22,7 +22,7 @@
 5. Aguarde: cada servidor sincroniza a aprovação e instala quando não tiver agentes online nem aulas ativas.
 6. Confirme no portal que todos reportam a versão aprovada. Um servidor que permaneça numa versão anterior está ocupado, offline ou sem certificado de assinatura configurado.
 
-A aprovação utiliza o JSON `schools.settings`, não requer migração SQL. O portal pode usar `PLATFORM_GITHUB_TOKEN` para aumentar o limite de consultas à API GitHub.
+A aprovação utiliza o JSON `schools.settings`, não requer migração SQL. Num repositório GitHub privado, `PLATFORM_GITHUB_TOKEN` é obrigatório no portal; num repositório público é opcional e aumenta o limite de consultas. Nunca configure esse token nos servidores locais.
 
 ### Reinstalar ou substituir o servidor
 

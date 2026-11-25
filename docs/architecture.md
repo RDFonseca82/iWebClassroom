@@ -49,6 +49,7 @@ O portal guarda somente rotas ativas em `active_room_routes`. O administrador de
 4. O worker local exige uma versão superior à instalada, zero agentes online, zero aulas ativas, HTTPS, SHA-256 correto e assinatura Authenticode coincidente.
 5. Servidores ocupados aguardam e repetem a avaliação a cada 30 segundos. Não existe migração nem interrupção de aulas para atualizar.
 6. Depois do MSI e reinício, o servidor reporta a nova versão à cloud. A aprovação pode permanecer registada: servidores já atualizados ignoram-na.
+7. Para repositórios privados, o token GitHub existe apenas no portal. O servidor autentica-se na API Cloud, que valida a aprovação e fornece o manifesto e um redirecionamento temporário para o MSI privado.
 
 ## Fluxos principais
 
