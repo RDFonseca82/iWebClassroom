@@ -17,14 +17,14 @@ Os administradores da escola podem obter os dois MSI e copiar os comandos de ins
 
 ### Aprovar uma atualização do servidor
 
-1. Produza o MSI assinado e `server-stable.json`, depois execute `scripts/publish-portal-release.ps1` para os copiar para o catálogo do portal Cloud.
-2. Confirme na área **Servidores** do portal que aparece a nova versão.
+1. Configure o certificado de assinatura nos GitHub Actions Secrets, crie e envie a tag `vX.Y.Z`; a Action publica os dois MSI e os dois manifestos na release pública.
+2. Aguarde até cinco minutos e confirme na área **Servidores** do portal que aparece a nova versão do GitHub.
 3. Configure a impressão digital Authenticode na configuração sincronizada dos servidores.
 4. Selecione **Aprovar para todos**. Não é necessário aprovar servidor a servidor.
 5. Aguarde: cada servidor sincroniza a aprovação e instala quando não tiver agentes online nem aulas ativas.
 6. Confirme no portal que todos reportam a versão aprovada. Um servidor que permaneça numa versão anterior está ocupado, offline ou sem certificado de assinatura configurado.
 
-A aprovação utiliza o JSON `schools.settings`, não requer migração SQL nem token GitHub. O portal guarda o catálogo e os MSI do servidor e do agente em `storage/app/iwebclassroom/releases`; esta pasta deve ser preservada entre deployments e incluída na estratégia de backup.
+A aprovação utiliza o JSON `schools.settings` e não requer migração SQL. O portal não guarda MSI: consulta a API pública do GitHub, conserva metadados em cache e envia os computadores diretamente para os assets da release. `PLATFORM_GITHUB_TOKEN` é opcional enquanto o repositório for público.
 
 ### Reinstalar ou substituir o servidor
 

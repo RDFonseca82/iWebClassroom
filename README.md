@@ -147,7 +147,7 @@ A versão 0.9.0 acrescenta a tabela `active_room_routes` ao SQL Server do portal
 
 ## Atualizações dos servidores aprovadas pela escola
 
-O portal cloud lê o catálogo local `storage/app/iwebclassroom/releases/server-current.json`. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível na Cloud e o estado da aprovação. O funcionamento normal não consulta a API GitHub.
+O portal cloud lê diretamente a release estável pública mais recente de `RDFonseca82/iWebClassroom` e mantém os resultados em cache durante cinco minutos. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível no GitHub e o estado da aprovação. Os MSI e manifestos não são copiados para o alojamento do portal.
 
 Uma nova versão nunca é autorizada apenas por existir no GitHub. Um administrador da escola tem de escolher **Aprovar vX.Y.Z para todos**. A aprovação é guardada nas definições JSON da escola e enviada a todos os servidores durante a sincronização completa seguinte. Não existe alteração de SQL Server para esta funcionalidade.
 
@@ -161,22 +161,18 @@ Depois de receber a aprovação, cada servidor:
 
 Os servidores ocupados podem atualizar mais tarde do que os restantes, mas todos recebem exatamente a mesma versão aprovada. Aulas em curso nunca são interrompidas. Cancelar uma aprovação impede servidores que ainda não começaram; não interrompe uma instalação já iniciada. Se não estiver configurada uma impressão digital Authenticode, o portal mostra **Falta certificado de assinatura** e o servidor não instala o pacote.
 
-Cada release deve ser publicada no catálogo Cloud com o MSI e os metadados validados:
+Cada tag `vX.Y.Z` executa a GitHub Action, cria os MSI e manifestos e publica-os primeiro numa release em rascunho. A release só fica pública depois de todos os assets terem sido enviados. O portal exige os dois MSI e os dois manifestos com os nomes esperados; releases incompletas, rascunhos e pré-releases são ignoradas.
 
-```powershell
-.\scripts\publish-portal-release.ps1 -Version 0.11.1 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
-```
-
-O script confirma a versão e os SHA-256, copia os MSI do servidor e do agente para `storage/app/iwebclassroom/releases`, mantém um catálogo histórico `server-X.Y.Z.json` e substitui atomicamente o catálogo corrente. Os endpoints autenticados da Cloud fornecem o manifesto e o MSI do servidor apenas a instalações cuja escola aprovou exatamente essa versão. A página **Transferências** fornece ambos os instaladores aos administradores autenticados da escola para as primeiras instalações. Não é necessário `PLATFORM_GITHUB_TOKEN`.
+Os endpoints autenticados da Cloud continuam a autorizar apenas a versão aprovada para a escola, mas o MSI é descarregado diretamente da release pública. A página **Transferências** redireciona os administradores autenticados para os mesmos assets GitHub. Como o repositório é público, não é necessário `PLATFORM_GITHUB_TOKEN`; pode ser configurado opcionalmente para aumentar o limite da API.
 
 ## Instaladores Windows
 
 Cada release produz dois MSI self-contained, sem necessidade de instalar previamente o .NET:
 
 - `iWebClassroom-Agent-<versão>-win-x64.msi`
+- `iWebClassroom-Server-<versão>-win-x64.msi`
 
 Os administradores de escola podem descarregar estes ficheiros no portal Cloud em **Escola → Transferências**, onde também encontram os comandos de instalação normal, silenciosa, para computadores partilhados e para salas fixas.
-- `iWebClassroom-Server-<versão>-win-x64.msi`
 
 O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma interface. No servidor, a escolha define o idioma inicial das consolas. No agente, além do idioma, é pedido o endereço HTTPS do servidor local e esse valor aparece já preenchido no primeiro registo do computador.
 
@@ -238,6 +234,13 @@ Para assinar os MSI com um certificado já instalado no armazém do Windows:
 
 Sem certificado, os MSI podem ser testados e instalados manualmente, mas o Windows apresenta o editor como desconhecido e as atualizações automáticas mantêm-se desativadas.
 
+Para assinar automaticamente nas GitHub Actions, adicione em **Settings → Secrets and variables → Actions**:
+
+- `SIGNING_CERTIFICATE_BASE64`: conteúdo Base64 do ficheiro PFX de assinatura de código;
+- `SIGNING_CERTIFICATE_PASSWORD`: palavra-passe do PFX.
+
+O GitHub executa a assinatura com esse certificado, mas não fornece nem substitui um certificado de assinatura de código. Depois de configurar os secrets, publique uma nova tag; não reutilize uma release que tenha MSI sem assinatura.
+
 Os projetos de instalação usam WiX Toolset 7.0.1. O ficheiro de projeto aceita a EULA `wix7`; antes de distribuir comercialmente, a organização deve rever os termos [OSMF do WiX](https://docs.firegiant.com/wix/osmf/).
 
 ## Segurança das atualizações
@@ -245,7 +248,7 @@ Os projetos de instalação usam WiX Toolset 7.0.1. O ficheiro de projeto aceita
 Mesmo depois da aprovação da escola, as atualizações permanecem bloqueadas até existir um certificado de assinatura de código da organização. Para preparar o canal:
 
 1. assine os MSI do agente e do servidor com Authenticode;
-2. publique os MSI e os manifestos num GitHub Release para arquivo e copie o servidor para o catálogo Cloud com `publish-portal-release.ps1`;
+2. publique os MSI e os manifestos assinados numa GitHub Release através de uma tag `vX.Y.Z`;
 3. configure a impressão digital do certificado no portal cloud para todos os servidores e em `update.json` no agente;
 4. disponibilize o manifesto do agente na pasta `releases` do servidor.
 
