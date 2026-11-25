@@ -53,6 +53,8 @@ public static class AgentStrings
         [nameof(EnrollmentUnavailable)] = ["O servidor ainda não tem a inscrição configurada.", "Enrollment is not configured on the server yet.", "La inscripción aún no está configurada en el servidor."],
         [nameof(EnrollmentFailed)] = ["A inscrição falhou ({0}).", "Enrollment failed ({0}).", "La inscripción ha fallado ({0})."],
         [nameof(EmptyEnrollmentResponse)] = ["O servidor devolveu uma resposta de inscrição vazia.", "The server returned an empty enrollment response.", "El servidor devolvió una respuesta de inscripción vacía."],
+        [nameof(CertificateBootstrapFailed)] = ["Não foi possível obter o certificado seguro do servidor local.", "The local server security certificate could not be obtained.", "No se pudo obtener el certificado seguro del servidor local."],
+        [nameof(InvalidServerCertificate)] = ["O certificado apresentado não pertence a um servidor iWebClassroom válido.", "The certificate presented does not belong to a valid iWebClassroom server.", "El certificado presentado no pertenece a un servidor iWebClassroom válido."],
         [nameof(RequiredField)] = ["Preencha o campo {0}.", "Complete the {0} field.", "Complete el campo {0}."],
         [nameof(ComputerNameField)] = ["nome do computador", "computer name", "nombre del equipo"],
         [nameof(ClassroomField)] = ["sala", "classroom", "aula"],
@@ -115,6 +117,8 @@ public static class AgentStrings
     public static string EnrollmentUnavailable => Text(nameof(EnrollmentUnavailable));
     public static string EnrollmentFailed => Text(nameof(EnrollmentFailed));
     public static string EmptyEnrollmentResponse => Text(nameof(EmptyEnrollmentResponse));
+    public static string CertificateBootstrapFailed => Text(nameof(CertificateBootstrapFailed));
+    public static string InvalidServerCertificate => Text(nameof(InvalidServerCertificate));
     public static string RequiredField => Text(nameof(RequiredField));
     public static string ComputerNameField => Text(nameof(ComputerNameField));
     public static string ClassroomField => Text(nameof(ClassroomField));

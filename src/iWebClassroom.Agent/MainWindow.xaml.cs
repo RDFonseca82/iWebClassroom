@@ -13,6 +13,7 @@ public partial class MainWindow : Window
 {
     private readonly AgentSettingsStore _settingsStore = new();
     private readonly EnrollmentClient _enrollmentClient = new();
+    private readonly ServerTrustBootstrapper _trustBootstrapper = new();
     private readonly RoomJoinClient _roomJoinClient = new();
     private readonly ClassroomConnection _connection = new();
     private readonly ApplicationCatalog _applications = new();
@@ -71,7 +72,7 @@ public partial class MainWindow : Window
         try
         {
             if (!Uri.TryCreate(ServerUrlText.Text.Trim(), UriKind.Absolute, out var serverUri) ||
-                (serverUri.Scheme != Uri.UriSchemeHttps && !(serverUri.Scheme == Uri.UriSchemeHttp && serverUri.IsLoopback)))
+                (serverUri.Scheme != Uri.UriSchemeHttps && serverUri.Scheme != Uri.UriSchemeHttp))
             {
                 throw new InvalidOperationException(AgentStrings.InvalidServer);
             }
@@ -94,6 +95,20 @@ public partial class MainWindow : Window
                 await _settingsStore.SaveAsync(_settings);
                 EnrollmentCodeText.Clear();
                 ApplySettingsToForm();
+            }
+            else
+            {
+                var secureServer = await _trustBootstrapper.EnsureTrustedAsync(
+                    serverUri,
+                    _settings.AgentId,
+                    _settings.AgentToken,
+                    CancellationToken.None);
+                if (!string.Equals(_settings.ServerUrl.TrimEnd('/'), secureServer.ToString().TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+                {
+                    _settings = _settings with { ServerUrl = secureServer.ToString().TrimEnd('/') };
+                    await _settingsStore.SaveAsync(_settings);
+                    ApplySettingsToForm();
+                }
             }
 
             await _connection.ConnectAsync(_settings, CancellationToken.None);

@@ -34,6 +34,21 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
                ?? throw new InvalidOperationException("The cloud returned an empty synchronization response.");
     }
 
+    public async Task<CloudAdministratorResponse> AuthenticateAdministratorAsync(
+        Guid serverId,
+        string accessToken,
+        CloudAdministratorLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        client.DefaultRequestHeaders.Add("X-iWebClassroom-Server", serverId.ToString());
+        using var response = await client.PostAsJsonAsync("/api/v1/server/admin-auth", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CloudAdministratorResponse>(JsonOptions, cancellationToken)
+               ?? throw new InvalidOperationException("The cloud returned an empty administrator authentication response.");
+    }
+
     private HttpClient CreateClient()
     {
         var policy = options.CurrentValue;

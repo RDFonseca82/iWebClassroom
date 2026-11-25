@@ -19,7 +19,7 @@
         <a href="/"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg><span data-i18n="teacherConsole">Consola do professor</span></a>
         <a class="active" href="/admin.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/></svg><span data-i18n="kicker">Administração local</span></a>
       </nav>
-      <div class="sidebar-school"><span data-i18n="localServer">Servidor local</span><strong>iWebClassroom</strong><small data-i18n="localManagement">Gestão desta instalação</small></div>
+      <div class="sidebar-school"><span data-i18n="localServer">Servidor local</span><strong>iWebClassroom</strong><small data-i18n="localManagement">Gestão desta instalação</small><small class="server-version">v<span data-server-version>—</span></small></div>
     </aside>
 
     <div class="cloud-workspace">
@@ -31,11 +31,16 @@
 
       <main class="cloud-main">
         <section class="cloud-card auth-card" id="auth-panel">
-          <div><span class="section-kicker" data-i18n="cloud">CLOUD</span><h1 data-i18n="adminAccess">Ligar à gestão central</h1><p data-i18n="adminHelp">Use as credenciais técnicas criadas no portal quando este servidor foi registado. O token, a licença e as definições serão obtidos automaticamente.</p></div>
+          <div><span class="section-kicker" data-i18n="cloud">CLOUD</span><h1 id="admin-access-title" data-i18n="adminLogin">Administração da escola</h1><p id="admin-access-help" data-i18n="adminLoginHelp">Entre com o email e a palavra-passe de um administrador da escola registado na gestão central.</p></div>
           <div class="auth-forms">
             <form id="auth-form" class="login-grid">
-              <label><span data-i18n="syncUsername">Utilizador do servidor</span><input id="login-username" autocomplete="username" maxlength="160" required></label>
+              <label><span data-i18n="adminEmail">Email do administrador</span><input id="login-email" type="email" autocomplete="username" maxlength="255" required></label>
               <label><span data-i18n="syncPassword">Palavra-passe</span><input id="login-password" type="password" autocomplete="current-password" maxlength="512" required></label>
+              <button type="submit" data-i18n="enter">Entrar</button>
+            </form>
+            <form id="pairing-form" class="login-grid" hidden>
+              <label><span data-i18n="syncUsername">Utilizador do servidor</span><input id="pairing-username" autocomplete="username" maxlength="160" required></label>
+              <label><span data-i18n="syncPassword">Palavra-passe</span><input id="pairing-password" type="password" autocomplete="current-password" maxlength="512" required></label>
               <button type="submit" data-i18n="connectAndEnter">Ligar e entrar</button>
             </form>
             <details class="recovery-access"><summary data-i18n="recoveryAccess">Acesso local de recuperação</summary><p data-i18n="recoveryHelp">Utilize apenas quando não for possível contactar a cloud.</p><form id="recovery-form"><input id="admin-token" type="password" autocomplete="current-password" data-i18n-placeholder="adminToken" placeholder="Token administrativo" required><button type="submit" class="secondary" data-i18n="enter">Entrar</button></form></details>

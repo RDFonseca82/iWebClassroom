@@ -9,6 +9,8 @@ namespace IWebClassroom.Agent.Services;
 
 public sealed class EnrollmentClient
 {
+    private readonly ServerTrustBootstrapper _trustBootstrapper = new();
+
     public async Task<AgentSettings> EnrollAsync(
         Uri serverUri,
         string enrollmentCode,
@@ -18,6 +20,7 @@ public sealed class EnrollmentClient
         bool isShared,
         CancellationToken cancellationToken)
     {
+        serverUri = await _trustBootstrapper.EnsureTrustedAsync(serverUri, enrollmentCode, cancellationToken);
         using var client = new HttpClient { BaseAddress = serverUri, Timeout = TimeSpan.FromSeconds(20) };
         client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue(CultureInfo.CurrentUICulture.Name));
         var request = new EnrollmentRequest(MachineIdentity.Get(), displayName, role, classroomId, enrollmentCode, isShared);

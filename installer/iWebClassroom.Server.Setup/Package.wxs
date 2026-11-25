@@ -1,5 +1,6 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall">
   <Package Id="IWebClassroom.Server"
            Name="iWebClassroom Server"
            Manufacturer="Fundação Salesianos"
@@ -67,7 +68,7 @@
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
                  Text="{\DlgTitleFont}Instalação concluída / Installation complete / Instalación completada" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="70" Transparent="yes" NoPrefix="yes"
-                 Text="O servidor foi instalado e o serviço foi iniciado. A consola local está disponível em http://localhost:7080. / The server was installed and the service was started. The local console is available at http://localhost:7080. / El servidor se instaló y el servicio se inició. La consola local está disponible en http://localhost:7080." />
+                 Text="O servidor foi instalado. A consola segura está disponível em https://localhost:7443 e em todos os IP deste servidor. / The server was installed. The secure console is available at https://localhost:7443 and on every server IP. / El servidor se instaló. La consola segura está disponible en https://localhost:7443 y en todas las IP del servidor." />
         <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
         <Control Id="Finish" Type="PushButton" X="282" Y="199" Width="68" Height="18" Default="yes" Cancel="yes" Text="Concluir / Finish">
           <Publish Event="EndDialog" Value="Return" />
@@ -134,11 +135,22 @@
       <File Id="ServerExecutable"
             Source="$(var.PublishDir)\iWebClassroom.Server.exe"
             KeyPath="yes" />
+      <fire:FirewallException Id="ServerHttpFirewall"
+                              Name="iWebClassroom Server HTTP bootstrap"
+                              Port="7080"
+                              Protocol="tcp"
+                              Scope="localSubnet"
+                              Profile="all" />
+      <fire:FirewallException Id="ServerHttpsFirewall"
+                              Name="iWebClassroom Server HTTPS"
+                              Port="7443"
+                              Protocol="tcp"
+                              Scope="localSubnet"
+                              Profile="all" />
       <ServiceInstall Id="InstallServerService"
                       Name="iWebClassroom.Server"
                       DisplayName="iWebClassroom Server"
                       Description="iWebClassroom local classroom management server"
-                      Arguments="--urls http://127.0.0.1:7080"
                       Type="ownProcess"
                       Start="auto"
                       ErrorControl="normal"

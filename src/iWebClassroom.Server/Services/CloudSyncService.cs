@@ -154,6 +154,20 @@ public sealed class CloudSyncService(
         return Status();
     }
 
+    public async Task<CloudAdministratorResponse> AuthenticateAdministratorAsync(
+        CloudAdministratorLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var state = stateStore.Snapshot();
+        var token = stateStore.GetAccessToken();
+        if (!state.ServerId.HasValue || string.IsNullOrWhiteSpace(token))
+        {
+            throw new InvalidOperationException("This local server is not connected to central management.");
+        }
+
+        return await client.AuthenticateAdministratorAsync(state.ServerId.Value, token, request, cancellationToken);
+    }
+
     public CloudServerSettings Configuration() => configurationStore.Current;
 
     public CloudLicenseState License() => licenseStore.Snapshot();

@@ -4,7 +4,6 @@ param(
     [Parameter(Mandatory)] [string]$AdminToken,
     [Parameter(Mandatory)] [string]$EnrollmentCode,
     [string]$Destination = "$env:ProgramFiles\iWebClassroom\Server",
-    [string]$ListenUrl = 'http://127.0.0.1:7080',
     [string]$SignerThumbprint = '',
     [string]$ServiceName = 'iWebClassroom.Server'
 )
@@ -32,7 +31,7 @@ Copy-Item -Path (Join-Path $source '*') -Destination $Destination -Recurse -Forc
 $dataDirectory = Join-Path $env:ProgramData 'iWebClassroom\Server'
 New-Item -ItemType Directory -Path $dataDirectory -Force | Out-Null
 $settings = @{
-    Security = @{ RequireHttps = $false; AdminToken = $AdminToken; EnrollmentCode = $EnrollmentCode }
+    Security = @{ RequireHttps = $true; AdminToken = $AdminToken; EnrollmentCode = $EnrollmentCode }
     Classroom = @{ DataDirectory = $dataDirectory; ReleaseDirectory = (Join-Path $dataDirectory 'releases') }
     Update = @{
         Enabled = -not [string]::IsNullOrWhiteSpace($SignerThumbprint)
@@ -48,10 +47,9 @@ $settings | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $settingsPath -En
 & icacls.exe $dataDirectory /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 
 $installedExecutable = Join-Path $Destination 'iWebClassroom.Server.exe'
-$binaryPath = ('"{0}" --urls {1}' -f $installedExecutable, $ListenUrl)
+$binaryPath = ('"{0}"' -f $installedExecutable)
 New-Service -Name $ServiceName -BinaryPathName $binaryPath -DisplayName 'iWebClassroom Server' -Description 'Servidor central iWebClassroom' -StartupType Automatic | Out-Null
 & sc.exe failure $ServiceName reset= 86400 actions= restart/30000/restart/30000/restart/30000 | Out-Null
 Start-Service -Name $ServiceName
 
-Write-Host "Servidor instalado. Endpoint local: $ListenUrl"
-Write-Host 'Configure agora o proxy HTTPS e WebSockets no IIS/ARR.'
+Write-Host 'Servidor instalado. Endpoint seguro: https://<nome-ou-IP>:7443 (todas as interfaces).'

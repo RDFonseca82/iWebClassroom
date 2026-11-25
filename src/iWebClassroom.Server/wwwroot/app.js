@@ -255,6 +255,6 @@ document.querySelectorAll("[data-command]").forEach(button => button.addEventLis
 
 applyLanguage();
 void applyInstallerLanguage();
-fetch("/health").then(response => { if (!response.ok) throw new Error(); document.querySelector("#server-dot").classList.add("online"); document.querySelector("#server-status").dataset.i18n = "serverAvailable"; applyLanguage(); }).catch(() => { document.querySelector("#server-status").dataset.i18n = "serverUnavailable"; applyLanguage(); });
+fetch("/health").then(async response => { if (!response.ok) throw new Error(); const health = await response.json(); document.querySelectorAll("[data-server-version]").forEach(element => element.textContent = health.version); document.querySelector("#server-dot").classList.add("online"); document.querySelector("#server-status").dataset.i18n = "serverAvailable"; applyLanguage(); }).catch(() => { document.querySelector("#server-status").dataset.i18n = "serverUnavailable"; applyLanguage(); });
 if (state.session) loadOverview().then(() => { elements.authPanel.hidden = true; elements.workspace.hidden = false; }).catch(() => logout());
 window.setInterval(() => { if (state.session) loadOverview().catch(() => {}); }, 10000);

@@ -20,7 +20,9 @@ Este repositório contém um MVP funcional com:
 - scripts de publicação e instalação Windows;
 - pipeline GitHub Actions para compilar e produzir artefactos Windows;
 - sincronização bidirecional das definições entre cada servidor escolar e `cloud.iwebclassroom.app`;
-- início de sessão administrativo com as credenciais técnicas do servidor, obtenção automática do token e receção da licença cloud.
+- ligação inicial com as credenciais técnicas do servidor e início de sessão posterior com uma conta de administrador da escola validada pela cloud;
+- HTTPS local gerido, certificado renovado automaticamente e escuta em todas as placas de rede IPv4/IPv6;
+- versão do servidor sempre visível nas consolas web.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
@@ -56,7 +58,7 @@ Requisitos e critérios adicionais:
 - utilizar Windows Server 2022 ou 2025 x64, preferencialmente numa máquina virtual dedicada; não alojar no mesmo servidor outras aplicações com muitas ligações persistentes;
 - reservar pelo menos 20% de CPU, memória e largura de banda para picos, reconexões e atualizações;
 - usar armazenamento SSD/NVMe e manter espaço para o Windows, paginação, logs, auditoria, cópias de segurança e pacotes de atualização;
-- ativar WebSockets no proxy IIS/ARR e garantir baixa latência entre o servidor e as VLAN dos alunos;
+- garantir que WebSockets e a porta 7443 são permitidos entre o servidor e as VLAN dos alunos;
 - dimensionar a rede com base nas salas que partilham o ecrã ao mesmo tempo. Como referência de planeamento, um JPEG médio de 100–250 KB a 4 imagens por segundo representa aproximadamente 3,2–8 Mbit/s por transmissão para **cada destinatário**. Uma aula com 30 alunos poderá, portanto, gerar cerca de 96–240 Mbit/s de saída do servidor; o valor real depende do conteúdo do ecrã, resolução e compressão;
 - acima de 300 computadores, executar um teste piloto em horário real e acompanhar CPU, memória, ligações TCP, latência e tráfego de saída antes da instalação geral;
 - no MVP atual, o inventário e as aulas são guardados em ficheiros JSON. Para instalações grandes, alta disponibilidade ou mais de 500 computadores por servidor, deverá ser considerada a migração para uma base de dados e uma arquitetura de escalabilidade própria.
@@ -84,7 +86,7 @@ Abra `http://localhost:7080` para aceder à consola. Noutro terminal:
 dotnet run --project src/iWebClassroom.Agent
 ```
 
-O agente só aceita HTTP em `localhost`. Numa escola, o endereço tem obrigatoriamente de usar HTTPS.
+Em produção, use `https://<nome-ou-ip-do-servidor>:7443`. O endpoint HTTP da porta 7080 existe apenas para o agente obter a autoridade de certificação durante o primeiro registo e redireciona o restante tráfego para HTTPS.
 
 ## Ligação à gestão central
 
@@ -94,6 +96,8 @@ Cada escola pode ter vários servidores. No portal central, registe cada servido
 2. introduza o utilizador e a palavra-passe técnicos mostrados pelo portal quando o servidor foi criado;
 3. aguarde pela autenticação, obtenção do token, licença e definições;
 4. confirme que o estado passa a **Sincronizado** e que a licença apresentada é a esperada.
+
+Depois da ligação inicial, a administração local deixa de pedir a credencial técnica e passa a pedir o email e a palavra-passe de um administrador ativo da escola. A cloud valida a palavra-passe; o servidor local sincroniza apenas a identidade, o email e a função do administrador, nunca o respetivo hash. O token local continua disponível exclusivamente como recuperação offline.
 
 A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. A cada 60 segundos são enviados inventário, versões e alterações locais, e recebidas as definições centrais e uma licença atualizada. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
 
@@ -123,21 +127,21 @@ O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma inter
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.6.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.6.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.6.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Server-0.7.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.7.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
+msiexec.exe /i iWebClassroom-Agent-0.7.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
 
-O MSI do servidor instala o serviço `iWebClassroom.Server`, iniciado automaticamente em `http://127.0.0.1:7080`, e protege a pasta `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados o token administrativo, o código de inscrição e um PIN de professor de seis algarismos em:
+O MSI do servidor instala o serviço `iWebClassroom.Server`, que escuta em `https://0.0.0.0:7443`, `https://[::]:7443` e na porta de arranque 7080 em todas as interfaces. O instalador abre ambas as portas na Firewall do Windows apenas para a sub-rede local e protege `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados o token administrativo e o código de inscrição em:
 
 ```text
 C:\ProgramData\iWebClassroom\Server\bootstrap-secrets.json
-C:\ProgramData\iWebClassroom\Server\teacher-access.json
+C:\ProgramData\iWebClassroom\Server\certificates\
 ```
 
-Esse ficheiro só pode ser lido por `SYSTEM` e pelos administradores locais. O servidor deve ser publicado através de IIS/ARR ou outro proxy HTTPS com WebSockets ativos.
+Esses ficheiros só podem ser lidos por `SYSTEM` e pelos administradores locais. O servidor cria uma autoridade local com validade longa e um certificado de serviço com todos os nomes e IP ativos; verifica alterações de rede e renova o certificado antes de expirar. No primeiro registo, o agente valida o código de inscrição, instala a autoridade em `CurrentUser\Root` e passa a usar HTTPS. Em computadores sem agente, distribua `iwebclassroom-root.cer` por GPO/Intune ou use um certificado de AD CS/autoridade pública. IIS/ARR passa a ser opcional.
 
 O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A URL e o idioma são guardados em `HKLM\SOFTWARE\iWebClassroom\Agent`. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
 

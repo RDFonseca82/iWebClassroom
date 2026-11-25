@@ -10,5 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WixToolset.Util.wixext" Version="7.0.1" />
+    <PackageReference Include="WixToolset.Firewall.wixext" Version="7.0.1" />
   </ItemGroup>
 </Project>

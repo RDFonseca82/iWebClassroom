@@ -6,6 +6,15 @@ namespace IWebClassroom.Server.Services;
 
 public sealed record CloudConnectRequest(string Username, string Password);
 
+public sealed record CloudAdministratorLoginRequest(string Email, string Password);
+
+public sealed record CloudAdministratorResponse(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("role")] string Role,
+    [property: JsonPropertyName("school_id")] Guid SchoolId);
+
 public sealed record CloudAuthRequest(
     [property: JsonPropertyName("username")] string Username,
     [property: JsonPropertyName("password")] string Password,

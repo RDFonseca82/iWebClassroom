@@ -71,6 +71,8 @@ public sealed class CloudDirectoryStore(
 }
 
 public sealed record CloudDirectoryResponse(
+    [property: JsonPropertyName("administrators")]
+    IReadOnlyCollection<CloudAdministratorEntry> Administrators,
     [property: JsonPropertyName("teachers")]
     IReadOnlyCollection<CloudTeacherEntry> Teachers,
     [property: JsonPropertyName("classrooms")]
@@ -78,8 +80,14 @@ public sealed record CloudDirectoryResponse(
     [property: JsonPropertyName("updated_at_utc")]
     DateTimeOffset? UpdatedAtUtc)
 {
-    public static CloudDirectoryResponse Empty { get; } = new([], [], null);
+    public static CloudDirectoryResponse Empty { get; } = new([], [], [], null);
 }
+
+public sealed record CloudAdministratorEntry(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("role")] string Role);
 
 public sealed record CloudTeacherEntry(
     [property: JsonPropertyName("id")]

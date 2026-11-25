@@ -1,7 +1,7 @@
 const translations = {
   "pt-PT": {
     kicker: "ADMINISTRAÇÃO LOCAL", teacherConsole: "Consola do professor", language: "Idioma", localServer: "Servidor local", localManagement: "Gestão desta instalação",
-    adminAccess: "Ligar à gestão central", adminHelp: "Use as credenciais técnicas criadas no portal quando este servidor foi registado. O token, a licença e as definições serão obtidos automaticamente.",
+    adminAccess: "Ligar à gestão central", adminHelp: "Use as credenciais técnicas criadas no portal quando este servidor foi registado. O token, a licença e as definições serão obtidos automaticamente.", adminLogin: "Administração da escola", adminLoginHelp: "Entre com o email e a palavra-passe de um administrador da escola registado na gestão central.", adminEmail: "Email do administrador",
     adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Ligar e entrar", connecting: "A ligar e sincronizar…", recoveryAccess: "Acesso local de recuperação",
     recoveryHelp: "Utilize apenas quando não for possível contactar a cloud.", cloud: "CLOUD", cloudSync: "Sincronização central",
     syncUsername: "Utilizador do servidor", syncPassword: "Palavra-passe", connect: "Ligar à cloud",
@@ -23,11 +23,11 @@ const translations = {
     offlineGrace: "Tolerância offline até", licenseReceived: "Recebida em", active: "Ativa", missing: "Em falta",
     invalid_credentials: "O utilizador ou a palavra-passe do servidor não estão corretos.", inactive_server: "Este servidor ou a escola não estão ativos no portal.",
     instance_mismatch: "Estas credenciais continuam associadas a outra instalação. No portal central, abra este servidor, escolha «Permitir nova instalação» e tente novamente.", cloud_unavailable: "Não foi possível contactar a gestão central.",
-    cloud_request_failed: "A gestão central recusou o pedido.", cloud_configuration_error: "A ligação à gestão central não está corretamente configurada."
+    cloud_request_failed: "A gestão central recusou o pedido.", cloud_configuration_error: "A ligação à gestão central não está corretamente configurada.", invalid_admin_credentials: "O email ou a palavra-passe do administrador não estão corretos.", server_not_connected: "Este servidor ainda não está ligado à gestão central."
   },
   en: {
     kicker: "LOCAL ADMINISTRATION", teacherConsole: "Teacher console", language: "Language", localServer: "Local server", localManagement: "Manage this installation",
-    adminAccess: "Connect to central management", adminHelp: "Use the technical credentials created in the portal when this server was registered. The token, license and settings will be retrieved automatically.",
+    adminAccess: "Connect to central management", adminHelp: "Use the technical credentials created in the portal when this server was registered. The token, license and settings will be retrieved automatically.", adminLogin: "School administration", adminLoginHelp: "Sign in with the email and password of a school administrator registered in central management.", adminEmail: "Administrator email",
     adminToken: "Administrative token", enter: "Sign in", connectAndEnter: "Connect and sign in", connecting: "Connecting and synchronizing…", recoveryAccess: "Local recovery access",
     recoveryHelp: "Use only when the cloud cannot be reached.", cloud: "CLOUD", cloudSync: "Central synchronization",
     syncUsername: "Server username", syncPassword: "Password", connect: "Connect to cloud",
@@ -49,11 +49,11 @@ const translations = {
     offlineGrace: "Offline grace until", licenseReceived: "Received at", active: "Active", missing: "Missing",
     invalid_credentials: "The server username or password is incorrect.", inactive_server: "This server or school is not active in the portal.",
     instance_mismatch: "These credentials are still linked to another installation. In the central portal, open this server, choose “Allow new installation”, and try again.", cloud_unavailable: "Central management could not be reached.",
-    cloud_request_failed: "Central management rejected the request.", cloud_configuration_error: "The central management connection is not configured correctly."
+    cloud_request_failed: "Central management rejected the request.", cloud_configuration_error: "The central management connection is not configured correctly.", invalid_admin_credentials: "The administrator email or password is incorrect.", server_not_connected: "This server is not yet connected to central management."
   },
   es: {
     kicker: "ADMINISTRACIÓN LOCAL", teacherConsole: "Consola del profesor", language: "Idioma", localServer: "Servidor local", localManagement: "Gestión de esta instalación",
-    adminAccess: "Conectar con la gestión central", adminHelp: "Utilice las credenciales técnicas creadas en el portal al registrar este servidor. El token, la licencia y la configuración se obtendrán automáticamente.",
+    adminAccess: "Conectar con la gestión central", adminHelp: "Utilice las credenciales técnicas creadas en el portal al registrar este servidor. El token, la licencia y la configuración se obtendrán automáticamente.", adminLogin: "Administración del centro", adminLoginHelp: "Acceda con el correo y la contraseña de un administrador del centro registrado en la gestión central.", adminEmail: "Correo del administrador",
     adminToken: "Token administrativo", enter: "Entrar", connectAndEnter: "Conectar y entrar", connecting: "Conectando y sincronizando…", recoveryAccess: "Acceso local de recuperación",
     recoveryHelp: "Utilícelo solo cuando no sea posible contactar con la nube.", cloud: "CLOUD", cloudSync: "Sincronización central",
     syncUsername: "Usuario del servidor", syncPassword: "Contraseña", connect: "Conectar a la nube",
@@ -75,7 +75,7 @@ const translations = {
     offlineGrace: "Tolerancia sin conexión hasta", licenseReceived: "Recibida el", active: "Activa", missing: "Ausente",
     invalid_credentials: "El usuario o la contraseña del servidor no son correctos.", inactive_server: "Este servidor o centro no están activos en el portal.",
     instance_mismatch: "Estas credenciales siguen asociadas a otra instalación. En el portal central, abra este servidor, elija «Permitir nueva instalación» y vuelva a intentarlo.", cloud_unavailable: "No se pudo contactar con la gestión central.",
-    cloud_request_failed: "La gestión central rechazó la solicitud.", cloud_configuration_error: "La conexión con la gestión central no está configurada correctamente."
+    cloud_request_failed: "La gestión central rechazó la solicitud.", cloud_configuration_error: "La conexión con la gestión central no está configurada correctamente.", invalid_admin_credentials: "El correo o la contraseña del administrador no son correctos.", server_not_connected: "Este servidor todavía no está conectado con la gestión central."
   }
 };
 
@@ -215,11 +215,11 @@ document.querySelector("#auth-form").addEventListener("submit", async event => {
   submitButton.disabled = true;
   submitButton.textContent = t("connecting");
   try {
-    const response = await fetch("/api/v1/admin/cloud-login", {
+    const response = await fetch("/api/v1/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: document.querySelector("#login-username").value.trim(),
+        email: document.querySelector("#login-email").value.trim(),
         password: document.querySelector("#login-password").value
       })
     });
@@ -236,6 +236,41 @@ document.querySelector("#auth-form").addEventListener("submit", async event => {
     authPanel.hidden = true;
     workspace.hidden = false;
     render(model);
+    notify(t("connectedTo"));
+  } catch (error) { notify(error.message); }
+  finally {
+    submitButton.disabled = false;
+    submitButton.textContent = t("enter");
+  }
+});
+
+document.querySelector("#pairing-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const submitButton = event.currentTarget.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  submitButton.textContent = t("connecting");
+  try {
+    const response = await fetch("/api/v1/admin/cloud-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.querySelector("#pairing-username").value.trim(),
+        password: document.querySelector("#pairing-password").value
+      })
+    });
+    const model = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const localizedError = model.code ? translations[language]?.[model.code] : null;
+      throw new Error(localizedError || model.error || model.detail || t("requestFailed"));
+    }
+    adminSession = model.sessionToken;
+    recoveryToken = "";
+    sessionStorage.setItem("iwebclassroom-admin-session", adminSession);
+    sessionStorage.removeItem("iwebclassroom-admin-recovery-token");
+    document.querySelector("#pairing-password").value = "";
+    authPanel.hidden = true;
+    workspace.hidden = false;
+    render(model);
     notify(t("connectionSaved"));
   } catch (error) { notify(error.message); }
   finally {
@@ -243,6 +278,21 @@ document.querySelector("#auth-form").addEventListener("submit", async event => {
     submitButton.textContent = t("connectAndEnter");
   }
 });
+
+async function loadBootstrapStatus() {
+  try {
+    const response = await fetch("/api/v1/admin/bootstrap-status");
+    if (!response.ok) return;
+    const status = await response.json();
+    document.querySelectorAll("[data-server-version]").forEach(element => element.textContent = status.version);
+    const connected = Boolean(status.connected);
+    document.querySelector("#auth-form").hidden = !connected;
+    document.querySelector("#pairing-form").hidden = connected;
+    document.querySelector("#admin-access-title").dataset.i18n = connected ? "adminLogin" : "adminAccess";
+    document.querySelector("#admin-access-help").dataset.i18n = connected ? "adminLoginHelp" : "adminHelp";
+    applyLanguage();
+  } catch { /* The recovery form remains available. */ }
+}
 
 document.querySelector("#recovery-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -313,4 +363,5 @@ languageSelect.addEventListener("change", () => {
 
 applyLanguage();
 void applyInstallerLanguage();
+void loadBootstrapStatus();
 if (adminSession || recoveryToken) load().catch(error => notify(error.message));

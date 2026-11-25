@@ -49,6 +49,7 @@ p { color: var(--muted); line-height: 1.55; }
 .sidebar-school > span, .sidebar-school small { display: block; color: #7189aa; font-size: 11px; }
 .sidebar-school strong { display: block; margin: 5px 0 3px; overflow: hidden; color: #fff; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .connection { display: flex !important; align-items: center; gap: 7px; margin-top: 8px; }
+.server-version { margin-top: 9px; color: #9eb2cd !important; font-weight: 700; letter-spacing: .3px; }
 #server-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--orange); }
 #server-dot.online { background: #49d4a8; box-shadow: 0 0 0 4px rgba(73,212,168,.12); }
 

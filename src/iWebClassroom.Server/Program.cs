@@ -33,6 +33,21 @@ BootstrapSecrets.AddOrCreate(builder);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+// Explicit --urls remains available for development and smoke tests. Installed services use the
+// managed endpoints below, which listen on every active IPv4/IPv6 interface.
+ManagedHttpsCertificateProvider? managedHttps = null;
+if (!args.Contains("--urls", StringComparer.OrdinalIgnoreCase))
+{
+    managedHttps = new ManagedHttpsCertificateProvider(builder.Environment.ContentRootPath, configuredDataDirectory);
+    builder.Services.AddSingleton(managedHttps);
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenAnyIP(7080);
+        options.ListenAnyIP(7443, listen => listen.UseHttps(managedHttps.Current));
+    });
+    builder.Services.AddHostedService<HttpsCertificateRenewalWorker>();
+}
+
 builder.Services.Configure<ClassroomOptions>(builder.Configuration.GetSection("Classroom"));
 builder.Services.Configure<ServerUpdateOptions>(builder.Configuration.GetSection("Update"));
 builder.Services.Configure<CloudSyncOptions>(builder.Configuration.GetSection("CloudSync"));
@@ -109,7 +124,9 @@ if (!app.Environment.IsDevelopment())
 
 if (builder.Configuration.GetValue("Security:RequireHttps", true))
 {
-    app.UseHttpsRedirection();
+    app.UseWhen(
+        context => !context.Request.Path.StartsWithSegments("/api/v1/certificate/root"),
+        branch => branch.UseHttpsRedirection());
 }
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -121,6 +138,32 @@ app.MapGet("/health", () => Results.Ok(new
     version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0",
     utc = DateTimeOffset.UtcNow
 }));
+
+app.MapGet("/api/v1/version", () => Results.Ok(new
+{
+    version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0"
+}));
+
+app.MapGet("/api/v1/certificate/root", (HttpRequest request, IConfiguration configuration, AgentRegistry agentRegistry) =>
+{
+    if (managedHttps is null)
+    {
+        return Results.NotFound();
+    }
+
+    var expectedCode = Environment.GetEnvironmentVariable("IWEBCLASSROOM_ENROLLMENT_CODE")
+                       ?? configuration["Security:EnrollmentCode"];
+    var enrollmentAuthorized = !string.IsNullOrWhiteSpace(expectedCode) &&
+                               SecretComparer.Equals(request.Headers["X-Enrollment-Code"].ToString(), expectedCode);
+    var agentAuthorized = TryAuthenticateAgentWithSummary(request, agentRegistry, out _);
+    if (!enrollmentAuthorized && !agentAuthorized)
+    {
+        return Results.Unauthorized();
+    }
+
+    request.HttpContext.Response.Headers["X-Certificate-Thumbprint"] = managedHttps.RootThumbprint;
+    return Results.File(managedHttps.ExportRootCertificate(), "application/pkix-cert", "iwebclassroom-root.cer");
+}).RequireRateLimiting("enrollment");
 
 app.MapGet("/api/v1/localization", () => Results.Ok(new
 {
@@ -290,6 +333,60 @@ app.MapPost("/api/v1/admin/cloud-login", async (
     catch (InvalidOperationException exception)
     {
         return Results.BadRequest(new { error = exception.Message, code = "cloud_configuration_error" });
+    }
+}).RequireRateLimiting("admin-login");
+
+app.MapGet("/api/v1/admin/bootstrap-status", (CloudSyncService cloud) => Results.Ok(new
+{
+    connected = cloud.Status().Connected,
+    schoolName = cloud.Status().SchoolName,
+    version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0"
+}));
+
+app.MapPost("/api/v1/admin/login", async (
+    CloudAdministratorLoginRequest credentials,
+    CloudSyncService cloud,
+    AdminSessionService sessions,
+    CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(credentials.Email) || credentials.Email.Length > 255 ||
+        string.IsNullOrEmpty(credentials.Password) || credentials.Password.Length > 512)
+    {
+        return Results.BadRequest(new { error = "As credenciais de administrador não têm o formato esperado.", code = "invalid_admin_credentials" });
+    }
+
+    try
+    {
+        var administrator = await cloud.AuthenticateAdministratorAsync(
+            credentials with { Email = credentials.Email.Trim() }, cancellationToken);
+        var session = sessions.Create();
+        return Results.Ok(new
+        {
+            sessionToken = session.Token,
+            session.ExpiresAtUtc,
+            administrator,
+            configuration = cloud.Configuration(),
+            cloud = cloud.Status(),
+            license = cloud.License()
+        });
+    }
+    catch (CloudApiException exception)
+    {
+        return Results.Json(new
+        {
+            error = exception.Message,
+            code = exception.Code ?? "invalid_admin_credentials"
+        }, statusCode: exception.StatusCode == System.Net.HttpStatusCode.Unauthorized
+            ? StatusCodes.Status401Unauthorized
+            : StatusCodes.Status400BadRequest);
+    }
+    catch (HttpRequestException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message, code = "cloud_unavailable" });
+    }
+    catch (InvalidOperationException exception)
+    {
+        return Results.BadRequest(new { error = exception.Message, code = "server_not_connected" });
     }
 }).RequireRateLimiting("admin-login");
 

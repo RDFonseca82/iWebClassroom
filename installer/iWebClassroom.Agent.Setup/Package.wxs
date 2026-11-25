@@ -86,7 +86,7 @@
                  Text="Endereço do servidor local / Local server address / Dirección del servidor local" />
         <Control Id="ServerUrl" Type="Edit" X="20" Y="243" Width="330" Height="18" Property="SERVERURL" />
         <Control Id="ServerUrlHint" Type="Text" X="20" Y="266" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
-                 Text="Ex.: https://classroom.escola.local — HTTPS é obrigatório fora de localhost." />
+                 Text="Ex.: https://192.168.1.10:7443 — o certificado seguro é instalado automaticamente no primeiro registo." />
         <Control Id="BottomLine" Type="Line" X="0" Y="305" Width="370" Height="0" />
         <Control Id="Cancel" Type="PushButton" X="220" Y="319" Width="65" Height="18" Cancel="yes" Text="Cancelar / Cancel">
           <Publish Event="EndDialog" Value="Exit" />
