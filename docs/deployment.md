@@ -13,6 +13,8 @@
 9. Abra `/admin.html` e introduza o utilizador e a palavra-passe técnicos apenas na ligação inicial. Depois disso, entre com uma conta de administrador da escola registada na cloud. Nenhuma das palavras-passe é guardada localmente.
 10. Termine e volte a iniciar a sessão Windows, ou execute `iWebClassroom.Server.Tray.exe`, para mostrar o ícone do servidor junto ao relógio.
 
+Os administradores da escola podem obter os dois MSI e copiar os comandos de instalação em **Portal Cloud → Escola → Transferências**. Os downloads exigem uma sessão autenticada com acesso à escola.
+
 ### Aprovar uma atualização do servidor
 
 1. Produza o MSI assinado e `server-stable.json`, depois execute `scripts/publish-portal-release.ps1` para os copiar para o catálogo do portal Cloud.
@@ -22,7 +24,7 @@
 5. Aguarde: cada servidor sincroniza a aprovação e instala quando não tiver agentes online nem aulas ativas.
 6. Confirme no portal que todos reportam a versão aprovada. Um servidor que permaneça numa versão anterior está ocupado, offline ou sem certificado de assinatura configurado.
 
-A aprovação utiliza o JSON `schools.settings`, não requer migração SQL nem token GitHub. O portal guarda o catálogo e os MSI em `storage/app/iwebclassroom/releases`; esta pasta deve ser preservada entre deployments e incluída na estratégia de backup.
+A aprovação utiliza o JSON `schools.settings`, não requer migração SQL nem token GitHub. O portal guarda o catálogo e os MSI do servidor e do agente em `storage/app/iwebclassroom/releases`; esta pasta deve ser preservada entre deployments e incluída na estratégia de backup.
 
 ### Reinstalar ou substituir o servidor
 

@@ -27,6 +27,7 @@ Este repositório contém um MVP funcional com:
 - ícone do servidor na área de notificação do Windows, com atalhos para administração, consola do professor, estado, versão e cópia do endereço seguro;
 - sincronização leve de professores, PIN e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
 - deteção da versão publicada no catálogo local da Cloud e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
+- página autenticada de transferências por escola, com os MSI do servidor e agente, hashes e instruções de instalação normal e silenciosa.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
@@ -165,13 +166,15 @@ Cada release deve ser publicada no catálogo Cloud com o MSI e os metadados vali
 .\scripts\publish-portal-release.ps1 -Version 0.10.1 -PortalRoot "H:\O meu disco\RDFonseca.com\WebSites\iwebclassroom"
 ```
 
-O script confirma a versão e o SHA-256, copia o MSI para `storage/app/iwebclassroom/releases`, mantém um catálogo histórico `server-X.Y.Z.json` e substitui atomicamente o catálogo corrente. Os endpoints autenticados da Cloud fornecem o manifesto e o MSI apenas a servidores cuja escola aprovou exatamente essa versão. Não é necessário `PLATFORM_GITHUB_TOKEN`.
+O script confirma a versão e os SHA-256, copia os MSI do servidor e do agente para `storage/app/iwebclassroom/releases`, mantém um catálogo histórico `server-X.Y.Z.json` e substitui atomicamente o catálogo corrente. Os endpoints autenticados da Cloud fornecem o manifesto e o MSI do servidor apenas a instalações cuja escola aprovou exatamente essa versão. A página **Transferências** fornece ambos os instaladores aos administradores autenticados da escola para as primeiras instalações. Não é necessário `PLATFORM_GITHUB_TOKEN`.
 
 ## Instaladores Windows
 
 Cada release produz dois MSI self-contained, sem necessidade de instalar previamente o .NET:
 
 - `iWebClassroom-Agent-<versão>-win-x64.msi`
+
+Os administradores de escola podem descarregar estes ficheiros no portal Cloud em **Escola → Transferências**, onde também encontram os comandos de instalação normal, silenciosa, para computadores partilhados e para salas fixas.
 - `iWebClassroom-Server-<versão>-win-x64.msi`
 
 O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma interface. No servidor, a escolha define o idioma inicial das consolas. No agente, além do idioma, é pedido o endereço HTTPS do servidor local e esse valor aparece já preenchido no primeiro registo do computador.
