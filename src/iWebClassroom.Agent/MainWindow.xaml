@@ -37,28 +37,24 @@
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Column="0">
           <TextBlock Text="{x:Static loc:AgentStrings.Server}" FontWeight="SemiBold" />
-          <TextBox x:Name="ServerUrlText" ToolTip="{x:Static loc:AgentStrings.ServerHint}" />
-
-          <TextBlock Text="{x:Static loc:AgentStrings.EnrollmentCode}" FontWeight="SemiBold" />
-          <PasswordBox x:Name="EnrollmentCodeText" ToolTip="{x:Static loc:AgentStrings.EnrollmentHint}" />
+          <TextBox x:Name="ServerUrlText" ToolTip="{x:Static loc:AgentStrings.ServerHint}" IsReadOnly="True" />
 
           <TextBlock Text="{x:Static loc:AgentStrings.ComputerName}" FontWeight="SemiBold" />
-          <TextBox x:Name="DisplayNameText" />
+          <TextBox x:Name="DisplayNameText" IsReadOnly="True" />
         </StackPanel>
 
         <StackPanel Grid.Column="2">
-          <TextBlock Text="{x:Static loc:AgentStrings.DefaultRoom}" FontWeight="SemiBold" />
-          <TextBox x:Name="ClassroomText" />
-
-          <TextBlock Text="{x:Static loc:AgentStrings.WorkstationType}" FontWeight="SemiBold" />
-          <ComboBox x:Name="RoleCombo" SelectedIndex="0">
+          <TextBlock Text="{x:Static loc:AgentStrings.Assignment}" FontWeight="SemiBold" />
+          <TextBlock x:Name="AssignmentText" Margin="0,7,0,15" Foreground="#274B72" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBox x:Name="ClassroomText" Visibility="Collapsed" />
+          <ComboBox x:Name="RoleCombo" SelectedIndex="0" Visibility="Collapsed">
             <ComboBoxItem Content="{x:Static loc:AgentStrings.Student}" Tag="Student" />
             <ComboBoxItem Content="{x:Static loc:AgentStrings.Teacher}" Tag="Teacher" />
           </ComboBox>
-
           <CheckBox x:Name="SharedComputerCheck" Content="{x:Static loc:AgentStrings.SharedComputer}"
-                    ToolTip="{x:Static loc:AgentStrings.SharedComputerHint}" Margin="0,8,0,4"
+                    ToolTip="{x:Static loc:AgentStrings.SharedComputerHint}" Visibility="Collapsed"
                     Checked="SharedComputerCheck_Changed" Unchecked="SharedComputerCheck_Changed" />
+          <PasswordBox x:Name="EnrollmentCodeText" Visibility="Collapsed" />
 
           <TextBlock Text="{x:Static loc:AgentStrings.Identity}" FontWeight="SemiBold" />
           <TextBlock x:Name="IdentityText" Margin="0,7,0,15" Foreground="#67736F" TextWrapping="Wrap" />

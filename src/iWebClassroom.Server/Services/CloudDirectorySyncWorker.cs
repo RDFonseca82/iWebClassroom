@@ -29,7 +29,7 @@ public sealed class CloudDirectorySyncWorker(
                 logger.LogWarning(exception, "The lightweight school directory synchronization attempt failed.");
             }
 
-            var seconds = Math.Clamp(options.CurrentValue.DirectoryIntervalSeconds, 30, 300);
+            var seconds = Math.Clamp(options.CurrentValue.DirectoryIntervalSeconds, 20, 60);
             await Task.Delay(TimeSpan.FromSeconds(seconds), stoppingToken);
         }
     }

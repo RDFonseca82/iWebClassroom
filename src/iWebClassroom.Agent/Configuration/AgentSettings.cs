@@ -17,6 +17,6 @@ public sealed record AgentSettings(
         string.Empty,
         Environment.MachineName,
         AgentRole.Student,
-        "SALA-1",
+        "PENDENTE",
         false);
 }

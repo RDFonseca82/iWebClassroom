@@ -50,13 +50,13 @@
         </section>
 
         <div id="workspace" hidden>
-          <div class="page-heading"><div><span class="section-kicker" data-i18n="teacherConsole">CONSOLA DO PROFESSOR</span><h1 data-i18n="classControls">Controlos da aula</h1><p id="teacher-welcome" data-i18n="lessonReady">Sala pronta. Selecione um posto de professor e inicie a aula.</p></div></div>
+          <div class="page-heading"><div><span class="section-kicker" data-i18n="teacherConsole">CONSOLA DO PROFESSOR</span><h1 data-i18n="classControls">Controlos da aula</h1><p id="teacher-welcome" data-i18n="lessonReady">Sala pronta. Confirme o computador do professor e inicie a aula.</p></div></div>
 
           <section class="cloud-card toolbar">
             <div><label for="room-mode" data-i18n="roomMode">Tipo de sala</label><select id="room-mode"><option value="fixed" data-i18n="fixedRoom">Sala fixa</option><option value="temporary" data-i18n="temporaryRoom">Sala temporária</option></select></div>
             <div id="fixed-room-field"><label for="room" data-i18n="classroom">Sala</label><select id="room"></select></div>
             <div id="temporary-room-field" hidden><label for="temporary-room-name" data-i18n="roomName">Nome da sala</label><input id="temporary-room-name" maxlength="80" data-i18n-placeholder="roomNamePlaceholder" placeholder="Ex.: Matemática 9.º A"></div>
-            <div><label for="teacher" data-i18n="teacherWorkstation">Posto do professor</label><select id="teacher"></select></div>
+            <div><label for="teacher" data-i18n="teacherWorkstation">Computador usado pelo professor</label><select id="teacher"></select></div>
             <div><label for="duration" data-i18n="duration">Duração</label><select id="duration"><option value="45">45 min</option><option value="90">90 min</option><option value="180" selected>180 min</option><option value="300">300 min</option></select></div>
             <button id="start-lesson" data-i18n="startLesson">Iniciar aula</button>
             <button id="end-lesson" class="danger secondary" data-i18n="endLesson" hidden>Terminar aula</button>

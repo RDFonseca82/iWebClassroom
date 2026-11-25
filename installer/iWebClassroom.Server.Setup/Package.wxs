@@ -20,85 +20,109 @@
                       Type="raw"
                       Bitness="always64" />
     </Property>
+    <Property Id="UI_CONFIG_TITLE" Value="Instalação do servidor" /><Property Id="UI_CONFIG_DESC" Value="O servidor está pronto para ser instalado em Português de Portugal." />
+    <Property Id="UI_CANCEL" Value="Cancelar" /><Property Id="UI_INSTALL" Value="Instalar" />
+    <Property Id="UI_INSTALLING_TITLE" Value="A instalar" /><Property Id="UI_INSTALLING_DESC" Value="Aguarde enquanto o servidor é instalado." /><Property Id="UI_WAIT" Value="Não desligue o computador." />
+    <Property Id="UI_SUCCESS_TITLE" Value="Instalação concluída" /><Property Id="UI_SUCCESS_DESC" Value="O servidor foi instalado. A consola segura está disponível em https://localhost:7443 e em todos os IP deste servidor." /><Property Id="UI_FINISH" Value="Concluir" />
+    <Property Id="UI_ERROR_TITLE" Value="Falha na instalação" /><Property Id="UI_ERROR_DESC" Value="O servidor não foi instalado. Consulte o registo do Windows Installer." /><Property Id="UI_CLOSE" Value="Fechar" />
+    <Property Id="UI_CANCELLED_TITLE" Value="Instalação cancelada" /><Property Id="UI_CANCELLED_DESC" Value="Não foram efetuadas alterações." />
 
     <UI Id="ServerInstallerUI">
       <TextStyle Id="DlgFont8" FaceName="Segoe UI" Size="9" />
       <TextStyle Id="DlgTitleFont" FaceName="Segoe UI" Size="13" Bold="yes" />
       <Property Id="DefaultUIFont" Value="DlgFont8" />
 
+      <Dialog Id="ServerLanguageDlg" Width="370" Height="210" Title="iWebClassroom Server">
+        <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes" Text="{\DlgTitleFont}Idioma / Language / Idioma" />
+        <Control Id="Description" Type="Text" X="20" Y="55" Width="330" Height="25" Transparent="yes" NoPrefix="yes" Text="Escolha o idioma da instalação / Choose the setup language / Elija el idioma de instalación" />
+        <Control Id="Language" Type="ComboBox" X="20" Y="94" Width="220" Height="18" Property="INSTALLLANGUAGE" ComboList="yes"><ComboBox Property="INSTALLLANGUAGE"><ListItem Text="Português (Portugal)" Value="pt-PT" /><ListItem Text="English" Value="en-US" /><ListItem Text="Español" Value="es-ES" /></ComboBox></Control>
+        <Control Id="BottomLine" Type="Line" X="0" Y="165" Width="370" Height="0" />
+        <Control Id="Cancel" Type="PushButton" X="210" Y="179" Width="68" Height="18" Cancel="yes" Text="Cancelar / Cancel"><Publish Event="EndDialog" Value="Exit" /></Control>
+        <Control Id="Next" Type="PushButton" X="285" Y="179" Width="65" Height="18" Default="yes" Text="Next &gt;">
+          <Publish Property="UI_CONFIG_TITLE" Value="Server setup" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CONFIG_TITLE" Value="Instalación del servidor" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_CONFIG_DESC" Value="The server is ready to be installed in English." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CONFIG_DESC" Value="El servidor está listo para instalarse en español." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_CANCEL" Value="Cancel" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CANCEL" Value="Cancelar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_INSTALL" Value="Install" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_INSTALL" Value="Instalar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_INSTALLING_TITLE" Value="Installing" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_INSTALLING_TITLE" Value="Instalando" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_INSTALLING_DESC" Value="Please wait while the server is installed." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_INSTALLING_DESC" Value="Espere mientras se instala el servidor." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_WAIT" Value="Do not turn off the computer." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_WAIT" Value="No apague el equipo." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_SUCCESS_TITLE" Value="Installation complete" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_SUCCESS_TITLE" Value="Instalación completada" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_SUCCESS_DESC" Value="The server was installed. The secure console is available at https://localhost:7443 and on every server IP." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_SUCCESS_DESC" Value="El servidor se instaló. La consola segura está disponible en https://localhost:7443 y en todas las IP del servidor." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_FINISH" Value="Finish" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_FINISH" Value="Finalizar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_ERROR_TITLE" Value="Installation failed" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_ERROR_TITLE" Value="Error de instalación" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_ERROR_DESC" Value="The server was not installed. Check the Windows Installer log." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_ERROR_DESC" Value="El servidor no se instaló. Consulte el registro de Windows Installer." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_CLOSE" Value="Close" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CLOSE" Value="Cerrar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_CANCELLED_TITLE" Value="Installation cancelled" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CANCELLED_TITLE" Value="Instalación cancelada" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_CANCELLED_DESC" Value="No changes were made." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CANCELLED_DESC" Value="No se realizaron cambios." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Event="NewDialog" Value="ServerConfigurationDlg" />
+        </Control>
+      </Dialog>
+
       <Dialog Id="ServerConfigurationDlg" Width="370" Height="230" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" TabSkip="no"
-                 Text="{\DlgTitleFont}Instalação / Setup / Instalación" />
+                 Text="{\DlgTitleFont}[UI_CONFIG_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="43" Width="330" Height="36" Transparent="yes" NoPrefix="yes"
-                 Text="Escolha o idioma inicial das consolas. / Choose the initial console language. / Elija el idioma inicial de las consolas." />
-        <Control Id="LanguageLabel" Type="Text" X="20" Y="94" Width="330" Height="15" Text="Idioma / Language / Idioma" />
-        <Control Id="Language" Type="ComboBox" X="20" Y="112" Width="200" Height="18" Property="INSTALLLANGUAGE" ComboList="yes">
-          <ComboBox Property="INSTALLLANGUAGE">
-            <ListItem Text="Português (Portugal)" Value="pt-PT" />
-            <ListItem Text="English" Value="en-US" />
-            <ListItem Text="Español" Value="es-ES" />
-          </ComboBox>
-        </Control>
+                 Text="[UI_CONFIG_DESC]" />
         <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
-        <Control Id="Cancel" Type="PushButton" X="220" Y="199" Width="65" Height="18" Cancel="yes" Text="Cancelar / Cancel">
+        <Control Id="Cancel" Type="PushButton" X="220" Y="199" Width="65" Height="18" Cancel="yes" Text="[UI_CANCEL]">
           <Publish Event="EndDialog" Value="Exit" />
         </Control>
-        <Control Id="Install" Type="PushButton" X="292" Y="199" Width="58" Height="18" Default="yes" Text="Instalar / Install">
+        <Control Id="Install" Type="PushButton" X="292" Y="199" Width="58" Height="18" Default="yes" Text="[UI_INSTALL]">
           <Publish Event="EndDialog" Value="Return" />
         </Control>
       </Dialog>
 
       <Dialog Id="ServerProgressDlg" Width="370" Height="230" Title="iWebClassroom Server" Modeless="yes">
         <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" TabSkip="no"
-                 Text="{\DlgTitleFont}A instalar / Installing / Instalando" />
+                 Text="{\DlgTitleFont}[UI_INSTALLING_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="48" Width="330" Height="36" Transparent="yes" NoPrefix="yes"
-                 Text="Aguarde enquanto o servidor é instalado. / Please wait while the server is installed. / Espere mientras se instala el servidor." />
+                 Text="[UI_INSTALLING_DESC]" />
         <Control Id="ActionText" Type="Text" X="20" Y="102" Width="330" Height="18" NoPrefix="yes">
           <Subscribe Event="ActionText" Attribute="Text" />
         </Control>
-        <Control Id="ProgressBar" Type="ProgressBar" X="20" Y="128" Width="330" Height="12" ProgressBlocks="yes" Text="Progresso / Progress / Progreso">
+        <Control Id="ProgressBar" Type="ProgressBar" X="20" Y="128" Width="330" Height="12" ProgressBlocks="yes" Text="Progress">
           <Subscribe Event="SetProgress" Attribute="Progress" />
         </Control>
         <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
         <Control Id="Wait" Type="Text" X="20" Y="199" Width="330" Height="18" Transparent="yes" NoPrefix="yes"
-                 Text="Não desligue o computador. / Do not turn off the computer. / No apague el equipo." />
+                 Text="[UI_WAIT]" />
       </Dialog>
 
       <Dialog Id="ServerSuccessDlg" Width="370" Height="230" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
-                 Text="{\DlgTitleFont}Instalação concluída / Installation complete / Instalación completada" />
+                 Text="{\DlgTitleFont}[UI_SUCCESS_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="70" Transparent="yes" NoPrefix="yes"
-                 Text="O servidor foi instalado. A consola segura está disponível em https://localhost:7443 e em todos os IP deste servidor. / The server was installed. The secure console is available at https://localhost:7443 and on every server IP. / El servidor se instaló. La consola segura está disponible en https://localhost:7443 y en todas las IP del servidor." />
+                 Text="[UI_SUCCESS_DESC]" />
         <Control Id="BottomLine" Type="Line" X="0" Y="185" Width="370" Height="0" />
-        <Control Id="Finish" Type="PushButton" X="282" Y="199" Width="68" Height="18" Default="yes" Cancel="yes" Text="Concluir / Finish">
+        <Control Id="Finish" Type="PushButton" X="282" Y="199" Width="68" Height="18" Default="yes" Cancel="yes" Text="[UI_FINISH]">
           <Publish Event="EndDialog" Value="Return" />
         </Control>
       </Dialog>
 
       <Dialog Id="ServerErrorDlg" Width="370" Height="190" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
-                 Text="{\DlgTitleFont}Falha na instalação / Installation failed / Error de instalación" />
+                 Text="{\DlgTitleFont}[UI_ERROR_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="55" Transparent="yes" NoPrefix="yes"
-                 Text="O servidor não foi instalado. Consulte o registo do Windows Installer. / The server was not installed. Check the Windows Installer log. / El servidor no se instaló. Consulte el registro de Windows Installer." />
+                 Text="[UI_ERROR_DESC]" />
         <Control Id="BottomLine" Type="Line" X="0" Y="145" Width="370" Height="0" />
-        <Control Id="Finish" Type="PushButton" X="282" Y="159" Width="68" Height="18" Default="yes" Cancel="yes" Text="Fechar / Close">
+        <Control Id="Finish" Type="PushButton" X="282" Y="159" Width="68" Height="18" Default="yes" Cancel="yes" Text="[UI_CLOSE]">
           <Publish Event="EndDialog" Value="Exit" />
         </Control>
       </Dialog>
 
       <Dialog Id="ServerCancelledDlg" Width="370" Height="190" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
-                 Text="{\DlgTitleFont}Instalação cancelada / Installation cancelled / Instalación cancelada" />
+                 Text="{\DlgTitleFont}[UI_CANCELLED_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="45" Transparent="yes" NoPrefix="yes"
-                 Text="Não foram efetuadas alterações. / No changes were made. / No se realizaron cambios." />
+                 Text="[UI_CANCELLED_DESC]" />
         <Control Id="BottomLine" Type="Line" X="0" Y="145" Width="370" Height="0" />
-        <Control Id="Finish" Type="PushButton" X="282" Y="159" Width="68" Height="18" Default="yes" Cancel="yes" Text="Fechar / Close">
+        <Control Id="Finish" Type="PushButton" X="282" Y="159" Width="68" Height="18" Default="yes" Cancel="yes" Text="[UI_CLOSE]">
           <Publish Event="EndDialog" Value="Exit" />
         </Control>
       </Dialog>
 
       <InstallUISequence>
-        <Show Dialog="ServerConfigurationDlg" After="CostFinalize" Condition="NOT Installed" />
+        <Show Dialog="ServerLanguageDlg" After="CostFinalize" Condition="NOT Installed" />
         <Show Dialog="ServerProgressDlg" Before="ExecuteAction" />
         <Show Dialog="ServerSuccessDlg" OnExit="success" />
         <Show Dialog="ServerErrorDlg" OnExit="error" />

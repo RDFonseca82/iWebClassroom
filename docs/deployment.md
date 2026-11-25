@@ -34,8 +34,8 @@ O portal associa cada credencial técnica a uma única instalação através do 
 
 1. Publique o agente e o atualizador para `win-x64`.
 2. Implante o MSI por GPO, Intune, Configuration Manager ou manualmente. Na instalação assistida, escolha o idioma e introduza a URL HTTPS do servidor local.
-3. Para instalação silenciosa use `msiexec /i <ficheiro.msi> /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart`. Os idiomas válidos são `pt-PT`, `en-US` e `es-ES`; `SERVERURL` é obrigatório numa primeira instalação silenciosa.
-4. No primeiro início, a URL já aparece preenchida. Introduza o código de inscrição, a sala predefinida e a função do posto. O agente obtém a autoridade local pela porta 7080, instala-a no perfil Windows e continua por HTTPS na porta 7443. Num computador partilhado, cada aluno indica o seu nome e o código de seis algarismos da sala. Para roaming, a porta 7443 de todos os servidores deve estar acessível a partir de todas as VLAN dos alunos.
+3. Para instalação silenciosa use `msiexec /i <ficheiro.msi> /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart`. Os idiomas válidos são `pt-PT`, `en-US` e `es-ES`; `SERVERURL` é o único parâmetro funcional obrigatório.
+4. No primeiro início, o agente obtém a autoridade local pela porta 7080, regista o computador como **Por atribuir** e continua por HTTPS na porta 7443. No portal Cloud, abra **Escola → Computadores** e associe-o a uma sala fixa (Aluno/Professor) ou a uma zona partilhada. A alteração chega ao agente em menos de um minuto. Num computador partilhado, cada aluno indica o seu nome e o código de seis algarismos da sala. Para roaming, a porta 7443 de todos os servidores deve estar acessível a partir de todas as VLAN dos alunos.
 5. Depois de todos os computadores estarem inscritos, rode ou desative temporariamente o código de inscrição.
 6. Confirme que a identidade partilhada foi criada em `C:\ProgramData\iWebClassroom\Agent\agent.json`.
 

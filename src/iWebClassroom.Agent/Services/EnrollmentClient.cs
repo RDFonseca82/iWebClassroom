@@ -46,4 +46,23 @@ public sealed class EnrollmentClient
             classroomId,
             isShared);
     }
+
+    public async Task<AgentSummary> GetProfileAsync(AgentSettings settings, CancellationToken cancellationToken)
+    {
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri(settings.ServerUrl),
+            Timeout = TimeSpan.FromSeconds(20)
+        };
+        client.DefaultRequestHeaders.Add(HubProtocol.AgentIdHeader, settings.AgentId.ToString());
+        client.DefaultRequestHeaders.Add(HubProtocol.AgentTokenHeader, settings.AgentToken);
+        using var response = await client.GetAsync("/api/v1/agent/profile", cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(AgentStrings.Format(nameof(AgentStrings.EnrollmentFailed), (int)response.StatusCode));
+        }
+
+        return await response.Content.ReadFromJsonAsync<AgentSummary>(cancellationToken)
+               ?? throw new InvalidOperationException(AgentStrings.EmptyEnrollmentResponse);
+    }
 }

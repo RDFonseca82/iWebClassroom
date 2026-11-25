@@ -7,6 +7,9 @@ namespace IWebClassroom.Agent.Services;
 
 public sealed class ServerTrustBootstrapper
 {
+    public async Task<Uri> EnsureTrustedAsync(Uri configuredServer, CancellationToken cancellationToken)
+        => await EnsureTrustedAsync(configuredServer, _ => { }, cancellationToken);
+
     public async Task<Uri> EnsureTrustedAsync(Uri configuredServer, string enrollmentCode, CancellationToken cancellationToken)
         => await EnsureTrustedAsync(configuredServer, request => request.Headers.Add("X-Enrollment-Code", enrollmentCode), cancellationToken);
 

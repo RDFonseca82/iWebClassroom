@@ -68,7 +68,6 @@ public sealed class ClassroomHub(
     {
         if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
             agent is null ||
-            agent.Role != AgentRole.Teacher ||
             !lessons.TryGetForAgent(agent, out var lesson) ||
             lesson!.TeacherAgentId != agent.AgentId)
         {
@@ -96,7 +95,6 @@ public sealed class ClassroomHub(
     {
         if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
             agent is null ||
-            agent.Role != AgentRole.Teacher ||
             !lessons.TryGetForAgent(agent, out var lesson) ||
             lesson!.TeacherAgentId != agent.AgentId)
         {

@@ -175,19 +175,8 @@ app.MapGet("/api/v1/certificate/root", async (
         return Results.NotFound();
     }
 
-    var expectedCode = Environment.GetEnvironmentVariable("IWEBCLASSROOM_ENROLLMENT_CODE")
-                       ?? configuration["Security:EnrollmentCode"];
-    var enrollmentAuthorized = !string.IsNullOrWhiteSpace(expectedCode) &&
-                               SecretComparer.Equals(request.Headers["X-Enrollment-Code"].ToString(), expectedCode);
-    var agentAuthorized = TryAuthenticateAgentWithSummary(request, agentRegistry, out _);
-    var handoffToken = request.Headers["X-Room-Handoff"].ToString();
-    var handoffAuthorized = !string.IsNullOrWhiteSpace(handoffToken) &&
-                            await cloudRooms.ValidateTicketAsync(handoffToken, cancellationToken) is not null;
-    if (!enrollmentAuthorized && !agentAuthorized && !handoffAuthorized)
-    {
-        return Results.Unauthorized();
-    }
-
+    // A root CA certificate is public material. Publishing it on the bootstrap
+    // port allows a freshly installed agent to register as an unassigned device.
     request.HttpContext.Response.Headers["X-Certificate-Thumbprint"] = managedHttps.RootThumbprint;
     return Results.File(managedHttps.ExportRootCertificate(), "application/pkix-cert", "iwebclassroom-root.cer");
 }).RequireRateLimiting("enrollment");
@@ -206,25 +195,33 @@ app.MapPost("/api/v1/enrollment", async (
 {
     var expectedCode = Environment.GetEnvironmentVariable("IWEBCLASSROOM_ENROLLMENT_CODE")
                        ?? configuration["Security:EnrollmentCode"];
-    if (string.IsNullOrWhiteSpace(expectedCode))
-    {
-        return Results.Problem(ApiText.Get(httpRequest, "EnrollmentNotConfigured"), statusCode: StatusCodes.Status503ServiceUnavailable);
-    }
+    var legacyEnrollment = !string.IsNullOrWhiteSpace(expectedCode) &&
+                           SecretComparer.Equals(request.EnrollmentCode, expectedCode);
+    var normalizedRequest = legacyEnrollment
+        ? request
+        : request with
+        {
+            DisplayName = Environment.MachineName,
+            Role = AgentRole.Student,
+            ClassroomId = "PENDENTE",
+            IsShared = false,
+            EnrollmentCode = string.Empty
+        };
 
-    if (!SecretComparer.Equals(request.EnrollmentCode, expectedCode))
-    {
-        return Results.Unauthorized();
-    }
-
-    var errors = ValidateEnrollment(httpRequest, request);
+    var errors = ValidateEnrollment(httpRequest, normalizedRequest);
     if (errors.Count > 0)
     {
         return Results.ValidationProblem(errors);
     }
 
-    var response = await agentRegistry.EnrollAsync(request, cancellationToken);
+    var response = await agentRegistry.EnrollAsync(normalizedRequest, cancellationToken);
     return Results.Ok(response);
 }).RequireRateLimiting("enrollment");
+
+app.MapGet("/api/v1/agent/profile", (HttpRequest request, AgentRegistry agentRegistry) =>
+    TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) && agent is not null
+        ? Results.Ok(agent)
+        : Results.Unauthorized());
 
 app.MapGet("/api/v1/agents", (HttpRequest request, AgentRegistry agentRegistry, IConfiguration configuration) =>
     IsAdmin(request, configuration)
@@ -711,7 +708,16 @@ app.MapPost("/api/v1/lessons", async (
     }
 
     var teacher = agentRegistry.List().FirstOrDefault(item => item.AgentId == request.TeacherAgentId);
-    if (teacher is null || teacher.Role != AgentRole.Teacher)
+    var validFixedTeacher = teacher is not null &&
+                            teacher.IsAssigned &&
+                            !teacher.IsShared &&
+                            teacher.Role == AgentRole.Teacher &&
+                            string.Equals(teacher.ClassroomId, request.RoomId.Trim(), StringComparison.OrdinalIgnoreCase);
+    var validTemporaryTeacher = teacher is not null &&
+                                teacher.IsAssigned &&
+                                request.IsTemporary &&
+                                (teacher.Role == AgentRole.Teacher || teacher.IsShared);
+    if (!validFixedTeacher && !validTemporaryTeacher)
     {
         return Results.BadRequest(new { error = ApiText.Get(httpRequest, "InvalidTeacher") });
     }

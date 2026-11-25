@@ -78,9 +78,11 @@ public sealed record CloudDirectoryResponse(
     [property: JsonPropertyName("classrooms")]
     IReadOnlyCollection<CloudClassroomEntry> Classrooms,
     [property: JsonPropertyName("updated_at_utc")]
-    DateTimeOffset? UpdatedAtUtc)
+    DateTimeOffset? UpdatedAtUtc,
+    [property: JsonPropertyName("devices")]
+    IReadOnlyCollection<CloudDeviceAssignment>? Devices = null)
 {
-    public static CloudDirectoryResponse Empty { get; } = new([], [], [], null);
+    public static CloudDirectoryResponse Empty { get; } = new([], [], [], null, []);
 }
 
 public sealed record CloudAdministratorEntry(
@@ -104,3 +106,15 @@ public sealed record CloudClassroomEntry(
     string Code,
     [property: JsonPropertyName("name")]
     string Name);
+
+public sealed record CloudDeviceAssignment(
+    [property: JsonPropertyName("machine_id")]
+    string MachineId,
+    [property: JsonPropertyName("assignment_mode")]
+    string AssignmentMode,
+    [property: JsonPropertyName("role")]
+    string Role,
+    [property: JsonPropertyName("classroom_code")]
+    string? ClassroomCode,
+    [property: JsonPropertyName("shared_zone")]
+    string? SharedZone);

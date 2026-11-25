@@ -31,13 +31,7 @@ public sealed class AgentSettingsStore
             {
                 ServerUrl = string.IsNullOrWhiteSpace(installedServerUrl)
                     ? AgentSettings.Empty.ServerUrl
-                    : installedServerUrl.Trim().TrimEnd('/'),
-                ClassroomId = InstallerPreferences.IsSharedComputer()
-                    ? "PARTILHADO"
-                    : string.IsNullOrWhiteSpace(InstallerPreferences.ClassroomId())
-                        ? AgentSettings.Empty.ClassroomId
-                        : InstallerPreferences.ClassroomId()!.Trim(),
-                IsShared = InstallerPreferences.IsSharedComputer()
+                    : installedServerUrl.Trim().TrimEnd('/')
             };
         }
 

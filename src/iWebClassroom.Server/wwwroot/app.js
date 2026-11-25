@@ -2,42 +2,42 @@ const translations = {
   "pt-PT": {
     teacherConsole: "CONSOLA DO PROFESSOR", language: "Idioma", administration: "Administração", localServer: "Servidor local", checkingServer: "A verificar servidor…", schoolAccess: "Acesso do professor",
     tokenHelp: "Introduza o seu e-mail. Enviaremos um código único para confirmar este acesso.", teacherEmail: "E-mail do professor", sendCode: "Enviar código", accessCode: "Código de acesso", codeSent: "Se o e-mail estiver autorizado, receberá um código. Introduza-o abaixo.", changeEmail: "Usar outro e-mail", enter: "Entrar",
-    classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Posto do professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
+    classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Computador usado pelo professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
     studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação",
     notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento",
-    invalidCode: "O código é inválido ou expirou.", invalidEmail: "Introduza um endereço de e-mail válido.", accessUnavailable: "Não foi possível contactar a gestão central. Tente novamente dentro de instantes.", codeRequested: "Se o e-mail estiver autorizado, o código foi enviado.", tooManyRequests: "Foram feitos demasiados pedidos. Aguarde um minuto e tente novamente.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", online: "online", offline: "offline",
-    noRooms: "Ainda não existem salas configuradas.", noTeachers: "Não existem postos de professor configurados.", noAgents: "Ainda não existem computadores de aluno nesta sala.",
-    selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione um posto de professor.",
-    startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Selecione um posto de professor e inicie a aula.",
+    invalidCode: "O código é inválido ou expirou.", invalidEmail: "Introduza um endereço de e-mail válido.", accessUnavailable: "Não foi possível contactar a gestão central. Tente novamente dentro de instantes.", codeRequested: "Se o e-mail estiver autorizado, o código foi enviado.", tooManyRequests: "Foram feitos demasiados pedidos. Aguarde um minuto e tente novamente.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", sharedComputer: "Partilhado", online: "online", offline: "offline",
+    noRooms: "Ainda não existem salas configuradas.", noTeachers: "O administrador ainda não definiu um computador de professor para esta sala.", noSharedTeachers: "Não existem computadores partilhados online disponíveis.", noAgents: "Ainda não existem computadores de aluno nesta sala.",
+    selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione o computador que está a usar.",
+    startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Confirme o computador do professor e inicie a aula.",
     lessonActive: "Aula ativa em {room} · {online}/{total} computadores online · termina às {time}", lessonStarted: "A aula foi iniciada e os computadores foram associados automaticamente.",
     lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível", enterRoomName: "Indique um nome para a sala temporária.", temporaryPin: "Código da sala: {pin}", teacherWelcome: "Sessão de {name}. Escolha uma sala fixa ou crie uma sala temporária."
   },
   en: {
     teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
     tokenHelp: "Enter your email address. We will send a unique code to confirm this access.", teacherEmail: "Teacher email", sendCode: "Send code", accessCode: "Access code", codeSent: "If the email is authorised, you will receive a code. Enter it below.", changeEmail: "Use another email", enter: "Sign in",
-    classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Teacher workstation", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
+    classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Computer used by the teacher", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
     studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application",
     notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring",
-    invalidCode: "The code is invalid or has expired.", invalidEmail: "Enter a valid email address.", accessUnavailable: "Central management could not be reached. Please try again shortly.", codeRequested: "If the email is authorised, the code has been sent.", tooManyRequests: "Too many requests were made. Wait one minute and try again.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", online: "online", offline: "offline",
-    noRooms: "There are no configured rooms yet.", noTeachers: "There are no configured teacher workstations.", noAgents: "There are no student computers in this room yet.",
-    selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select a teacher workstation.",
-    startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Select a teacher workstation and start the lesson.",
+    invalidCode: "The code is invalid or has expired.", invalidEmail: "Enter a valid email address.", accessUnavailable: "Central management could not be reached. Please try again shortly.", codeRequested: "If the email is authorised, the code has been sent.", tooManyRequests: "Too many requests were made. Wait one minute and try again.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", sharedComputer: "Shared", online: "online", offline: "offline",
+    noRooms: "There are no configured rooms yet.", noTeachers: "The administrator has not assigned a teacher computer to this room yet.", noSharedTeachers: "There are no online shared computers available.", noAgents: "There are no student computers in this room yet.",
+    selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select the computer you are using.",
+    startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Confirm the teacher computer and start the lesson.",
     lessonActive: "Lesson active in {room} · {online}/{total} computers online · ends at {time}", lessonStarted: "The lesson started and the computers were added automatically.",
     lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable", enterRoomName: "Enter a name for the temporary room.", temporaryPin: "Room code: {pin}", teacherWelcome: "Session for {name}. Choose a fixed room or create a temporary room."
   },
   es: {
     teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
     tokenHelp: "Introduzca su correo electrónico. Enviaremos un código único para confirmar este acceso.", teacherEmail: "Correo del profesor", sendCode: "Enviar código", accessCode: "Código de acceso", codeSent: "Si el correo está autorizado, recibirá un código. Introdúzcalo abajo.", changeEmail: "Usar otro correo", enter: "Entrar",
-    classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Puesto del profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
+    classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Equipo utilizado por el profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
     studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación",
     notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación",
-    invalidCode: "El código no es válido o ha caducado.", invalidEmail: "Introduzca una dirección de correo válida.", accessUnavailable: "No se pudo contactar con la gestión central. Inténtelo de nuevo en unos instantes.", codeRequested: "Si el correo está autorizado, se ha enviado el código.", tooManyRequests: "Se han realizado demasiadas solicitudes. Espere un minuto e inténtelo de nuevo.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", online: "conectado", offline: "desconectado",
-    noRooms: "Todavía no hay aulas configuradas.", noTeachers: "No hay puestos de profesor configurados.", noAgents: "Todavía no hay equipos de alumnos en esta aula.",
-    selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione un puesto de profesor.",
-    startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Seleccione un puesto de profesor e inicie la clase.",
+    invalidCode: "El código no es válido o ha caducado.", invalidEmail: "Introduzca una dirección de correo válida.", accessUnavailable: "No se pudo contactar con la gestión central. Inténtelo de nuevo en unos instantes.", codeRequested: "Si el correo está autorizado, se ha enviado el código.", tooManyRequests: "Se han realizado demasiadas solicitudes. Espere un minuto e inténtelo de nuevo.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", sharedComputer: "Compartido", online: "conectado", offline: "desconectado",
+    noRooms: "Todavía no hay aulas configuradas.", noTeachers: "El administrador todavía no ha asignado un equipo de profesor a esta aula.", noSharedTeachers: "No hay equipos compartidos en línea disponibles.", noAgents: "Todavía no hay equipos de alumnos en esta aula.",
+    selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione el equipo que está utilizando.",
+    startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Confirme el equipo del profesor e inicie la clase.",
     lessonActive: "Clase activa en {room} · {online}/{total} equipos conectados · termina a las {time}", lessonStarted: "La clase se inició y los equipos se añadieron automáticamente.",
     lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible", enterRoomName: "Indique un nombre para el aula temporal.", temporaryPin: "Código del aula: {pin}", teacherWelcome: "Sesión de {name}. Elija un aula fija o cree un aula temporal."
   }
@@ -141,15 +141,19 @@ async function loadOverview() {
 function renderOverview() {
   const previousRoom = elements.room.value;
   const roomMap = new Map(state.fixedRooms.map(room => [room.code, room.name]));
-  state.agents.filter(agent => agent.role === 0 && !agent.isShared).forEach(agent => { if (!roomMap.has(agent.classroomId)) roomMap.set(agent.classroomId, agent.classroomId); });
+  state.agents.filter(agent => agent.isAssigned !== false && agent.role === 0 && !agent.isShared).forEach(agent => { if (!roomMap.has(agent.classroomId)) roomMap.set(agent.classroomId, agent.classroomId); });
   const rooms = [...roomMap.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   elements.room.innerHTML = rooms.length ? rooms.map(([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(name)}</option>`).join("") : `<option value="">${t("noRooms")}</option>`;
   elements.room.value = rooms.some(([code]) => code === previousRoom) ? previousRoom : (rooms[0]?.[0] || "");
 
-  const teachers = state.agents.filter(agent => agent.role === 1).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  const temporary = elements.roomMode.value === "temporary";
+  const teachers = state.agents.filter(agent => agent.isAssigned !== false && (temporary
+    ? (agent.isOnline && (agent.isShared || agent.role === 1))
+    : (agent.role === 1 && !agent.isShared && agent.classroomId === elements.room.value)
+  )).sort((a, b) => a.displayName.localeCompare(b.displayName));
   elements.teacher.innerHTML = teachers.length
-    ? teachers.map(agent => `<option value="${agent.agentId}">${escapeHtml(agent.displayName)} · ${escapeHtml(agent.classroomId)} · ${t(agent.isOnline ? "online" : "offline")}</option>`).join("")
-    : `<option value="">${t("noTeachers")}</option>`;
+    ? teachers.map(agent => `<option value="${agent.agentId}">${escapeHtml(agent.displayName)} · ${escapeHtml(agent.isShared ? (agent.sharedZone || t("sharedComputer")) : agent.classroomId)} · ${t(agent.isOnline ? "online" : "offline")}</option>`).join("")
+    : `<option value="">${t(temporary ? "noSharedTeachers" : "noTeachers")}</option>`;
 
   const lesson = currentLesson();
   const ownedLesson = Boolean(lesson && lesson.teacherId === state.teacher?.teacherId);
@@ -158,7 +162,6 @@ function renderOverview() {
   elements.duration.disabled = Boolean(lesson);
   elements.start.hidden = Boolean(lesson);
   elements.end.hidden = !ownedLesson;
-  const temporary = elements.roomMode.value === "temporary";
   document.querySelector("#fixed-room-field").hidden = temporary;
   document.querySelector("#temporary-room-field").hidden = !temporary;
   elements.start.disabled = (!temporary && !rooms.length) || !teachers.length;
@@ -174,7 +177,7 @@ function renderLessonStatus(lesson) {
     elements.lessonStatus.textContent = state.agents.length ? t("lessonReady") : t("noRooms");
     return;
   }
-  const students = state.agents.filter(agent => lesson.memberAgentIds.includes(agent.agentId) && agent.role === 0);
+  const students = state.agents.filter(agent => agent.agentId !== lesson.teacherAgentId && lesson.memberAgentIds.includes(agent.agentId) && agent.role === 0);
   const online = students.filter(agent => agent.isOnline).length;
   const time = new Intl.DateTimeFormat(state.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(lesson.expiresAtUtc));
   elements.lessonStatus.className = "lesson-status card active";
@@ -185,8 +188,8 @@ function renderLessonStatus(lesson) {
 function renderAgents(lesson) {
   const participantNames = new Map((lesson?.participants || []).map(participant => [participant.agentId, participant.studentName]));
   const students = lesson?.isTemporary
-    ? state.agents.filter(agent => agent.role === 0 && lesson.memberAgentIds.includes(agent.agentId))
-    : state.agents.filter(agent => agent.role === 0 && !agent.isShared && agent.classroomId === elements.room.value);
+    ? state.agents.filter(agent => agent.agentId !== lesson.teacherAgentId && agent.role === 0 && lesson.memberAgentIds.includes(agent.agentId))
+    : state.agents.filter(agent => agent.isAssigned !== false && agent.role === 0 && !agent.isShared && agent.classroomId === elements.room.value);
   if (lesson?.lessonId !== state.renderedLessonId) {
     state.selected = new Set(students.filter(agent => agent.isOnline && lesson?.memberAgentIds.includes(agent.agentId)).map(agent => agent.agentId));
     state.renderedLessonId = lesson?.lessonId || null;

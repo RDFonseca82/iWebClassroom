@@ -78,11 +78,15 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
     public async Task<CloudDirectorySyncResult> SynchronizeDirectoryAsync(
         Guid serverId,
         string accessToken,
+        CloudDirectorySyncRequest payload,
         string? etag,
         CancellationToken cancellationToken)
     {
         var client = CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/server/directory");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/server/directory")
+        {
+            Content = JsonContent.Create(payload, options: JsonOptions)
+        };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.Add("X-iWebClassroom-Server", serverId.ToString());
         if (!string.IsNullOrWhiteSpace(etag))

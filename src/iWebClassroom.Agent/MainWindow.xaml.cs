@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using IWebClassroom.Agent.Configuration;
 using IWebClassroom.Agent.Localization;
 using IWebClassroom.Agent.Services;
@@ -19,6 +20,7 @@ public partial class MainWindow : Window
     private readonly ApplicationCatalog _applications = new();
     private readonly ScreenCaptureService _screenCapture = new();
     private readonly UpdateService _updates = new();
+    private readonly DispatcherTimer _profileTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     private AgentSettings _settings = AgentSettings.Empty;
     private ScreenDisplayWindow? _screenWindow;
     private bool _closing;
@@ -31,6 +33,7 @@ public partial class MainWindow : Window
         _connection.ScreenFrameReceived += HandleScreenFrame;
         _connection.ScreenStopped += HandleScreenStopped;
         _connection.StateChanged += state => Dispatcher.Invoke(() => StatusText.Text = state);
+        _profileTimer.Tick += async (_, _) => await RefreshProfileAsync();
         Loaded += MainWindow_Loaded;
     }
 
@@ -42,6 +45,11 @@ public partial class MainWindow : Window
         {
             await ConnectAsync(reenroll: false);
         }
+        else
+        {
+            await ConnectAsync(reenroll: true);
+        }
+        _profileTimer.Start();
     }
 
     private void ApplySettingsToForm()
@@ -52,18 +60,19 @@ public partial class MainWindow : Window
         RoleCombo.SelectedIndex = _settings.Role == AgentRole.Teacher ? 1 : 0;
         SharedComputerCheck.IsChecked = _settings.IsShared;
         UpdateAssignmentMode();
+        AssignmentText.Text = string.Equals(_settings.ClassroomId, "PENDENTE", StringComparison.OrdinalIgnoreCase)
+            ? AgentStrings.PendingAssignment
+            : _settings.IsShared
+                ? AgentStrings.SharedComputer
+                : $"{(_settings.Role == AgentRole.Teacher ? AgentStrings.Teacher : AgentStrings.Student)} · {_settings.ClassroomId}";
         IdentityText.Text = _settings.AgentId == Guid.Empty ? AgentStrings.NotEnrolled : _settings.AgentId.ToString();
     }
 
-    private async void ConnectButton_Click(object sender, RoutedEventArgs e) => await ConnectAsync(reenroll: SettingsChanged());
+    private async void ConnectButton_Click(object sender, RoutedEventArgs e) => await ConnectAsync(reenroll: false);
 
     private bool SettingsChanged()
     {
-        return !string.Equals(_settings.ServerUrl.TrimEnd('/'), ServerUrlText.Text.Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ||
-               !string.Equals(_settings.DisplayName, DisplayNameText.Text.Trim(), StringComparison.Ordinal) ||
-               !string.Equals(_settings.ClassroomId, ClassroomText.Text.Trim(), StringComparison.Ordinal) ||
-               _settings.Role != SelectedRole() ||
-               _settings.IsShared != (SharedComputerCheck.IsChecked == true);
+        return !string.Equals(_settings.ServerUrl.TrimEnd('/'), ServerUrlText.Text.Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task ConnectAsync(bool reenroll)
@@ -77,23 +86,17 @@ public partial class MainWindow : Window
                 throw new InvalidOperationException(AgentStrings.InvalidServer);
             }
 
-            if (reenroll || _settings.AgentId == Guid.Empty || string.IsNullOrWhiteSpace(_settings.AgentToken))
+            if (_settings.AgentId == Guid.Empty || string.IsNullOrWhiteSpace(_settings.AgentToken))
             {
-                if (string.IsNullOrWhiteSpace(EnrollmentCodeText.Password))
-                {
-                    throw new InvalidOperationException(AgentStrings.EnterEnrollmentCode);
-                }
-
                 _settings = await _enrollmentClient.EnrollAsync(
                     serverUri,
-                    EnrollmentCodeText.Password,
-                    Required(DisplayNameText.Text, AgentStrings.ComputerNameField),
-                    SelectedRole(),
-                    SharedComputerCheck.IsChecked == true ? "PARTILHADO" : Required(ClassroomText.Text, AgentStrings.ClassroomField),
-                    SharedComputerCheck.IsChecked == true,
+                    string.Empty,
+                    Environment.MachineName,
+                    AgentRole.Student,
+                    "PENDENTE",
+                    false,
                     CancellationToken.None);
                 await _settingsStore.SaveAsync(_settings);
-                EnrollmentCodeText.Clear();
                 ApplySettingsToForm();
             }
             else
@@ -112,6 +115,7 @@ public partial class MainWindow : Window
             }
 
             await _connection.ConnectAsync(_settings, CancellationToken.None);
+            await RefreshProfileAsync();
             StatusText.Text = AgentStrings.Connected;
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
             SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
@@ -128,6 +132,36 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task RefreshProfileAsync()
+    {
+        if (_settings.AgentId == Guid.Empty || string.IsNullOrWhiteSpace(_settings.AgentToken))
+        {
+            return;
+        }
+
+        try
+        {
+            var profile = await _enrollmentClient.GetProfileAsync(_settings, CancellationToken.None);
+            var updated = _settings with
+            {
+                DisplayName = profile.DisplayName,
+                Role = profile.Role,
+                ClassroomId = profile.ClassroomId,
+                IsShared = profile.IsShared
+            };
+            if (updated != _settings)
+            {
+                _settings = updated;
+                await _settingsStore.SaveAsync(_settings);
+                ApplySettingsToForm();
+            }
+        }
+        catch
+        {
+            // The current connection remains usable; retry on the next interval.
+        }
+    }
+
     private async Task HandleCommandAsync(ClassroomCommand command)
     {
         try
@@ -141,10 +175,10 @@ public partial class MainWindow : Window
                 case ClassroomCommandKind.LaunchApplication:
                     _applications.Launch(command.Payload.GetProperty("applicationId").GetString() ?? string.Empty);
                     break;
-                case ClassroomCommandKind.StartScreenShare when _settings.Role == AgentRole.Teacher:
+                case ClassroomCommandKind.StartScreenShare:
                     await Dispatcher.InvokeAsync(StartSharing);
                     break;
-                case ClassroomCommandKind.StopScreenShare when _settings.Role == AgentRole.Teacher:
+                case ClassroomCommandKind.StopScreenShare:
                     await StopSharingAsync();
                     break;
                 case ClassroomCommandKind.CheckForUpdate:
@@ -354,6 +388,7 @@ public partial class MainWindow : Window
     protected override async void OnClosed(EventArgs e)
     {
         _closing = true;
+        _profileTimer.Stop();
         await _screenCapture.DisposeAsync();
         await _connection.DisposeAsync();
         _screenWindow?.CloseFromAgent();

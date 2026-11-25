@@ -148,3 +148,13 @@ public sealed record CloudRoomHeartbeatEntry(
     [property: JsonPropertyName("teacher_name")] string TeacherName,
     [property: JsonPropertyName("expires_at_utc")] DateTimeOffset ExpiresAtUtc,
     [property: JsonPropertyName("participant_count")] int ParticipantCount);
+
+public sealed record CloudDeviceReport(
+    [property: JsonPropertyName("agent_id")] Guid AgentId,
+    [property: JsonPropertyName("machine_id")] string MachineId,
+    [property: JsonPropertyName("computer_name")] string ComputerName,
+    [property: JsonPropertyName("is_online")] bool IsOnline,
+    [property: JsonPropertyName("last_seen_at_utc")] DateTimeOffset LastSeenAtUtc);
+
+public sealed record CloudDirectorySyncRequest(
+    [property: JsonPropertyName("devices")] IReadOnlyCollection<CloudDeviceReport> Devices);

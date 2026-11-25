@@ -74,7 +74,9 @@ public sealed class AgentRegistry(
             SecretComparer.Hash(token),
             false,
             now,
-            isRoaming);
+            isRoaming,
+            !string.Equals(request.ClassroomId, "PENDENTE", StringComparison.OrdinalIgnoreCase),
+            null);
 
         _agents[agent.AgentId] = agent;
         await PersistAsync(cancellationToken);
@@ -147,6 +149,58 @@ public sealed class AgentRegistry(
             .Select(ToSummary)
             .ToArray();
 
+    public async Task ApplyAssignmentsAsync(
+        IReadOnlyCollection<CloudDeviceAssignment>? assignments,
+        CancellationToken cancellationToken)
+    {
+        if (assignments is null)
+        {
+            return;
+        }
+
+        var byMachine = assignments.ToDictionary(item => item.MachineId, StringComparer.OrdinalIgnoreCase);
+        var changed = false;
+        foreach (var entry in _agents.ToArray())
+        {
+            var agent = entry.Value;
+            if (agent.IsRoaming || !byMachine.TryGetValue(agent.MachineId, out var assignment))
+            {
+                continue;
+            }
+
+            var mode = assignment.AssignmentMode.Trim().ToLowerInvariant();
+            var isShared = mode == "shared";
+            var isAssigned = isShared || mode == "fixed";
+            var role = mode == "fixed" && string.Equals(assignment.Role, "teacher", StringComparison.OrdinalIgnoreCase)
+                ? AgentRole.Teacher
+                : AgentRole.Student;
+            var classroom = mode == "fixed" && !string.IsNullOrWhiteSpace(assignment.ClassroomCode)
+                ? assignment.ClassroomCode.Trim()
+                : isShared ? "PARTILHADO" : "PENDENTE";
+            var sharedZone = isShared && !string.IsNullOrWhiteSpace(assignment.SharedZone)
+                ? assignment.SharedZone.Trim()
+                : null;
+            var updated = agent with
+            {
+                Role = role,
+                ClassroomId = classroom,
+                IsShared = isShared,
+                IsAssigned = isAssigned,
+                SharedZone = sharedZone
+            };
+            if (updated != agent)
+            {
+                _agents[entry.Key] = updated;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            await PersistAsync(cancellationToken);
+        }
+    }
+
     public async Task RemoveRoamingAsync(IEnumerable<Guid> agentIds, CancellationToken cancellationToken)
     {
         var changed = false;
@@ -188,7 +242,7 @@ public sealed class AgentRegistry(
     }
 
     private static AgentSummary ToSummary(PersistedAgent agent) =>
-        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc, agent.IsRoaming);
+        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc, agent.IsRoaming, agent.IsAssigned, agent.SharedZone);
 
     private static string ResolvePath(string root, string configuredPath, string fileName)
     {
@@ -208,5 +262,7 @@ public sealed class AgentRegistry(
         string TokenHash,
         bool IsOnline,
         DateTimeOffset LastSeenUtc,
-        bool IsRoaming = false);
+        bool IsRoaming = false,
+        bool IsAssigned = true,
+        string? SharedZone = null);
 }

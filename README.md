@@ -180,11 +180,10 @@ Instalação silenciosa:
 
 ```powershell
 msiexec.exe /i iWebClassroom-Server-0.11.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.11.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Shared /norestart
-msiexec.exe /i iWebClassroom-Agent-0.11.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT ASSIGNMENTMODE=Fixed CLASSROOMID="SALA-101" /norestart
+msiexec.exe /i iWebClassroom-Agent-0.11.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
-`INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES`. `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. `ASSIGNMENTMODE` aceita `Fixed` ou `Shared`; no modo fixo, `CLASSROOMID` deve corresponder ao código criado no portal cloud. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
+`INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
 
 O MSI do servidor instala o serviço `iWebClassroom.Server`, que escuta em `https://0.0.0.0:7443`, `https://[::]:7443` e na porta de arranque 7080 em todas as interfaces. O instalador abre ambas as portas na Firewall do Windows apenas para a sub-rede local e protege `C:\ProgramData\iWebClassroom\Server`. No primeiro arranque são criados o token administrativo e o código de inscrição em:
 
@@ -203,7 +202,7 @@ O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um 
 
 ### Computadores partilhados
 
-1. O técnico instala cada agente com o modo **Computador partilhado**; não é necessário configurar uma turma ou sala permanente.
+1. O técnico instala o agente indicando apenas o servidor; o administrador atribui o computador a uma zona partilhada no portal Cloud.
 2. O professor abre a consola local, indica o seu email, introduz o código único recebido e cria uma sala temporária com nome e duração.
 3. O professor mostra aos alunos o código temporário de seis algarismos.
 4. Em cada computador, o aluno escreve obrigatoriamente o seu nome e o código. Se a sala estiver noutro servidor da escola, o agente muda apenas a ligação da aula de forma automática.
@@ -212,9 +211,9 @@ O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um 
 
 ### Salas fixas
 
-1. O administrador cria a sala fixa no portal cloud, atribui-a ao servidor local e define um código, por exemplo `SALA-101`.
-2. O técnico instala ou configura os agentes fixos com esse mesmo código.
-3. O professor abre a consola, indica o seu email, introduz o código único recebido e escolhe a sala e o seu posto.
+1. O administrador cria a sala fixa no portal Cloud e atribui-a ao servidor local.
+2. Depois de os agentes aparecerem em **Computadores**, o administrador associa cada equipamento à sala e define se é de aluno ou o computador do professor.
+3. O professor abre a consola, indica o seu email, introduz o código único recebido e escolhe a sala; o computador do professor é selecionado automaticamente.
 4. Ao carregar em **Iniciar aula**, todos os postos de aluno dessa sala ficam associados e os que estiverem online são selecionados automaticamente.
 5. A sessão termina manualmente ou ao atingir a duração escolhida. Só pode existir um professor em cada sala.
 

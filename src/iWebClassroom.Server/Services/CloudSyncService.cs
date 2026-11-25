@@ -99,7 +99,7 @@ public sealed class CloudSyncService(
                 CurrentVersion(),
                 agentList.Count(item => !item.IsRoaming),
                 agentList
-                    .Where(item => !item.IsRoaming && !item.IsShared)
+                    .Where(item => !item.IsRoaming && item.IsAssigned && !item.IsShared)
                     .Select(item => item.ClassroomId)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Count(),
@@ -112,6 +112,7 @@ public sealed class CloudSyncService(
             await licenseStore.ApplyAsync(response.License, cancellationToken);
             await approvedUpdateStore.ApplyAsync(response.ServerUpdate, cancellationToken);
             await directoryStore.ApplyAsync(response.Directory, cancellationToken);
+            await agents.ApplyAssignmentsAsync(response.Directory?.Devices, cancellationToken);
             var remoteHash = response.Configuration.Settings.Hash();
             if (!string.Equals(remoteHash, currentHash, StringComparison.OrdinalIgnoreCase))
             {
@@ -166,12 +167,22 @@ public sealed class CloudSyncService(
             var result = await client.SynchronizeDirectoryAsync(
                 state.ServerId.Value,
                 token,
+                new CloudDirectorySyncRequest(agents.List()
+                    .Where(item => !item.IsRoaming)
+                    .Select(item => new CloudDeviceReport(
+                        item.AgentId,
+                        item.MachineId,
+                        item.DisplayName,
+                        item.IsOnline,
+                        item.LastSeenUtc))
+                    .ToArray()),
                 _directoryEtag,
                 cancellationToken);
             _directoryEtag = result.ETag;
             if (!result.NotModified)
             {
                 await directoryStore.ApplyAsync(result.Directory, cancellationToken);
+                await agents.ApplyAssignmentsAsync(result.Directory?.Devices, cancellationToken);
                 logger.LogInformation("The lightweight school directory synchronization completed.");
             }
         }

@@ -24,7 +24,9 @@ public sealed record AgentSummary(
     bool IsShared,
     bool IsOnline,
     DateTimeOffset LastSeenUtc,
-    bool IsRoaming = false);
+    bool IsRoaming = false,
+    bool IsAssigned = true,
+    string? SharedZone = null);
 
 public sealed record TeacherAccessRequest(string Email);
 
