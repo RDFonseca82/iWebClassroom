@@ -743,7 +743,7 @@ app.MapPost("/api/v1/lessons", async (
 
     var lesson = await lessonRegistry.TryStartAsync(
         request.RoomId.Trim(),
-        teacher,
+        teacher!,
         teacherIdentity!,
         request.IsTemporary,
         request.IsTemporary ? request.RoomName : fixedRoom?.Name,
