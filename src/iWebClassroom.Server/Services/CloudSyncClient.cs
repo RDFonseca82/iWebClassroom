@@ -9,9 +9,12 @@ namespace IWebClassroom.Server.Services;
 public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptionsMonitor<CloudSyncOptions> options)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly object _rateLimitLock = new();
+    private DateTimeOffset _retryAfterUtc = DateTimeOffset.MinValue;
 
     public async Task<CloudAuthResponse> AuthenticateAsync(CloudAuthRequest request, CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateClient();
         using var response = await client.PostAsJsonAsync("/api/v1/server/auth", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -25,6 +28,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudSyncRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         client.DefaultRequestHeaders.Add("X-iWebClassroom-Server", serverId.ToString());
@@ -40,6 +44,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudAdministratorLoginRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         client.DefaultRequestHeaders.Add("X-iWebClassroom-Server", serverId.ToString());
@@ -55,6 +60,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudTeacherAccessRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.PostAsJsonAsync("/api/v1/server/teacher-access/request", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -68,6 +74,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudTeacherAccessVerifyRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.PostAsJsonAsync("/api/v1/server/teacher-access/verify", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -82,6 +89,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         string? etag,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/server/directory")
         {
@@ -113,6 +121,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudRoomAllocationRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/allocate", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -126,6 +135,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudRoomResolveRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/resolve", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -139,6 +149,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudRoomTicketRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/redeem", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -152,6 +163,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         CloudRoomHeartbeatRequest request,
         CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.PostAsJsonAsync("/api/v1/server/rooms/heartbeat", request, JsonOptions, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -159,6 +171,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
 
     public async Task EndRoomAsync(Guid serverId, string accessToken, Guid lessonUid, CancellationToken cancellationToken)
     {
+        await WaitForRateLimitAsync(cancellationToken);
         var client = CreateAuthorizedClient(serverId, accessToken);
         using var response = await client.DeleteAsync($"/api/v1/server/rooms/{lessonUid:D}", cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -186,7 +199,7 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         return client;
     }
 
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)
         {
@@ -207,7 +220,40 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
             // Keep the plain response body.
         }
 
+        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            var retryAfter = response.Headers.RetryAfter?.Delta
+                             ?? response.Headers.RetryAfter?.Date - DateTimeOffset.UtcNow
+                             ?? TimeSpan.FromMinutes(1);
+            var seconds = Math.Clamp((int)Math.Ceiling(retryAfter.TotalSeconds), 5, 900);
+            lock (_rateLimitLock)
+            {
+                var candidate = DateTimeOffset.UtcNow.AddSeconds(seconds);
+                if (candidate > _retryAfterUtc)
+                {
+                    _retryAfterUtc = candidate;
+                }
+            }
+
+            body = $"Rate limit reached. Retrying after {seconds} seconds.";
+            code ??= "rate_limited";
+        }
+
         throw new CloudApiException($"Cloud API returned {(int)response.StatusCode}: {body}", code, response.StatusCode);
+    }
+
+    private async Task WaitForRateLimitAsync(CancellationToken cancellationToken)
+    {
+        TimeSpan delay;
+        lock (_rateLimitLock)
+        {
+            delay = _retryAfterUtc - DateTimeOffset.UtcNow;
+        }
+
+        if (delay > TimeSpan.Zero)
+        {
+            await Task.Delay(delay, cancellationToken);
+        }
     }
 }
 
