@@ -7,6 +7,8 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <RootNamespace>IWebClassroom.Agent</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <GeneratedApplicationIcon>$(MSBuildProjectDirectory)\obj\iWebClassroom.ico</GeneratedApplicationIcon>
+    <ApplicationIcon>$(GeneratedApplicationIcon)</ApplicationIcon>
     <AssemblyName>iWebClassroom.Agent</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
@@ -17,4 +19,10 @@
     <Content Include="apps.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="update.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="GenerateApplicationIcon" BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildProjectDirectory)\..\..\scripts\Generate-AgentBrandIcon.ps1"
+          Outputs="$(GeneratedApplicationIcon)">
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Generate-AgentBrandIcon.ps1&quot; -OutputPath &quot;$(GeneratedApplicationIcon)&quot;" />
+  </Target>
 </Project>

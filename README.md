@@ -49,13 +49,25 @@ A cloud participa apenas na descoberta e autorização inicial. O espelhamento, 
 
 Cada servidor envia um heartbeat de carga aproximadamente a cada 20 segundos com aulas ativas, agentes online, memória do processo e endereços de rede. Na ficha do servidor no portal cloud, o administrador pode definir o máximo de aulas simultâneas e ativar **Não aceitar novas aulas**, permitindo esvaziar um servidor sem interromper sessões já iniciadas. Uma aula nunca é migrada enquanto está em curso. O peso de balanceamento fica registado para a evolução do encaminhamento automático; na versão atual, a aula permanece necessariamente no servidor ao qual o posto do professor está ligado.
 
-### Limitação quando a cloud está indisponível
+### Continuidade quando a cloud está indisponível
 
-As salas fixas, aulas já iniciadas, comandos, espelhamento e entrada numa sala temporária alojada no mesmo servidor continuam a funcionar. Uma ligação entre servidores necessita, contudo, da cloud para resolver o código e emitir o bilhete: enquanto o portal central estiver indisponível, um aluno noutro servidor não consegue iniciar essa nova ligação.
+As salas fixas, a criação de salas temporárias, os comandos, o espelhamento e a entrada numa sala alojada no mesmo servidor funcionam sempre de forma local. A Cloud não está no caminho crítico de uma aula normal.
+
+Depois de 90 segundos sem contacto com a Cloud, os servidores da escola entram em modo de continuidade e elegem automaticamente um master provisório. A ordenação é determinística: versão do servidor mais recente, data da última sincronização mais recente e, em caso de empate, identificador do servidor. Os pares trocam heartbeats autenticados por HMAC a cada 15 segundos. O master provisório atribui códigos únicos, mantém o diretório das salas dos vários servidores e emite bilhetes de migração assinados. Assim, um aluno pode continuar a introduzir o código de uma sala alojada noutro servidor da escola sem depender da Internet.
+
+Quando qualquer contacto válido com a Cloud regressa, a autoridade volta automaticamente para a Cloud. Cada servidor comunica as suas salas ativas no heartbeat normal, reconciliando o estado sem interromper aulas. A chave comum dos pares é criada pela Cloud, guardada cifrada no portal e protegida com DPAPI em cada servidor local; nunca é enviada entre servidores. Os pedidos entre pares são assinados e têm uma validade máxima de dois minutos.
+
+Para este modo funcionar, todos os servidores têm de ter sincronizado pelo menos uma vez depois da instalação desta versão, para receberem a lista de pares, os endereços e a chave da escola. Uma divisão física da rede local pode impedir que os servidores se vejam; nesse caso cada aula continua localmente, mas não é possível migrar computadores entre os segmentos isolados até a rede ou a Cloud regressar.
 
 O envio e a validação de um novo código de professor também exigem a cloud e o serviço SMTP. Uma sessão de professor que já esteja aberta continua válida localmente até ao respetivo prazo de oito horas; durante a falha não é possível iniciar uma nova sessão.
 
-Uma sala criada durante a falha recebe um código local e funciona nesse servidor. O heartbeat tenta publicá-la automaticamente quando a cloud regressa. Se, entretanto, o mesmo código tiver sido atribuído noutro servidor, a sala mantém-se apenas local até terminar; não se altera o código já mostrado aos alunos. Uma sessão entre servidores que já tenha sido autorizada continua sem a cloud porque o vídeo e os comandos não dependem dela.
+Se não existir outro servidor alcançável para formar o cluster provisório, uma sala criada durante a falha recebe um código local e funciona nesse servidor. O heartbeat tenta publicá-la automaticamente quando a Cloud regressa. Uma sessão entre servidores que já tenha sido autorizada continua sem a Cloud porque o vídeo e os comandos não dependem dela.
+
+### Logs locais e diagnóstico na Cloud
+
+O serviço Windows grava atividade, avisos e erros em JSONL diário dentro de `C:\ProgramData\iWebClassroom\Server\data\logs` (ou no diretório de dados configurado), com retenção local de 30 dias. Um cursor durável envia até 250 eventos por lote para a Cloud a cada 10 minutos; uma falha de rede não avança o cursor, portanto os eventos pendentes são retomados mais tarde. A API elimina duplicados pelo identificador do evento.
+
+Na ficha de cada servidor no portal são apresentados os 100 eventos mais recentes, incluindo data, nível, categoria, mensagem e detalhes técnicos. A retenção central é de 90 dias. A tabela SQL necessária está no ficheiro `docs/sql/2026-11-26-server-logs.sql`.
 
 Nas salas fixas, o administrador cria a sala no portal cloud e associa-a a um servidor local. Os agentes fixos usam o código dessa sala e ligam-se sempre à mesma sala. Só pode existir um professor ativo por sala e cada professor só pode dirigir uma aula de cada vez.
 

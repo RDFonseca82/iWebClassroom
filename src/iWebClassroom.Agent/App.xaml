@@ -3,9 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
   <Application.Resources>
-    <SolidColorBrush x:Key="InkBrush" Color="#14231F" />
-    <SolidColorBrush x:Key="GreenBrush" Color="#176B57" />
-    <SolidColorBrush x:Key="PaperBrush" Color="#F5F3EC" />
+    <SolidColorBrush x:Key="NavyBrush" Color="#07162D" />
+    <SolidColorBrush x:Key="BlueBrush" Color="#1168F2" />
+    <SolidColorBrush x:Key="MintBrush" Color="#56E3C0" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#F3F7FC" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#D9E4F1" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#667C99" />
     <DrawingImage x:Key="BrandIcon">
       <DrawingImage.Drawing>
         <DrawingGroup>
@@ -18,25 +21,58 @@
         </DrawingGroup>
       </DrawingImage.Drawing>
     </DrawingImage>
+    <Style TargetType="Window">
+      <Setter Property="FontFamily" Value="Segoe UI" />
+      <Setter Property="Foreground" Value="{StaticResource NavyBrush}" />
+    </Style>
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="18" />
+      <Setter Property="Padding" Value="24" />
+    </Style>
+    <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#203754" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
     <Style TargetType="Button">
-      <Setter Property="Background" Value="{StaticResource GreenBrush}" />
+      <Setter Property="Background" Value="{StaticResource BlueBrush}" />
       <Setter Property="Foreground" Value="White" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="16,9" />
-      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="18,11" />
+      <Setter Property="FontWeight" Value="Bold" />
       <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.88" /></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.42" /></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="#EAF2FE" />
+      <Setter Property="Foreground" Value="{StaticResource BlueBrush}" />
+    </Style>
+    <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="#D84343" />
     </Style>
     <Style TargetType="TextBox">
-      <Setter Property="Padding" Value="9" />
-      <Setter Property="Margin" Value="0,4,0,12" />
+      <Setter Property="Padding" Value="11,9" />
+      <Setter Property="Margin" Value="0,0,0,16" />
+      <Setter Property="Background" Value="#F8FAFD" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
     </Style>
-    <Style TargetType="PasswordBox">
-      <Setter Property="Padding" Value="9" />
-      <Setter Property="Margin" Value="0,4,0,12" />
-    </Style>
-    <Style TargetType="ComboBox">
-      <Setter Property="Padding" Value="8" />
-      <Setter Property="Margin" Value="0,4,0,12" />
-    </Style>
+    <Style TargetType="PasswordBox"><Setter Property="Padding" Value="11,9" /><Setter Property="Margin" Value="0,0,0,16" /></Style>
+    <Style TargetType="ComboBox"><Setter Property="Padding" Value="9" /><Setter Property="Margin" Value="0,0,0,16" /></Style>
   </Application.Resources>
 </Application>

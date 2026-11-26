@@ -173,6 +173,9 @@
       <Directory Id="AgentProgramsFolder" Name="iWebClassroom" />
     </StandardDirectory>
 
+    <!-- In a per-machine MSI, DesktopFolder is resolved by Windows Installer to the shared desktop. -->
+    <StandardDirectory Id="DesktopFolder" />
+
     <StandardDirectory Id="CommonAppDataFolder">
       <Directory Id="AgentDataCompanyFolder" Name="iWebClassroom">
         <Directory Id="AGENTDATADIR" Name="Agent" />
@@ -200,6 +203,11 @@
                   Directory="AgentProgramsFolder"
                   Name="iWebClassroom Agent"
                   Description="iWebClassroom classroom agent"
+                  Advertise="yes" />
+        <Shortcut Id="AgentDesktopShortcut"
+                  Directory="DesktopFolder"
+                  Name="iWebClassroom"
+                  Description="iWebClassroom Agent"
                   Advertise="yes" />
       </File>
       <RemoveFolder Id="RemoveAgentProgramsFolder" Directory="AgentProgramsFolder" On="uninstall" />

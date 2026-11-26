@@ -10,6 +10,11 @@ public static class AgentStrings
     private static readonly IReadOnlyDictionary<string, string[]> Values = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
         [nameof(AgentWindows)] = ["AGENTE WINDOWS", "WINDOWS AGENT", "AGENTE WINDOWS"],
+        [nameof(AgentStatus)] = ["ESTADO DO AGENTE", "AGENT STATUS", "ESTADO DEL AGENTE"],
+        [nameof(Connection)] = ["LIGAÇÃO", "CONNECTION", "CONEXIÓN"],
+        [nameof(LocalComputer)] = ["Computador local", "Local computer", "Equipo local"],
+        [nameof(CentralManagement)] = ["GESTÃO CENTRAL", "CENTRAL MANAGEMENT", "GESTIÓN CENTRAL"],
+        [nameof(TemporaryRoom)] = ["SALA TEMPORÁRIA", "TEMPORARY ROOM", "AULA TEMPORAL"],
         [nameof(Disconnected)] = ["Desligado", "Disconnected", "Desconectado"],
         [nameof(Server)] = ["Servidor", "Server", "Servidor"],
         [nameof(ServerHint)] = ["Exemplo: https://servidor-escola:7443", "Example: https://school-server:7443", "Ejemplo: https://servidor-centro:7443"],
@@ -91,6 +96,11 @@ public static class AgentStrings
     public static string Get(string key) => Text(key);
 
     public static string AgentWindows => Text(nameof(AgentWindows));
+    public static string AgentStatus => Text(nameof(AgentStatus));
+    public static string Connection => Text(nameof(Connection));
+    public static string LocalComputer => Text(nameof(LocalComputer));
+    public static string CentralManagement => Text(nameof(CentralManagement));
+    public static string TemporaryRoom => Text(nameof(TemporaryRoom));
     public static string Disconnected => Text(nameof(Disconnected));
     public static string Server => Text(nameof(Server));
     public static string ServerHint => Text(nameof(ServerHint));

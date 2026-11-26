@@ -70,6 +70,7 @@ public sealed class CloudSyncStateStore(
             ConfigurationRevision = response.Configuration.Revision,
             ConfigurationHash = configurationHash,
             Status = "connected",
+            LastCloudContactUtc = DateTimeOffset.UtcNow,
             LastError = null,
             Conflict = false
         }, cancellationToken);
@@ -82,9 +83,13 @@ public sealed class CloudSyncStateStore(
             ConfigurationHash = configurationHash,
             Status = conflict ? "conflict" : "synchronized",
             LastSyncUtc = DateTimeOffset.UtcNow,
+            LastCloudContactUtc = DateTimeOffset.UtcNow,
             LastError = null,
             Conflict = conflict
         }, cancellationToken);
+
+    public Task MarkCloudContactAsync(CancellationToken cancellationToken) =>
+        UpdateAsync(state => state with { LastCloudContactUtc = DateTimeOffset.UtcNow }, cancellationToken);
 
     public Task SetErrorAsync(string error, CancellationToken cancellationToken) =>
         UpdateAsync(state => state with
@@ -104,6 +109,7 @@ public sealed class CloudSyncStateStore(
             ConfigurationHash = string.Empty,
             Status = "disconnected",
             LastSyncUtc = null,
+            LastCloudContactUtc = null,
             LastError = null,
             Conflict = false
         }, cancellationToken);
@@ -163,8 +169,9 @@ public sealed record CloudSyncState(
     string Status,
     DateTimeOffset? LastSyncUtc,
     string? LastError,
-    bool Conflict)
+    bool Conflict,
+    DateTimeOffset? LastCloudContactUtc = null)
 {
     public static CloudSyncState Empty { get; } = new(
-        Guid.Empty, null, null, null, null, 0, string.Empty, "disconnected", null, null, false);
+        Guid.Empty, null, null, null, null, 0, string.Empty, "disconnected", null, null, false, null);
 }

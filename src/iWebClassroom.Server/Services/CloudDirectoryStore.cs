@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using IWebClassroom.Server.Configuration;
+using IWebClassroom.Server.Security;
 using Microsoft.Extensions.Options;
 
 namespace IWebClassroom.Server.Services;
@@ -30,10 +31,19 @@ public sealed class CloudDirectoryStore(
             await using var stream = File.OpenRead(_path);
             _directory = await JsonSerializer.DeserializeAsync<CloudDirectoryResponse>(stream, JsonOptions, cancellationToken)
                          ?? CloudDirectoryResponse.Empty;
+            if (_directory.PeerKey?.StartsWith("protected:", StringComparison.Ordinal) == true)
+            {
+                _directory = _directory with { PeerKey = MachineSecretProtector.Unprotect(_directory.PeerKey[10..]) };
+            }
         }
         catch (JsonException exception)
         {
             logger.LogError(exception, "The synchronized school directory is invalid and will be ignored.");
+            _directory = CloudDirectoryResponse.Empty;
+        }
+        catch (System.Security.Cryptography.CryptographicException exception)
+        {
+            logger.LogError(exception, "The protected peer key could not be read on this machine; peer continuity will remain disabled until the next cloud synchronization.");
             _directory = CloudDirectoryResponse.Empty;
         }
     }
@@ -52,7 +62,10 @@ public sealed class CloudDirectoryStore(
             var temporaryPath = $"{_path}.{Guid.NewGuid():N}.tmp";
             await using (var stream = File.Create(temporaryPath))
             {
-                await JsonSerializer.SerializeAsync(stream, _directory, JsonOptions, cancellationToken);
+                var persisted = string.IsNullOrWhiteSpace(_directory.PeerKey)
+                    ? _directory
+                    : _directory with { PeerKey = "protected:" + MachineSecretProtector.Protect(_directory.PeerKey) };
+                await JsonSerializer.SerializeAsync(stream, persisted, JsonOptions, cancellationToken);
             }
 
             File.Move(temporaryPath, _path, true);
@@ -80,10 +93,22 @@ public sealed record CloudDirectoryResponse(
     [property: JsonPropertyName("updated_at_utc")]
     DateTimeOffset? UpdatedAtUtc,
     [property: JsonPropertyName("devices")]
-    IReadOnlyCollection<CloudDeviceAssignment>? Devices = null)
+    IReadOnlyCollection<CloudDeviceAssignment>? Devices = null,
+    [property: JsonPropertyName("servers")]
+    IReadOnlyCollection<CloudPeerServer>? Servers = null,
+    [property: JsonPropertyName("peer_key")]
+    string? PeerKey = null)
 {
     public static CloudDirectoryResponse Empty { get; } = new([], [], [], null, []);
 }
+
+public sealed record CloudPeerServer(
+    [property: JsonPropertyName("server_id")] Guid ServerId,
+    [property: JsonPropertyName("instance_uid")] Guid InstanceUid,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("version")] string Version,
+    [property: JsonPropertyName("last_sync_at_utc")] DateTimeOffset? LastSyncAtUtc,
+    [property: JsonPropertyName("host_urls")] IReadOnlyCollection<string> HostUrls);
 
 public sealed record CloudAdministratorEntry(
     [property: JsonPropertyName("id")] string Id,

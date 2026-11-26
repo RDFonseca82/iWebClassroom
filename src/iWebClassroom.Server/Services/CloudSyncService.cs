@@ -185,6 +185,7 @@ public sealed class CloudSyncService(
                 await agents.ApplyAssignmentsAsync(result.Directory?.Devices, cancellationToken);
                 logger.LogInformation("The lightweight school directory synchronization completed.");
             }
+            await stateStore.MarkCloudContactAsync(cancellationToken);
         }
         finally
         {

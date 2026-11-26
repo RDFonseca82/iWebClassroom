@@ -32,6 +32,11 @@ builder.Configuration.AddEnvironmentVariables();
 BootstrapSecrets.AddOrCreate(builder);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+var resolvedDataDirectory = Path.IsPathRooted(configuredDataDirectory)
+    ? configuredDataDirectory
+    : Path.Combine(builder.Environment.ContentRootPath, configuredDataDirectory);
+var localLogStore = new LocalServerLogStore(resolvedDataDirectory);
+builder.Logging.AddProvider(localLogStore);
 
 // Explicit --urls remains available for development and smoke tests. Installed services use the
 // managed endpoints below, which listen on every active IPv4/IPv6 interface.
@@ -71,8 +76,10 @@ builder.Services.AddSingleton<CloudDirectoryStore>();
 builder.Services.AddSingleton<CloudConfigurationStore>();
 builder.Services.AddSingleton<CloudSyncClient>();
 builder.Services.AddSingleton<CloudSyncService>();
+builder.Services.AddSingleton(localLogStore);
 builder.Services.AddSingleton<LocalServerEndpointProvider>();
 builder.Services.AddSingleton<CloudRoomService>();
+builder.Services.AddSingleton<PeerCoordinationService>();
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddSingleton<TeacherSessionService>();
 builder.Services.AddSingleton<CommandAuditStore>();
@@ -80,9 +87,18 @@ builder.Services.AddSingleton<ServerMaintenanceState>();
 builder.Services.AddSingleton<UpdateCatalog>();
 builder.Services.AddHttpClient(nameof(ServerUpdateWorker), client => client.Timeout = TimeSpan.FromMinutes(5));
 builder.Services.AddHttpClient(nameof(CloudSyncClient));
+builder.Services.AddHttpClient(nameof(PeerCoordinationService))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        // Peers use different school-local certificate authorities. HMAC authenticates every request;
+        // TLS remains responsible for confidentiality while the signature prevents impersonation.
+        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+    });
 builder.Services.AddHostedService<CloudSyncWorker>();
 builder.Services.AddHostedService<CloudDirectorySyncWorker>();
 builder.Services.AddHostedService<CloudRoomHeartbeatWorker>();
+builder.Services.AddHostedService<CloudLogUploadWorker>();
+builder.Services.AddHostedService<PeerCoordinationWorker>();
 builder.Services.AddHostedService<LessonExpirationWorker>();
 builder.Services.AddHostedService<ServerUpdateWorker>();
 builder.Services.AddSignalR(options =>
@@ -115,6 +131,15 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("peer", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 300,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
             AutoReplenishment = true
@@ -185,6 +210,50 @@ app.MapGet("/api/v1/localization", () => Results.Ok(new
 {
     language = InstallerPreferences.Language()
 }));
+
+app.MapPost("/api/v1/peer/heartbeat", (
+    HttpRequest httpRequest,
+    PeerHeartbeatRequest request,
+    PeerCoordinationService peers) =>
+{
+    if (!peers.Authenticate(httpRequest, request))
+    {
+        return Results.Unauthorized();
+    }
+    peers.Observe(request);
+    return Results.Ok(new { accepted = true, masterServerId = peers.MasterServerId() });
+}).RequireRateLimiting("peer");
+
+app.MapPost("/api/v1/peer/rooms/allocate", (
+    HttpRequest httpRequest,
+    PeerRoomAllocationRequest request,
+    PeerCoordinationService peers) =>
+{
+    if (!peers.Authenticate(httpRequest, request))
+    {
+        return Results.Unauthorized();
+    }
+    return peers.MasterServerId() is { } master && master == cloudState.Snapshot().ServerId
+        ? Results.Ok(peers.Allocate(request))
+        : Results.Conflict(new { error = "This server is not the elected temporary master." });
+}).RequireRateLimiting("peer");
+
+app.MapPost("/api/v1/peer/rooms/resolve", (
+    HttpRequest httpRequest,
+    PeerRoomResolveRequest request,
+    PeerCoordinationService peers) =>
+{
+    if (!peers.Authenticate(httpRequest, request))
+    {
+        return Results.Unauthorized();
+    }
+    if (peers.MasterServerId() is not { } master || master != cloudState.Snapshot().ServerId)
+    {
+        return Results.Conflict(new { error = "This server is not the elected temporary master." });
+    }
+    var result = peers.Resolve(request);
+    return result is null ? Results.NotFound() : Results.Ok(result);
+}).RequireRateLimiting("peer");
 
 app.MapPost("/api/v1/enrollment", async (
     HttpRequest httpRequest,
