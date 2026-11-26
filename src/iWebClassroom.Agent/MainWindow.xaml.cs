@@ -22,11 +22,14 @@ public partial class MainWindow : Window
     private readonly ApplicationCatalog _applications = new();
     private readonly ScreenCaptureService _screenCapture = new();
     private readonly UpdateService _updates = new();
+    private readonly AgentLogStore _logs = AgentLogStore.Current;
     private readonly DispatcherTimer _profileTimer = new() { Interval = TimeSpan.FromSeconds(30) };
+    private readonly DispatcherTimer _logUploadTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private AgentSettings _settings = AgentSettings.Empty;
     private ScreenDisplayWindow? _screenWindow;
     private bool _closing;
     private bool _disposed;
+    private DateTimeOffset _lastProfileWarningUtc = DateTimeOffset.MinValue;
 
     public MainWindow()
     {
@@ -37,12 +40,14 @@ public partial class MainWindow : Window
         _connection.ScreenStopped += HandleScreenStopped;
         _connection.StateChanged += state => Dispatcher.Invoke(() => StatusText.Text = state);
         _profileTimer.Tick += async (_, _) => await RefreshProfileAsync();
+        _logUploadTimer.Tick += async (_, _) => await _logs.UploadAsync(_settings, CancellationToken.None);
         Loaded += MainWindow_Loaded;
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         _settings = await _settingsStore.LoadAsync();
+        _logs.Information("Configuration", "Agent settings loaded.", "settings_loaded");
         ApplySettingsToForm();
         if (_settings.AgentId != Guid.Empty && !string.IsNullOrWhiteSpace(_settings.AgentToken))
         {
@@ -53,6 +58,7 @@ public partial class MainWindow : Window
             await ConnectAsync(reenroll: true);
         }
         _profileTimer.Start();
+        _logUploadTimer.Start();
     }
 
     private void ApplySettingsToForm()
@@ -124,10 +130,13 @@ public partial class MainWindow : Window
             StatusText.Text = AgentStrings.Connected;
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
             SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
+            _logs.Information("Connection", $"Connected to {_settings.ServerUrl}.", "server_connected");
+            _ = _logs.UploadAsync(_settings, CancellationToken.None);
             _ = CheckForUpdatesAsync();
         }
         catch (Exception exception)
         {
+            _logs.Error("Connection", "The agent could not connect to the local server.", exception, "server_connection_failed");
             StatusText.Text = AgentStrings.ConnectionError;
             MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
@@ -161,14 +170,20 @@ public partial class MainWindow : Window
                 ApplySettingsToForm();
             }
         }
-        catch
+        catch (Exception exception)
         {
             // The current connection remains usable; retry on the next interval.
+            if (DateTimeOffset.UtcNow - _lastProfileWarningUtc >= TimeSpan.FromMinutes(5))
+            {
+                _lastProfileWarningUtc = DateTimeOffset.UtcNow;
+                _logs.Warning("Profile", "The agent profile could not be refreshed.", exception, "profile_refresh_failed");
+            }
         }
     }
 
     private async Task HandleCommandAsync(ClassroomCommand command)
     {
+        _logs.Information("Command", $"Received command {command.Kind}.", "command_received");
         try
         {
             switch (command.Kind)
@@ -190,9 +205,11 @@ public partial class MainWindow : Window
                     await CheckForUpdatesAsync();
                     break;
             }
+            _logs.Information("Command", $"Completed command {command.Kind}.", "command_completed");
         }
         catch (Exception exception)
         {
+            _logs.Error("Command", $"Command {command.Kind} failed.", exception, "command_failed");
             await Dispatcher.InvokeAsync(() => ActivityText.Text = $"{AgentStrings.FailurePrefix}: {exception.Message}");
         }
     }
@@ -270,6 +287,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
+            _logs.Error("Update", "The update check failed.", exception, "update_check_failed");
             await Dispatcher.InvokeAsync(() => ActivityText.Text = $"{AgentStrings.UpdatePrefix}: {exception.Message}");
         }
     }
@@ -326,9 +344,11 @@ public partial class MainWindow : Window
 
             RoomCodeText.Clear();
             ActivityText.Text = AgentStrings.Format(nameof(AgentStrings.RoomJoined), joined.RoomName);
+            _logs.Information("Room", $"Joined room {joined.RoomName} ({roomCode}).", "room_joined");
         }
         catch (Exception exception)
         {
+            _logs.Error("Room", $"Could not join room {roomCode}.", exception, "room_join_failed");
             MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
@@ -444,6 +464,8 @@ public partial class MainWindow : Window
         _disposed = true;
         _closing = true;
         _profileTimer.Stop();
+        _logUploadTimer.Stop();
+        await _logs.UploadAsync(_settings, CancellationToken.None);
         await _screenCapture.DisposeAsync();
         await _connection.DisposeAsync();
         _screenWindow?.CloseFromAgent();

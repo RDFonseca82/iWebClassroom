@@ -7,6 +7,7 @@ using IWebClassroom.Server.Hubs;
 using IWebClassroom.Server.Localization;
 using IWebClassroom.Server.Security;
 using IWebClassroom.Server.Services;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -161,6 +162,21 @@ await cloudApprovedUpdate.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudDirectory = app.Services.GetRequiredService<CloudDirectoryStore>();
 await cloudDirectory.InitializeAsync(app.Lifetime.ApplicationStopping);
 
+app.UseExceptionHandler(errorApplication => errorApplication.Run(async context =>
+{
+    var failure = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    var requestId = context.TraceIdentifier;
+    app.Logger.LogError(failure, "Unhandled request error {RequestId} on {Method} {Path}.",
+        requestId, context.Request.Method, context.Request.Path);
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsJsonAsync(new
+    {
+        error = ApiText.Get(context.Request, "UnexpectedError", requestId),
+        requestId
+    });
+}));
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
@@ -291,6 +307,28 @@ app.MapGet("/api/v1/agent/profile", (HttpRequest request, AgentRegistry agentReg
     TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) && agent is not null
         ? Results.Ok(agent)
         : Results.Unauthorized());
+
+app.MapPost("/api/v1/agent/logs", (
+    HttpRequest request,
+    AgentLogUploadRequest upload,
+    AgentRegistry agentRegistry,
+    LocalServerLogStore logs) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null)
+    {
+        return Results.Unauthorized();
+    }
+    if (upload.Entries.Count is < 1 or > 250 || upload.Entries.Any(entry =>
+            entry.EventId == Guid.Empty || string.IsNullOrWhiteSpace(entry.Message) || entry.Message.Length > 4000 ||
+            string.IsNullOrWhiteSpace(entry.Category) || entry.Category.Length > 200 ||
+            entry.Exception?.Length > 12000 ||
+            entry.Level is not ("Information" or "Warning" or "Error" or "Critical")))
+    {
+        return Results.BadRequest(new { error = "Invalid agent log batch." });
+    }
+    logs.AppendAgentEntries(agent, upload.Entries);
+    return Results.Accepted(value: new { accepted = upload.Entries.Count });
+}).RequireRateLimiting("teacher");
 
 app.MapGet("/api/v1/agents", (HttpRequest request, AgentRegistry agentRegistry, IConfiguration configuration) =>
     IsAdmin(request, configuration)
@@ -744,6 +782,7 @@ app.MapPost("/api/v1/lessons", async (
     CloudDirectoryStore directory,
     CloudRoomService cloudRooms,
     IHubContext<ClassroomHub> hub,
+    ILoggerFactory loggerFactory,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
@@ -834,7 +873,16 @@ app.MapPost("/api/v1/lessons", async (
     {
         foreach (var connectionId in agentRegistry.GetConnectionIds(agentId))
         {
-            await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(lesson.LessonId), cancellationToken);
+            try
+            {
+                await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(lesson.LessonId), CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                loggerFactory.CreateLogger("LessonEndpoint").LogWarning(exception,
+                    "Lesson {LessonId} was created, but connection {ConnectionId} could not be added to its SignalR group.",
+                    lesson.LessonId, connectionId);
+            }
         }
     }
 

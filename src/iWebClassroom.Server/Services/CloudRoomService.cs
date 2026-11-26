@@ -24,25 +24,35 @@ public sealed class CloudRoomService(
     {
         if (!TryCredentials(out var serverId, out var token))
         {
-            return await peers.TryAllocateAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
+            return await TryAllocateThroughPeersAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
         }
 
         try
         {
             using var cloudAttempt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cloudAttempt.CancelAfter(TimeSpan.FromSeconds(3));
-            return await client.AllocateRoomAsync(serverId, token, new CloudRoomAllocationRequest(
+            var allocation = await client.AllocateRoomAsync(serverId, token, new CloudRoomAllocationRequest(
                 lessonUid, roomName, teacher.TeacherId, teacher.DisplayName, endpoints.HttpsUrls(), expiresAtUtc), cloudAttempt.Token);
+            if (allocation.RoomCode.Length != 6 || allocation.RoomCode.Any(character => !char.IsAsciiDigit(character)))
+            {
+                logger.LogWarning("The cloud returned an invalid temporary room code; a local code will be generated.");
+                return await TryAllocateThroughPeersAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
+            }
+            return allocation;
+        }
+        catch (CloudApiException exception) when (exception.Code is "server_capacity_reached" or "server_not_accepting_rooms")
+        {
+            throw;
         }
         catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogWarning(exception, "The cloud room allocation timed out; the temporary room will continue locally.");
-            return await peers.TryAllocateAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
+            return await TryAllocateThroughPeersAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
         }
-        catch (Exception exception) when (IsTemporaryCloudFailure(exception))
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            logger.LogWarning(exception, "The cloud room directory is unavailable; the temporary room will be local-only until a heartbeat succeeds.");
-            return await peers.TryAllocateAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
+            logger.LogWarning(exception, "Cloud room allocation failed; the lesson will continue using local or peer coordination.");
+            return await TryAllocateThroughPeersAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
         }
     }
 
@@ -161,6 +171,28 @@ public sealed class CloudRoomService(
         serverId = state.ServerId ?? Guid.Empty;
         token = accessToken ?? string.Empty;
         return state.ServerId.HasValue && !string.IsNullOrWhiteSpace(accessToken);
+    }
+
+    private async Task<CloudRoomAllocationResponse?> TryAllocateThroughPeersAsync(
+        Guid lessonUid,
+        string roomName,
+        TeacherIdentity teacher,
+        DateTimeOffset expiresAtUtc,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await peers.TryAllocateAsync(lessonUid, roomName, teacher, expiresAtUtc, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Peer room allocation failed; a local six-digit room code will be generated.");
+            return null;
+        }
     }
 
     private static bool IsTemporaryCloudFailure(Exception exception) =>

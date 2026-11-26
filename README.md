@@ -65,9 +65,9 @@ Se não existir outro servidor alcançável para formar o cluster provisório, u
 
 ### Logs locais e diagnóstico na Cloud
 
-O serviço Windows grava atividade, avisos e erros em JSONL diário dentro de `C:\ProgramData\iWebClassroom\Server\data\logs` (ou no diretório de dados configurado), com retenção local de 30 dias. Um cursor durável envia até 250 eventos por lote para a Cloud a cada 10 minutos; uma falha de rede não avança o cursor, portanto os eventos pendentes são retomados mais tarde. A API elimina duplicados pelo identificador do evento.
+O serviço Windows grava atividade, avisos e erros em JSONL diário dentro de `C:\ProgramData\iWebClassroom\Server\logs` (ou no diretório de dados configurado), com retenção local de 30 dias. O agente mantém igualmente os seus registos em `C:\ProgramData\iWebClassroom\Agent\logs` e envia-os autenticados ao servidor local em lotes de cinco em cinco minutos. O servidor acrescenta a identidade do agente, o identificador da máquina e o nome do computador antes de os integrar no mesmo fluxo central.
 
-Na ficha de cada servidor no portal são apresentados os 100 eventos mais recentes, incluindo data, nível, categoria, mensagem e detalhes técnicos. A retenção central é de 90 dias. A tabela SQL necessária está no ficheiro `docs/sql/2026-11-26-server-logs.sql`.
+Um cursor durável envia até 250 eventos por lote para a Cloud a cada 10 minutos; uma falha de rede não avança o cursor, portanto os eventos pendentes são retomados mais tarde. Na ficha de cada servidor no portal são apresentados os 100 eventos mais recentes, incluindo o computador de origem, data, nível, categoria, mensagem e detalhes técnicos. A retenção central é de 90 dias e a API elimina duplicados pelo identificador do evento. Execute primeiro `docs/sql/2026-11-26-server-logs.sql` e depois `docs/sql/2026-11-26-agent-logs.sql` no SQL Server do portal.
 
 Nas salas fixas, o administrador cria a sala no portal cloud e associa-a a um servidor local. Os agentes fixos usam o código dessa sala e ligam-se sempre à mesma sala. Só pode existir um professor ativo por sala e cada professor só pode dirigir uma aula de cada vez.
 

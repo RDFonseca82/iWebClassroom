@@ -18,6 +18,7 @@
   <ItemGroup>
     <Content Include="apps.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="update.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(GeneratedApplicationIcon)" Link="iWebClassroom.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="GenerateApplicationIcon" BeforeTargets="CoreCompile"
           Inputs="$(MSBuildProjectDirectory)\..\..\scripts\Generate-AgentBrandIcon.ps1"

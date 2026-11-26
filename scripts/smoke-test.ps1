@@ -72,6 +72,24 @@ try {
     $pendingProfile = Invoke-RestMethod -Uri "$baseUrl/api/v1/agent/profile" -Headers @{
         'X-Agent-Id' = $pendingDevice.agentId; 'X-Agent-Token' = $pendingDevice.agentToken
     }
+    $agentLogEventId = [Guid]::NewGuid()
+    $agentLogUpload = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/agent/logs" -Headers @{
+        'X-Agent-Id' = $sharedStudent.agentId; 'X-Agent-Token' = $sharedStudent.agentToken
+    } -ContentType 'application/json' -Body (@{
+        entries = @(@{
+            event_id = $agentLogEventId
+            occurred_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
+            level = 'Warning'
+            category = 'Smoke'
+            event_code = 'agent_smoke'
+            message = 'Agent log transport smoke test.'
+            exception = $null
+        })
+    } | ConvertTo-Json -Depth 5)
+    $agentLogRecord = Get-Content -LiteralPath (Get-ChildItem -LiteralPath (Join-Path $testDataDirectory 'logs') -Filter 'server-*.jsonl' | Select-Object -First 1).FullName |
+        ForEach-Object { $_ | ConvertFrom-Json } |
+        Where-Object event_id -eq $agentLogEventId |
+        Select-Object -First 1
     $headers = @{ 'X-Admin-Token' = $adminToken }
     $agents = @(Invoke-RestMethod -Uri "$baseUrl/api/v1/agents" -Headers $headers)
     $command = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/commands" -Headers $headers -ContentType 'application/json' -Body (@{
@@ -149,6 +167,9 @@ try {
         $roomResolution.isLocal -ne $true -or
         $pendingProfile.isAssigned -ne $false -or
         $pendingProfile.classroomId -ne 'PENDENTE' -or
+        $agentLogUpload.accepted -ne 1 -or
+        $agentLogRecord.agent_id -ne $sharedStudent.agentId -or
+        $agentLogRecord.computer_name -ne 'Shared Student' -or
         -not $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId) -or
         $joinedTemporaryLesson.participants[0].studentName -ne 'Aluno Smoke') {
         throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; local={16}; joined={17}; participant={18}." -f

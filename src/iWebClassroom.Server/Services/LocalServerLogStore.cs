@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using IWebClassroom.Contracts;
 
 namespace IWebClassroom.Server.Services;
 
@@ -90,6 +91,25 @@ public sealed class LocalServerLogStore : ILoggerProvider
         File.Move(temporaryPath, _cursorPath, true);
     }
 
+    public void AppendAgentEntries(AgentSummary agent, IReadOnlyCollection<AgentLogEntry> entries)
+    {
+        foreach (var source in entries)
+        {
+            var entry = new CloudServerLogEntry(
+                source.EventId,
+                source.OccurredAtUtc,
+                source.Level,
+                $"Agent.{source.Category}",
+                source.EventCode,
+                source.Message,
+                source.Exception,
+                agent.AgentId,
+                agent.MachineId,
+                agent.DisplayName);
+            AppendEntry(entry);
+        }
+    }
+
     private void Append(string category, LogLevel level, EventId eventId, string message, Exception? exception)
     {
         var entry = new CloudServerLogEntry(
@@ -100,7 +120,14 @@ public sealed class LocalServerLogStore : ILoggerProvider
             eventId.Name ?? (eventId.Id == 0 ? null : eventId.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             message.Length > 4000 ? message[..4000] : message,
             exception?.ToString() is { } details ? details[..Math.Min(details.Length, 12000)] : null);
-        var path = Path.Combine(_directory, $"server-{entry.OccurredAtUtc:yyyyMMdd}.jsonl");
+        AppendEntry(entry);
+    }
+
+    private void AppendEntry(CloudServerLogEntry entry)
+    {
+        // External agent events are appended to today's server file so an existing upload cursor
+        // can never skip a late event whose original timestamp belongs to an older day.
+        var path = Path.Combine(_directory, $"server-{DateTimeOffset.UtcNow:yyyyMMdd}.jsonl");
         var line = JsonSerializer.Serialize(entry, JsonOptions) + Environment.NewLine;
         lock (_gate)
         {
@@ -163,7 +190,22 @@ public sealed record CloudServerLogEntry(
     [property: JsonPropertyName("category")] string Category,
     [property: JsonPropertyName("event_code")] string? EventCode,
     [property: JsonPropertyName("message")] string Message,
+    [property: JsonPropertyName("exception")] string? Exception,
+    [property: JsonPropertyName("agent_id")] Guid? AgentId = null,
+    [property: JsonPropertyName("machine_id")] string? MachineId = null,
+    [property: JsonPropertyName("computer_name")] string? ComputerName = null);
+
+public sealed record AgentLogEntry(
+    [property: JsonPropertyName("event_id")] Guid EventId,
+    [property: JsonPropertyName("occurred_at_utc")] DateTimeOffset OccurredAtUtc,
+    [property: JsonPropertyName("level")] string Level,
+    [property: JsonPropertyName("category")] string Category,
+    [property: JsonPropertyName("event_code")] string? EventCode,
+    [property: JsonPropertyName("message")] string Message,
     [property: JsonPropertyName("exception")] string? Exception);
+
+public sealed record AgentLogUploadRequest(
+    [property: JsonPropertyName("entries")] IReadOnlyCollection<AgentLogEntry> Entries);
 
 public sealed record CloudServerLogUploadRequest(
     [property: JsonPropertyName("entries")] IReadOnlyCollection<CloudServerLogEntry> Entries);

@@ -25,7 +25,8 @@ public static class ApiText
         ["InvalidTeacher"] = ["Selecione um posto de professor válido.", "Select a valid teacher workstation.", "Seleccione un puesto de profesor válido."],
         ["RoomInUse"] = ["A sala ou o posto de professor já tem uma aula ativa.", "The room or teacher workstation already has an active lesson.", "El aula o el puesto del profesor ya tiene una clase activa."],
         ["LessonNotFound"] = ["A aula já terminou ou não existe.", "The lesson has ended or does not exist.", "La clase ha terminado o no existe."],
-        ["NoLessonTarget"] = ["Nenhum dos computadores selecionados pertence a esta aula.", "None of the selected computers belongs to this lesson.", "Ninguno de los equipos seleccionados pertenece a esta clase."]
+        ["NoLessonTarget"] = ["Nenhum dos computadores selecionados pertence a esta aula.", "None of the selected computers belongs to this lesson.", "Ninguno de los equipos seleccionados pertenece a esta clase."],
+        ["UnexpectedError"] = ["O servidor não conseguiu concluir o pedido. Referência: {0}", "The server could not complete the request. Reference: {0}", "El servidor no pudo completar la solicitud. Referencia: {0}"]
     };
 
     public static string Get(HttpRequest request, string key, params object[] arguments)

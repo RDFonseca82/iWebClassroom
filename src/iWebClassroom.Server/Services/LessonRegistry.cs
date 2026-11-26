@@ -144,7 +144,17 @@ public sealed class LessonRegistry(
                 null,
                 isCloudRouted);
             _lessons[lesson.LessonId] = lesson;
-            await PersistAsync(cancellationToken);
+            try
+            {
+                await PersistAsync(cancellationToken);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // A storage incident must not prevent a teacher from starting an otherwise valid
+                // local lesson. Keep it in memory and surface the durability problem in the logs.
+                logger.LogError(exception, "Lesson {LessonId} started in memory but could not be saved to {RegistryPath}.",
+                    lesson.LessonId, _filePath);
+            }
             return ToSummary(lesson);
         }
         finally
