@@ -9,12 +9,14 @@ public sealed class CloudRoomHeartbeatWorker(
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(20));
-            do
+            while (!stoppingToken.IsCancellationRequested)
             {
                 await rooms.HeartbeatAsync(stoppingToken);
+                var interval = rooms.HasActiveLessons
+                    ? TimeSpan.FromSeconds(20)
+                    : TimeSpan.FromMinutes(1);
+                await Task.Delay(interval, stoppingToken);
             }
-            while (await timer.WaitForNextTickAsync(stoppingToken));
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {

@@ -11,6 +11,8 @@ public sealed class CloudRoomService(
     AgentRegistry agents,
     ILogger<CloudRoomService> logger)
 {
+    public bool HasActiveLessons => lessons.List().Count > 0;
+
     public async Task<CloudRoomAllocationResponse?> TryAllocateAsync(
         Guid lessonUid,
         string roomName,
