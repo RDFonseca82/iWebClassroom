@@ -57,12 +57,16 @@ public sealed class ClassroomConnection : IAsyncDisposable
         StateChanged?.Invoke(AgentStrings.Connected);
     }
 
-    public Task PublishFrameAsync(byte[] frame, CancellationToken cancellationToken) =>
-        _connection?.InvokeAsync(HubProtocol.PublishScreenFrame, frame, cancellationToken)
+    public Task PublishFrameAsync(byte[] frame, IReadOnlyCollection<Guid> viewers, CancellationToken cancellationToken) =>
+        _connection?.InvokeAsync(HubProtocol.PublishScreenFrame, frame, viewers, cancellationToken)
         ?? Task.CompletedTask;
 
-    public Task PublishStoppedAsync(CancellationToken cancellationToken) =>
-        _connection?.InvokeAsync(HubProtocol.PublishScreenStopped, cancellationToken)
+    public Task PublishStoppedAsync(IReadOnlyCollection<Guid> viewers, CancellationToken cancellationToken) =>
+        _connection?.InvokeAsync(HubProtocol.PublishScreenStopped, viewers, cancellationToken)
+        ?? Task.CompletedTask;
+
+    public Task PublishStudentFrameAsync(byte[] frame, CancellationToken cancellationToken) =>
+        _connection?.InvokeAsync(HubProtocol.PublishStudentScreenFrame, frame, cancellationToken)
         ?? Task.CompletedTask;
 
     public async ValueTask DisposeAsync()

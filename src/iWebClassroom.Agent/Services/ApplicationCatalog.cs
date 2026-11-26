@@ -20,15 +20,26 @@ public sealed class ApplicationCatalog
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
     }
 
-    public void Launch(string applicationId)
+    public void Launch(string applicationId, string? synchronizedFileName = null, string? synchronizedArguments = null)
     {
-        if (!_entries.TryGetValue(applicationId, out var entry))
+        ApplicationEntry? entry = null;
+        if (!string.IsNullOrWhiteSpace(synchronizedFileName))
+        {
+            entry = new ApplicationEntry(applicationId, applicationId, synchronizedFileName, synchronizedArguments);
+        }
+        else if (_entries.TryGetValue(applicationId, out var localEntry))
+        {
+            entry = localEntry;
+        }
+        if (entry is null)
         {
             throw new InvalidOperationException(AgentStrings.Format(nameof(AgentStrings.AppNotAllowed), applicationId));
         }
 
         var fileName = Environment.ExpandEnvironmentVariables(entry.FileName);
-        if (!Path.IsPathFullyQualified(fileName) || !File.Exists(fileName))
+        if (!Path.IsPathFullyQualified(fileName) || !File.Exists(fileName) ||
+            !string.Equals(Path.GetExtension(fileName), ".exe", StringComparison.OrdinalIgnoreCase) ||
+            (entry.Arguments?.Length ?? 0) > 500)
         {
             throw new InvalidOperationException(AgentStrings.Format(nameof(AgentStrings.AppNotFound), entry.Id));
         }

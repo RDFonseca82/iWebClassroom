@@ -14,7 +14,7 @@ public sealed class ScreenCaptureService : IAsyncDisposable
 
     public bool IsRunning => _captureTask is { IsCompleted: false };
 
-    public void Start(Func<byte[], CancellationToken, Task> publishFrame)
+    public void Start(int displayIndex, Func<byte[], CancellationToken, Task> publishFrame)
     {
         if (IsRunning)
         {
@@ -22,7 +22,7 @@ public sealed class ScreenCaptureService : IAsyncDisposable
         }
 
         _captureCancellation = new CancellationTokenSource();
-        _captureTask = CaptureLoopAsync(publishFrame, _captureCancellation.Token);
+        _captureTask = CaptureLoopAsync(displayIndex, publishFrame, _captureCancellation.Token);
     }
 
     public async Task StopAsync()
@@ -40,6 +40,11 @@ public sealed class ScreenCaptureService : IAsyncDisposable
         catch (OperationCanceledException)
         {
         }
+        catch (Exception)
+        {
+            // The connection or sharing authorization may end before the local capture.
+            // Clear the state so a later command can start capture again.
+        }
         finally
         {
             _captureCancellation.Dispose();
@@ -48,22 +53,30 @@ public sealed class ScreenCaptureService : IAsyncDisposable
         }
     }
 
-    private static async Task CaptureLoopAsync(Func<byte[], CancellationToken, Task> publishFrame, CancellationToken cancellationToken)
+    private static async Task CaptureLoopAsync(int displayIndex, Func<byte[], CancellationToken, Task> publishFrame, CancellationToken cancellationToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250));
+        byte[]? previousFrame = null;
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(170));
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
-            var frame = CaptureJpeg();
+            var frame = CaptureJpeg(displayIndex);
+            if (previousFrame is not null && previousFrame.AsSpan().SequenceEqual(frame))
+            {
+                continue;
+            }
+            previousFrame = frame;
             await publishFrame(frame, cancellationToken);
         }
     }
 
-    private static byte[] CaptureJpeg()
+    private static byte[] CaptureJpeg(int displayIndex)
     {
-        var left = GetSystemMetrics(76);
-        var top = GetSystemMetrics(77);
-        var width = GetSystemMetrics(78);
-        var height = GetSystemMetrics(79);
+        var screens = System.Windows.Forms.Screen.AllScreens;
+        var selected = screens[Math.Clamp(displayIndex, 0, Math.Max(0, screens.Length - 1))];
+        var left = selected.Bounds.Left;
+        var top = selected.Bounds.Top;
+        var width = selected.Bounds.Width;
+        var height = selected.Bounds.Height;
         var screenDc = GetDC(IntPtr.Zero);
         var memoryDc = CreateCompatibleDC(screenDc);
         var bitmap = CreateCompatibleBitmap(screenDc, width, height);
@@ -79,15 +92,15 @@ public sealed class ScreenCaptureService : IAsyncDisposable
             var source = Imaging.CreateBitmapSourceFromHBitmap(bitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             source.Freeze();
             BitmapSource output = source;
-            if (source.PixelWidth > 1280)
+            if (source.PixelWidth > 1024 || source.PixelHeight > 720)
             {
-                var scale = 1280d / source.PixelWidth;
+                var scale = Math.Min(1024d / source.PixelWidth, 720d / source.PixelHeight);
                 var transformed = new TransformedBitmap(source, new ScaleTransform(scale, scale));
                 transformed.Freeze();
                 output = transformed;
             }
 
-            var encoder = new JpegBitmapEncoder { QualityLevel = 65 };
+            var encoder = new JpegBitmapEncoder { QualityLevel = 44 };
             encoder.Frames.Add(BitmapFrame.Create(output));
             using var stream = new MemoryStream();
             encoder.Save(stream);
@@ -128,6 +141,4 @@ public sealed class ScreenCaptureService : IAsyncDisposable
     [DllImport("gdi32.dll")]
     private static extern bool BitBlt(IntPtr destination, int x, int y, int width, int height, IntPtr source, int sourceX, int sourceY, int operation);
 
-    [DllImport("user32.dll")]
-    private static extern int GetSystemMetrics(int index);
 }

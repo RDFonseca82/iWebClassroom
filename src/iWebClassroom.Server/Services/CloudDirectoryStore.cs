@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using IWebClassroom.Contracts;
 using IWebClassroom.Server.Configuration;
 using IWebClassroom.Server.Security;
 using Microsoft.Extensions.Options;
@@ -97,9 +98,17 @@ public sealed record CloudDirectoryResponse(
     [property: JsonPropertyName("servers")]
     IReadOnlyCollection<CloudPeerServer>? Servers = null,
     [property: JsonPropertyName("peer_key")]
-    string? PeerKey = null)
+    string? PeerKey = null,
+    [property: JsonPropertyName("applications")]
+    IReadOnlyCollection<ClassroomApplication>? Applications = null)
 {
-    public static CloudDirectoryResponse Empty { get; } = new([], [], [], null, []);
+    public static CloudDirectoryResponse Empty { get; } = new([], [], [], null, [], [], null, DefaultApplications);
+
+    public static IReadOnlyCollection<ClassroomApplication> DefaultApplications { get; } =
+    [
+        new("notepad", "Bloco de Notas", "%WINDIR%\\System32\\notepad.exe"),
+        new("calculator", "Calculadora", "%WINDIR%\\System32\\calc.exe")
+    ];
 }
 
 public sealed record CloudPeerServer(

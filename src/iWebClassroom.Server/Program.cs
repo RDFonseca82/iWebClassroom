@@ -70,6 +70,8 @@ builder.Services.Configure<ServerUpdateOptions>(builder.Configuration.GetSection
 builder.Services.Configure<CloudSyncOptions>(builder.Configuration.GetSection("CloudSync"));
 builder.Services.AddSingleton<AgentRegistry>();
 builder.Services.AddSingleton<LessonRegistry>();
+builder.Services.AddSingleton<StudentScreenStore>();
+builder.Services.AddSingleton<LessonMediaStore>();
 builder.Services.AddSingleton<CloudSyncStateStore>();
 builder.Services.AddSingleton<CloudLicenseStore>();
 builder.Services.AddSingleton<CloudApprovedUpdateStore>();
@@ -308,6 +310,23 @@ app.MapGet("/api/v1/agent/profile", (HttpRequest request, AgentRegistry agentReg
         ? Results.Ok(agent)
         : Results.Unauthorized());
 
+app.MapPut("/api/v1/agent/capabilities", async (
+    HttpRequest request,
+    AgentCapabilitiesRequest capabilities,
+    AgentRegistry agentRegistry,
+    CancellationToken cancellationToken) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null ||
+        capabilities.Displays.Count is < 1 or > 16)
+    {
+        return Results.Unauthorized();
+    }
+
+    return await agentRegistry.UpdateCapabilitiesAsync(agent.AgentId, capabilities.Displays, cancellationToken)
+        ? Results.NoContent()
+        : Results.NotFound();
+}).RequireRateLimiting("teacher");
+
 app.MapPost("/api/v1/agent/logs", (
     HttpRequest request,
     AgentLogUploadRequest upload,
@@ -422,7 +441,8 @@ app.MapGet("/api/v1/teacher/overview", (
             .OrderBy(room => room.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToArray(),
         teacher,
-        Math.Clamp(classroomOptions.CurrentValue.DefaultLessonDurationMinutes, 15, 480)));
+        Math.Clamp(classroomOptions.CurrentValue.DefaultLessonDurationMinutes, 15, 480),
+        AvailableApplications(directory)));
 }).RequireRateLimiting("teacher");
 
 app.MapGet("/api/v1/rooms/available", (
@@ -895,6 +915,8 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
     CloudRoomService cloudRooms,
+    StudentScreenStore studentScreens,
+    LessonMediaStore media,
     IHubContext<ClassroomHub> hub,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
@@ -921,8 +943,20 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
         await cloudRooms.EndAsync(lesson.LessonId, cancellationToken);
     }
 
+    studentScreens.RemoveLesson(lessonId);
+    media.RemoveLesson(lessonId);
+
     await hub.Clients.Group(ClassroomHub.LessonGroup(lessonId))
         .SendAsync(HubProtocol.ScreenStopped, cancellationToken);
+    foreach (var kind in new[] { ClassroomCommandKind.StopBlackout, ClassroomCommandKind.StopStudentView, ClassroomCommandKind.StopMedia })
+    {
+        var cleanup = new ClassroomCommand(Guid.NewGuid(), kind, JsonSerializer.SerializeToElement(new { }), DateTimeOffset.UtcNow);
+        await hub.Clients.Group(ClassroomHub.LessonGroup(lessonId))
+            .SendAsync(HubProtocol.ReceiveCommand, cleanup, cancellationToken);
+    }
+    var stopShare = new ClassroomCommand(Guid.NewGuid(), ClassroomCommandKind.StopScreenShare, JsonSerializer.SerializeToElement(new { }), DateTimeOffset.UtcNow);
+    await hub.Clients.Group(ClassroomHub.AgentGroup(lesson.TeacherAgentId))
+        .SendAsync(HubProtocol.ReceiveCommand, stopShare, cancellationToken);
     foreach (var agentId in lesson.MemberAgentIds)
     {
         foreach (var connectionId in agentRegistry.GetConnectionIds(agentId))
@@ -935,6 +969,148 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
     return Results.NoContent();
 }).RequireRateLimiting("teacher");
 
+app.MapPost("/api/v1/lessons/{lessonId:guid}/extend", async (
+    Guid lessonId,
+    HttpRequest request,
+    ExtendLessonRequest extension,
+    LessonRegistry lessonRegistry,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!TryGetTeacher(request, configuration, out var teacher) || teacher is null)
+    {
+        return Results.Unauthorized();
+    }
+    if (!lessonRegistry.TryGet(lessonId, out var current) || current is null ||
+        !string.Equals(current.TeacherId, teacher.TeacherId, StringComparison.Ordinal))
+    {
+        return Results.NotFound(new { error = ApiText.Get(request, "LessonNotFound") });
+    }
+    if (extension.Minutes is < 5 or > 240)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "InvalidExtension") });
+    }
+
+    var updated = await lessonRegistry.ExtendAsync(lessonId, TimeSpan.FromMinutes(extension.Minutes), cancellationToken);
+    return updated is null
+        ? Results.NotFound(new { error = ApiText.Get(request, "LessonNotFound") })
+        : Results.Ok(updated);
+}).RequireRateLimiting("teacher");
+
+app.MapGet("/api/v1/lessons/{lessonId:guid}/screens/{agentId:guid}", (
+    Guid lessonId,
+    Guid agentId,
+    HttpRequest request,
+    LessonRegistry lessonRegistry,
+    StudentScreenStore screens,
+    IConfiguration configuration) =>
+{
+    if (!TryGetTeacher(request, configuration, out var teacher) || teacher is null ||
+        !lessonRegistry.TryGet(lessonId, out var lesson) || lesson is null ||
+        !string.Equals(lesson.TeacherId, teacher.TeacherId, StringComparison.Ordinal) ||
+        !lesson.MemberAgentIds.Contains(agentId))
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!screens.Refresh(lessonId, agentId))
+    {
+        return Results.NoContent();
+    }
+
+    return screens.TryGet(lessonId, agentId, out var frame) && frame is not null
+        ? Results.File(frame.Jpeg, "image/jpeg", enableRangeProcessing: false)
+        : Results.NoContent();
+}).RequireRateLimiting("teacher");
+
+app.MapPost("/api/v1/lessons/{lessonId:guid}/media", async (
+    Guid lessonId,
+    HttpRequest request,
+    LessonRegistry lessonRegistry,
+    LessonMediaStore media,
+    IHubContext<ClassroomHub> hub,
+    CommandAuditStore audit,
+    IConfiguration configuration,
+    CancellationToken cancellationToken) =>
+{
+    if (!TryGetTeacher(request, configuration, out var teacher) || teacher is null ||
+        !lessonRegistry.TryGet(lessonId, out var lesson) || lesson is null ||
+        !string.Equals(lesson.TeacherId, teacher.TeacherId, StringComparison.Ordinal))
+    {
+        return Results.Unauthorized();
+    }
+    if (!request.HasFormContentType || request.ContentLength is > 26_000_000)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "InvalidMedia") });
+    }
+
+    var form = await request.ReadFormAsync(cancellationToken);
+    var file = form.Files.GetFile("media");
+    Guid[] requestedTargets;
+    try
+    {
+        requestedTargets = JsonSerializer.Deserialize<Guid[]>(form["targetAgentIds"].ToString(), JsonSerializerOptions.Web) ?? [];
+    }
+    catch (JsonException)
+    {
+        requestedTargets = [];
+    }
+    var allowed = lesson.MemberAgentIds.Where(id => id != lesson.TeacherAgentId).ToHashSet();
+    var targets = requestedTargets.Distinct().Where(allowed.Contains).Take(200).ToArray();
+    if (file is null || file.Length is < 1 or > 25_000_000 || targets.Length == 0)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, file is null ? "InvalidMedia" : "NoLessonTarget") });
+    }
+
+    LessonMediaEntry stored;
+    try
+    {
+        await using var input = file.OpenReadStream();
+        stored = await media.CreateAsync(lessonId, file.FileName, file.ContentType, input, targets, cancellationToken);
+    }
+    catch (InvalidOperationException)
+    {
+        return Results.BadRequest(new { error = ApiText.Get(request, "InvalidMedia") });
+    }
+
+    var payload = JsonSerializer.SerializeToElement(new
+    {
+        mediaId = stored.MediaId,
+        fileName = stored.FileName,
+        contentType = stored.ContentType,
+        sha256 = stored.Sha256,
+        downloadUrl = $"/api/v1/agent/media/{lessonId:D}/{stored.MediaId:D}"
+    });
+    var command = new ClassroomCommand(Guid.NewGuid(), ClassroomCommandKind.ShowMedia, payload, DateTimeOffset.UtcNow);
+    foreach (var target in targets)
+    {
+        await hub.Clients.Group(ClassroomHub.AgentGroup(target)).SendAsync(HubProtocol.ReceiveCommand, command, cancellationToken);
+    }
+    await audit.AppendAsync(command, targets, cancellationToken);
+    return Results.Accepted(value: new
+    {
+        command.CommandId,
+        targetCount = targets.Length,
+        stored.MediaId,
+        downloadUrl = $"/api/v1/agent/media/{lessonId:D}/{stored.MediaId:D}"
+    });
+}).RequireRateLimiting("teacher");
+
+app.MapGet("/api/v1/agent/media/{lessonId:guid}/{mediaId:guid}", (
+    Guid lessonId,
+    Guid mediaId,
+    HttpRequest request,
+    AgentRegistry agentRegistry,
+    LessonMediaStore media) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null ||
+        !media.TryOpen(mediaId, lessonId, agent.AgentId, out var entry) || entry is null)
+    {
+        return Results.Unauthorized();
+    }
+    return Results.File(entry.Path, entry.ContentType, entry.FileName, enableRangeProcessing: true);
+}).RequireRateLimiting("teacher");
+
 app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     Guid lessonId,
     HttpRequest httpRequest,
@@ -943,7 +1119,8 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     LessonRegistry lessonRegistry,
     IHubContext<ClassroomHub> hub,
     CommandAuditStore audit,
-    IOptionsMonitor<ClassroomOptions> options,
+    StudentScreenStore studentScreens,
+    CloudDirectoryStore directory,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
@@ -962,7 +1139,8 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
         return Results.Forbid();
     }
 
-    var validationError = ValidateCommand(httpRequest, request, options.CurrentValue);
+    var applications = AvailableApplications(directory);
+    var validationError = ValidateCommand(httpRequest, request, applications);
     if (validationError is not null)
     {
         return Results.BadRequest(new { error = validationError });
@@ -980,7 +1158,51 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
         return Results.BadRequest(new { error = ApiText.Get(httpRequest, "NoLessonTarget") });
     }
 
-    var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, request.Payload.Clone(), DateTimeOffset.UtcNow);
+    if (request.Kind == ClassroomCommandKind.StartStudentView)
+    {
+        foreach (var target in targets)
+        {
+            studentScreens.Authorize(lessonId, target);
+        }
+    }
+    else if (request.Kind == ClassroomCommandKind.StopStudentView)
+    {
+        foreach (var target in targets)
+        {
+            studentScreens.Revoke(target);
+        }
+    }
+
+    var payload = request.Payload.Clone();
+    if (request.Kind == ClassroomCommandKind.LaunchApplication)
+    {
+        var applicationId = request.Payload.GetProperty("applicationId").GetString()!;
+        var application = applications.First(item => string.Equals(item.Id, applicationId, StringComparison.OrdinalIgnoreCase));
+        payload = JsonSerializer.SerializeToElement(new
+        {
+            applicationId = application.Id,
+            displayName = application.DisplayName,
+            fileName = application.FileName,
+            arguments = application.Arguments ?? string.Empty
+        });
+    }
+    else if (request.Kind == ClassroomCommandKind.StartScreenShare)
+    {
+        var viewers = ReadGuidArray(request.Payload, "viewerAgentIds")
+            .Where(id => allowedTargets.Contains(id) && id != lesson.TeacherAgentId)
+            .Distinct().Take(200).ToArray();
+        if (viewers.Length == 0)
+        {
+            return Results.BadRequest(new { error = ApiText.Get(httpRequest, "NoLessonTarget") });
+        }
+        payload = JsonSerializer.SerializeToElement(new
+        {
+            monitorIndex = request.Payload.GetProperty("monitorIndex").GetInt32(),
+            viewerAgentIds = viewers
+        });
+    }
+
+    var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, payload, DateTimeOffset.UtcNow);
     foreach (var target in targets)
     {
         await hub.Clients.Group(ClassroomHub.AgentGroup(target))
@@ -997,7 +1219,7 @@ app.MapPost("/api/v1/commands", async (
     AgentRegistry agentRegistry,
     IHubContext<ClassroomHub> hub,
     CommandAuditStore audit,
-    IOptionsMonitor<ClassroomOptions> options,
+    CloudDirectoryStore directory,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
 {
@@ -1006,7 +1228,8 @@ app.MapPost("/api/v1/commands", async (
         return Results.Unauthorized();
     }
 
-    var validationError = ValidateCommand(httpRequest, request, options.CurrentValue);
+    var applications = AvailableApplications(directory);
+    var validationError = ValidateCommand(httpRequest, request, applications);
     if (validationError is not null)
     {
         return Results.BadRequest(new { error = validationError });
@@ -1019,7 +1242,21 @@ app.MapPost("/api/v1/commands", async (
         return Results.BadRequest(new { error = ApiText.Get(httpRequest, "NoTarget") });
     }
 
-    var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, request.Payload.Clone(), DateTimeOffset.UtcNow);
+    var payload = request.Payload.Clone();
+    if (request.Kind == ClassroomCommandKind.LaunchApplication)
+    {
+        var applicationId = request.Payload.GetProperty("applicationId").GetString()!;
+        var application = applications.First(item => string.Equals(item.Id, applicationId, StringComparison.OrdinalIgnoreCase));
+        payload = JsonSerializer.SerializeToElement(new
+        {
+            applicationId = application.Id,
+            displayName = application.DisplayName,
+            fileName = application.FileName,
+            arguments = application.Arguments ?? string.Empty
+        });
+    }
+
+    var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, payload, DateTimeOffset.UtcNow);
     foreach (var target in targets)
     {
         await hub.Clients.Group(ClassroomHub.AgentGroup(target))
@@ -1123,7 +1360,10 @@ static void ValidateText(HttpRequest httpRequest, string? value, string field, i
     }
 }
 
-static string? ValidateCommand(HttpRequest httpRequest, CommandRequest request, ClassroomOptions options)
+static string? ValidateCommand(
+    HttpRequest httpRequest,
+    CommandRequest request,
+    IReadOnlyCollection<ClassroomApplication> applications)
 {
     if (request.TargetAgentIds.Count is 0 or > 200)
     {
@@ -1154,21 +1394,61 @@ static string? ValidateCommand(HttpRequest httpRequest, CommandRequest request, 
         case ClassroomCommandKind.LaunchApplication:
             if (!request.Payload.TryGetProperty("applicationId", out var applicationId) ||
                 applicationId.ValueKind != JsonValueKind.String ||
-                !options.AllowedApplicationIds.Contains(applicationId.GetString()!, StringComparer.OrdinalIgnoreCase))
+                !applications.Any(item => string.Equals(item.Id, applicationId.GetString(), StringComparison.OrdinalIgnoreCase)))
             {
                 return ApiText.Get(httpRequest, "AppNotAllowed");
             }
 
             break;
         case ClassroomCommandKind.StartScreenShare:
+            if (!request.Payload.TryGetProperty("monitorIndex", out var monitorIndex) ||
+                monitorIndex.ValueKind != JsonValueKind.Number || !monitorIndex.TryGetInt32(out var display) || display is < 0 or > 15 ||
+                ReadGuidArray(request.Payload, "viewerAgentIds").Count == 0)
+            {
+                return ApiText.Get(httpRequest, "InvalidMonitor");
+            }
+            break;
         case ClassroomCommandKind.StopScreenShare:
         case ClassroomCommandKind.CheckForUpdate:
+        case ClassroomCommandKind.StartBlackout:
+        case ClassroomCommandKind.StopBlackout:
+        case ClassroomCommandKind.StartStudentView:
+        case ClassroomCommandKind.StopStudentView:
+        case ClassroomCommandKind.StopMedia:
             break;
         default:
             return ApiText.Get(httpRequest, "UnsupportedCommand");
     }
 
     return null;
+}
+
+static IReadOnlyCollection<ClassroomApplication> AvailableApplications(CloudDirectoryStore directory)
+{
+    var applications = directory.Current.Applications;
+    return applications is not null
+        ? applications
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id) && !string.IsNullOrWhiteSpace(item.DisplayName) && !string.IsNullOrWhiteSpace(item.FileName))
+            .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray()
+        : CloudDirectoryResponse.DefaultApplications;
+}
+
+static IReadOnlyCollection<Guid> ReadGuidArray(JsonElement payload, string propertyName)
+{
+    if (!payload.TryGetProperty(propertyName, out var values) || values.ValueKind != JsonValueKind.Array)
+    {
+        return [];
+    }
+
+    return values.EnumerateArray()
+        .Select(value => value.ValueKind == JsonValueKind.String && Guid.TryParse(value.GetString(), out var id) ? id : Guid.Empty)
+        .Where(id => id != Guid.Empty)
+        .Distinct()
+        .Take(200)
+        .ToArray();
 }
 
 static string? ValidateCloudSettings(CloudServerSettings settings)

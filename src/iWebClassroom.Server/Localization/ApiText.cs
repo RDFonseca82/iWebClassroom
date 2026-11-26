@@ -26,7 +26,10 @@ public static class ApiText
         ["RoomInUse"] = ["A sala ou o posto de professor já tem uma aula ativa.", "The room or teacher workstation already has an active lesson.", "El aula o el puesto del profesor ya tiene una clase activa."],
         ["LessonNotFound"] = ["A aula já terminou ou não existe.", "The lesson has ended or does not exist.", "La clase ha terminado o no existe."],
         ["NoLessonTarget"] = ["Nenhum dos computadores selecionados pertence a esta aula.", "None of the selected computers belongs to this lesson.", "Ninguno de los equipos seleccionados pertenece a esta clase."],
-        ["UnexpectedError"] = ["O servidor não conseguiu concluir o pedido. Referência: {0}", "The server could not complete the request. Reference: {0}", "El servidor no pudo completar la solicitud. Referencia: {0}"]
+        ["UnexpectedError"] = ["O servidor não conseguiu concluir o pedido. Referência: {0}", "The server could not complete the request. Reference: {0}", "El servidor no pudo completar la solicitud. Referencia: {0}"],
+        ["InvalidExtension"] = ["O prolongamento deve estar entre 5 e 240 minutos.", "The extension must be between 5 and 240 minutes.", "La ampliación debe estar entre 5 y 240 minutos."],
+        ["InvalidMedia"] = ["Selecione uma imagem ou vídeo compatível com um máximo de 25 MB.", "Select a supported image or video up to 25 MB.", "Seleccione una imagen o vídeo compatible de hasta 25 MB."],
+        ["InvalidMonitor"] = ["O monitor ou os destinatários do espelhamento não são válidos.", "The display or mirroring recipients are invalid.", "El monitor o los destinatarios de la duplicación no son válidos."]
     };
 
     public static string Get(HttpRequest request, string key, params object[] arguments)

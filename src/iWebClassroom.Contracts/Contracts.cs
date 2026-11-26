@@ -26,7 +26,18 @@ public sealed record AgentSummary(
     DateTimeOffset LastSeenUtc,
     bool IsRoaming = false,
     bool IsAssigned = true,
-    string? SharedZone = null);
+    string? SharedZone = null,
+    IReadOnlyCollection<DisplayDescriptor>? Displays = null);
+
+public sealed record DisplayDescriptor(
+    int Index,
+    string Name,
+    int Width,
+    int Height,
+    bool IsPrimary);
+
+public sealed record AgentCapabilitiesRequest(
+    IReadOnlyCollection<DisplayDescriptor> Displays);
 
 public sealed record TeacherAccessRequest(string Email);
 
@@ -85,6 +96,14 @@ public sealed record CommandRequest(
     ClassroomCommandKind Kind,
     JsonElement Payload);
 
+public sealed record ExtendLessonRequest(int Minutes);
+
+public sealed record ClassroomApplication(
+    string Id,
+    string DisplayName,
+    string FileName,
+    string? Arguments = null);
+
 public sealed record StartLessonRequest(
     string RoomId,
     Guid TeacherAgentId,
@@ -112,7 +131,8 @@ public sealed record TeacherOverview(
     IReadOnlyCollection<LessonSessionSummary> Lessons,
     IReadOnlyCollection<ClassroomDefinition> FixedRooms,
     TeacherIdentity Teacher,
-    int DefaultLessonDurationMinutes);
+    int DefaultLessonDurationMinutes,
+    IReadOnlyCollection<ClassroomApplication>? Applications = null);
 
 public sealed record UpdateManifest(
     string Component,

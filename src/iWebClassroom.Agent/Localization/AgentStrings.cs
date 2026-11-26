@@ -86,7 +86,8 @@ public static class AgentStrings
         [nameof(TrayVersion)] = ["Versão", "Version", "Versión"],
         [nameof(CopyServerAddress)] = ["Copiar endereço do servidor", "Copy server address", "Copiar dirección del servidor"],
         [nameof(RefreshInformation)] = ["Atualizar informações", "Refresh information", "Actualizar información"],
-        [nameof(AgentKeepsRunning)] = ["O agente continua ativo junto ao relógio e não pode ser encerrado pelo utilizador.", "The agent remains active in the notification area and cannot be closed by the user.", "El agente permanece activo en el área de notificación y el usuario no puede cerrarlo."]
+        [nameof(AgentKeepsRunning)] = ["O agente continua ativo junto ao relógio e não pode ser encerrado pelo utilizador.", "The agent remains active in the notification area and cannot be closed by the user.", "El agente permanece activo en el área de notificación y el usuario no puede cerrarlo."],
+        [nameof(AttentionToTeacher)] = ["Atenção ao professor", "Please pay attention to the teacher", "Atención al profesor"]
     };
 
     private static int Index => Language == "pt" ? 0 : Language == "es" ? 2 : 1;
@@ -173,4 +174,5 @@ public static class AgentStrings
     public static string CopyServerAddress => Text(nameof(CopyServerAddress));
     public static string RefreshInformation => Text(nameof(RefreshInformation));
     public static string AgentKeepsRunning => Text(nameof(AgentKeepsRunning));
+    public static string AttentionToTeacher => Text(nameof(AttentionToTeacher));
 }

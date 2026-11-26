@@ -13,9 +13,13 @@ Este repositório contém um MVP funcional com:
 - códigos de professor de utilização única, válidos durante 10 minutos e separados do token administrativo;
 - inscrição de agentes com código temporário e token individual;
 - ligação em tempo real por SignalR, com reconexão automática;
-- abertura de aplicações permitidas por uma lista no servidor **e** outra lista local no agente;
+- catálogo de aplicações gerido por escola na cloud, sincronizado com os servidores e validado novamente no agente;
 - envio de mensagens aos alunos;
-- espelhamento visível do ecrã do professor para os alunos da mesma sala;
+- blackout dos ecrãs de todos os alunos ou apenas dos computadores selecionados;
+- espelhamento de um monitor escolhido pelo professor para todos ou apenas para os alunos selecionados;
+- visualização temporária do ecrã de um aluno escolhido, sem gravação no servidor;
+- apresentação de imagens ou vídeos em ecrã inteiro nos computadores escolhidos;
+- aviso de fim de aula e prolongamento imediato em 15, 30 ou 60 minutos;
 - registo de auditoria dos comandos, sem guardar o conteúdo das mensagens;
 - atualização do agente e atualização coordenada dos servidores por pacote MSI assinado, SHA-256, certificado Authenticode e aprovação explícita da escola;
 - scripts de publicação e instalação Windows;
@@ -71,7 +75,11 @@ Um cursor durável envia até 250 eventos por lote para a Cloud a cada 10 minuto
 
 Nas salas fixas, o administrador cria a sala no portal cloud e associa-a a um servidor local. Os agentes fixos usam o código dessa sala e ligam-se sempre à mesma sala. Só pode existir um professor ativo por sala e cada professor só pode dirigir uma aula de cada vez.
 
-O espelhamento do MVP usa JPEG a aproximadamente 4 imagens por segundo. É adequado para demonstrações de aplicações e explicações; WebRTC será necessário para vídeo fluido e áudio.
+O espelhamento adaptado à rede local usa JPEG com resolução máxima de 1024 × 720, qualidade 44 e um intervalo mínimo de aproximadamente 170 ms. Frames idênticos não são enviados e o agente descarta frames de apresentação atrasados, privilegiando fluidez em vez de qualidade fotográfica. É adequado para demonstrações de aplicações e explicações; WebRTC continuará a ser necessário para vídeo fluido com áudio.
+
+O professor escolhe o monitor a partilhar e os destinatários. A visualização do ecrã de um aluno só começa após uma ação explícita do professor, termina ao fechar a janela e é autorizada apenas dentro da aula ativa. O servidor mantém somente o último frame em memória durante cinco segundos; não cria gravações nem envia estas imagens para a cloud.
+
+Imagens JPEG, PNG, GIF ou BMP e vídeos MP4/WMV até 25 MB podem ser enviados aos computadores escolhidos e apresentados em ecrã inteiro. O ficheiro circula apenas pelo servidor local da aula, é validado por tipo e SHA-256 e é removido quando a aula termina.
 
 ## Estrutura
 
@@ -151,7 +159,7 @@ Se o servidor for reinstalado, substituído ou perder o seu diretório `ProgramD
 
 Esta operação invalida imediatamente o token da instalação anterior, limpa a identidade e os contadores reportados por essa instalação e mantém a palavra-passe técnica. Não é necessária qualquer alteração à base de dados.
 
-São sincronizados HTTPS, limites do espelhamento, duração predefinida das aulas, aplicações permitidas e política de atualização. Segredos, caminhos locais e identidade dos agentes nunca são enviados como configuração.
+São sincronizados HTTPS, limites do espelhamento, duração predefinida das aulas, catálogo de aplicações e política de atualização. O administrador gere o catálogo em **Escola → Aplicações**; o caminho do executável tem de ser absoluto, terminar em `.exe` e existir nos computadores. O professor envia apenas o identificador da aplicação: o servidor substitui-o pelo caminho autorizado sincronizado antes de emitir o comando, e o agente volta a exigir um executável local existente. Para ativar esta área no portal, execute [docs/sql/2026-11-26-school-applications.sql](docs/sql/2026-11-26-school-applications.sql) no SQL Server. Segredos e credenciais nunca são incluídos no catálogo.
 
 O portal cloud é mantido no seu projeto de implantação próprio. Este repositório contém apenas o cliente da API no servidor Windows; as alterações de base de dados e do portal são entregues diretamente nesse projeto.
 
@@ -191,8 +199,8 @@ O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.12.2-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.12.2-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.13.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.13.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.

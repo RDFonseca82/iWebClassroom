@@ -10,6 +10,7 @@ namespace IWebClassroom.Server.Hubs;
 public sealed class ClassroomHub(
     AgentRegistry registry,
     LessonRegistry lessons,
+    StudentScreenStore studentScreens,
     ServerMaintenanceState maintenance,
     IOptionsMonitor<ClassroomOptions> options,
     ILogger<ClassroomHub> logger) : Hub
@@ -60,11 +61,15 @@ public sealed class ClassroomHub(
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         LastFrameTicks.TryRemove(Context.ConnectionId, out _);
+        if (registry.TryGetByConnection(Context.ConnectionId, out var disconnected) && disconnected is not null)
+        {
+            studentScreens.Remove(disconnected.AgentId);
+        }
         await registry.DetachConnectionAsync(Context.ConnectionId, CancellationToken.None);
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task PublishScreenFrame(byte[] jpegFrame)
+    public async Task PublishScreenFrame(byte[] jpegFrame, IReadOnlyCollection<Guid> viewerAgentIds)
     {
         if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
             agent is null ||
@@ -87,11 +92,20 @@ public sealed class ClassroomHub(
         }
 
         LastFrameTicks[Context.ConnectionId] = now;
-        await Clients.OthersInGroup(LessonGroup(lesson.LessonId))
+        var viewers = viewerAgentIds.Distinct()
+            .Where(agentId => agentId != agent.AgentId && lesson.MemberAgentIds.Contains(agentId))
+            .Take(200)
+            .Select(AgentGroup)
+            .ToArray();
+        if (viewers.Length == 0)
+        {
+            return;
+        }
+        await Clients.Groups(viewers)
             .SendAsync(HubProtocol.ScreenFrame, jpegFrame, Context.ConnectionAborted);
     }
 
-    public async Task PublishScreenStopped()
+    public async Task PublishScreenStopped(IReadOnlyCollection<Guid> viewerAgentIds)
     {
         if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
             agent is null ||
@@ -101,8 +115,27 @@ public sealed class ClassroomHub(
             throw new HubException("Only the teacher of an active lesson can stop a screen share.");
         }
 
-        await Clients.OthersInGroup(LessonGroup(lesson.LessonId))
+        var viewers = viewerAgentIds.Distinct()
+            .Where(agentId => agentId != agent.AgentId && lesson.MemberAgentIds.Contains(agentId))
+            .Take(200)
+            .Select(AgentGroup)
+            .ToArray();
+        await Clients.Groups(viewers)
             .SendAsync(HubProtocol.ScreenStopped, Context.ConnectionAborted);
+    }
+
+    public Task PublishStudentScreenFrame(byte[] jpegFrame)
+    {
+        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) || agent is null ||
+            agent.Role != AgentRole.Student || !lessons.TryGetForAgent(agent, out var lesson) ||
+            !studentScreens.CanPublish(lesson!.LessonId, agent.AgentId) ||
+            jpegFrame.Length == 0 || jpegFrame.Length > options.CurrentValue.MaximumFrameBytes)
+        {
+            throw new HubException("Only a student in an active lesson can publish a monitor preview.");
+        }
+
+        studentScreens.Update(lesson.LessonId, agent.AgentId, jpegFrame);
+        return Task.CompletedTask;
     }
 
     public static string AgentGroup(Guid agentId) => $"agent:{agentId:N}";

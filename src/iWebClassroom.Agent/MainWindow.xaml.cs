@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,12 +22,18 @@ public partial class MainWindow : Window
     private readonly ClassroomConnection _connection = new();
     private readonly ApplicationCatalog _applications = new();
     private readonly ScreenCaptureService _screenCapture = new();
+    private readonly ScreenCaptureService _studentCapture = new();
     private readonly UpdateService _updates = new();
     private readonly AgentLogStore _logs = AgentLogStore.Current;
     private readonly DispatcherTimer _profileTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     private readonly DispatcherTimer _logUploadTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private AgentSettings _settings = AgentSettings.Empty;
     private ScreenDisplayWindow? _screenWindow;
+    private readonly List<BlackoutWindow> _blackoutWindows = [];
+    private MediaDisplayWindow? _mediaWindow;
+    private string? _mediaPath;
+    private IReadOnlyCollection<Guid> _shareViewers = [];
+    private int _screenFramePending;
     private bool _closing;
     private bool _disposed;
     private DateTimeOffset _lastProfileWarningUtc = DateTimeOffset.MinValue;
@@ -126,6 +133,14 @@ public partial class MainWindow : Window
             }
 
             await _connection.ConnectAsync(_settings, CancellationToken.None);
+            try
+            {
+                await _enrollmentClient.UpdateCapabilitiesAsync(_settings, CancellationToken.None);
+            }
+            catch (Exception capabilityError)
+            {
+                _logs.Warning("Capabilities", "Display information could not be sent to the server.", capabilityError, "capabilities_failed");
+            }
             await RefreshProfileAsync();
             StatusText.Text = AgentStrings.Connected;
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
@@ -193,16 +208,43 @@ public partial class MainWindow : Window
                     await Dispatcher.InvokeAsync(() => MessageBox.Show(message, AgentStrings.TeacherMessageTitle, MessageBoxButton.OK, MessageBoxImage.Information));
                     break;
                 case ClassroomCommandKind.LaunchApplication:
-                    _applications.Launch(command.Payload.GetProperty("applicationId").GetString() ?? string.Empty);
+                    _applications.Launch(
+                        command.Payload.GetProperty("applicationId").GetString() ?? string.Empty,
+                        command.Payload.TryGetProperty("fileName", out var fileName) ? fileName.GetString() : null,
+                        command.Payload.TryGetProperty("arguments", out var arguments) ? arguments.GetString() : null);
                     break;
                 case ClassroomCommandKind.StartScreenShare:
-                    await Dispatcher.InvokeAsync(StartSharing);
+                    var monitorIndex = command.Payload.TryGetProperty("monitorIndex", out var monitor) ? monitor.GetInt32() : 0;
+                    var viewers = command.Payload.TryGetProperty("viewerAgentIds", out var viewerIds)
+                        ? viewerIds.EnumerateArray().Select(value => value.GetGuid()).ToArray()
+                        : [];
+                    await StartSharingAsync(monitorIndex, viewers);
                     break;
                 case ClassroomCommandKind.StopScreenShare:
                     await StopSharingAsync();
                     break;
                 case ClassroomCommandKind.CheckForUpdate:
                     await CheckForUpdatesAsync();
+                    break;
+                case ClassroomCommandKind.StartBlackout:
+                    await Dispatcher.InvokeAsync(StartBlackout);
+                    break;
+                case ClassroomCommandKind.StopBlackout:
+                    await Dispatcher.InvokeAsync(StopBlackout);
+                    break;
+                case ClassroomCommandKind.StartStudentView:
+                    var studentMonitor = command.Payload.TryGetProperty("monitorIndex", out var studentDisplay)
+                        ? studentDisplay.GetInt32() : 0;
+                    await StartStudentViewAsync(studentMonitor);
+                    break;
+                case ClassroomCommandKind.StopStudentView:
+                    await _studentCapture.StopAsync();
+                    break;
+                case ClassroomCommandKind.ShowMedia:
+                    await ShowMediaAsync(command.Payload);
+                    break;
+                case ClassroomCommandKind.StopMedia:
+                    await Dispatcher.InvokeAsync(StopMedia);
                     break;
             }
             _logs.Information("Command", $"Completed command {command.Kind}.", "command_completed");
@@ -221,13 +263,24 @@ public partial class MainWindow : Window
             return;
         }
 
-        Dispatcher.Invoke(() =>
+        if (Interlocked.Exchange(ref _screenFramePending, 1) == 1)
         {
-            _screenWindow ??= new ScreenDisplayWindow();
-            _screenWindow.SetFrame(frame);
-            if (!_screenWindow.IsVisible)
+            return;
+        }
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            try
             {
-                _screenWindow.Show();
+                _screenWindow ??= new ScreenDisplayWindow();
+                _screenWindow.SetFrame(frame);
+                if (!_screenWindow.IsVisible)
+                {
+                    _screenWindow.Show();
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _screenFramePending, 0);
             }
         });
     }
@@ -238,19 +291,25 @@ public partial class MainWindow : Window
         _screenWindow = null;
     });
 
-    private void ShareButton_Click(object sender, RoutedEventArgs e) => StartSharing();
+    private async void ShareButton_Click(object sender, RoutedEventArgs e) => await StartSharingAsync(0, []);
 
-    private void StartSharing()
+    private async Task StartSharingAsync(int monitorIndex, IReadOnlyCollection<Guid> viewers)
     {
-        if (_settings.Role != AgentRole.Teacher || !_connection.IsConnected)
+        if (!_connection.IsConnected)
         {
             return;
         }
 
-        _screenCapture.Start(_connection.PublishFrameAsync);
-        ShareButton.IsEnabled = false;
-        StopShareButton.IsEnabled = true;
-        ActivityText.Text = AgentStrings.ScreenSharing;
+        await _screenCapture.StopAsync();
+        _shareViewers = viewers.Distinct().ToArray();
+        _screenCapture.Start(monitorIndex, (frame, cancellationToken) =>
+            _connection.PublishFrameAsync(frame, _shareViewers, cancellationToken));
+        await Dispatcher.InvokeAsync(() =>
+        {
+            ShareButton.IsEnabled = false;
+            StopShareButton.IsEnabled = true;
+            ActivityText.Text = AgentStrings.ScreenSharing;
+        });
     }
 
     private async void StopShareButton_Click(object sender, RoutedEventArgs e) => await StopSharingAsync();
@@ -260,8 +319,16 @@ public partial class MainWindow : Window
         await _screenCapture.StopAsync();
         if (_connection.IsConnected)
         {
-            await _connection.PublishStoppedAsync(CancellationToken.None);
+            try
+            {
+                await _connection.PublishStoppedAsync(_shareViewers, CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                _logs.Warning("ScreenShare", "The local capture stopped, but the server no longer accepted the stop notification.", exception, "screen_stop_notification_failed");
+            }
         }
+        _shareViewers = [];
 
         await Dispatcher.InvokeAsync(() =>
         {
@@ -269,6 +336,79 @@ public partial class MainWindow : Window
             StopShareButton.IsEnabled = false;
             ActivityText.Text = string.Empty;
         });
+    }
+
+    private async Task StartStudentViewAsync(int monitorIndex)
+    {
+        await _studentCapture.StopAsync();
+        _studentCapture.Start(monitorIndex, _connection.PublishStudentFrameAsync);
+    }
+
+    private void StartBlackout()
+    {
+        StopBlackout();
+        foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+        {
+            var window = new BlackoutWindow(screen.Bounds);
+            _blackoutWindows.Add(window);
+            window.Show();
+        }
+    }
+
+    private void StopBlackout()
+    {
+        foreach (var window in _blackoutWindows.ToArray())
+        {
+            window.CloseFromAgent();
+        }
+        _blackoutWindows.Clear();
+    }
+
+    private async Task ShowMediaAsync(JsonElement payload)
+    {
+        var downloadUrl = payload.GetProperty("downloadUrl").GetString()
+                          ?? throw new InvalidOperationException("Missing media URL.");
+        var expectedHash = payload.GetProperty("sha256").GetString() ?? string.Empty;
+        var fileName = Path.GetFileName(payload.GetProperty("fileName").GetString() ?? "media.bin");
+        var contentType = payload.GetProperty("contentType").GetString() ?? "application/octet-stream";
+        var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "iWebClassroom", "media");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, $"{Guid.NewGuid():N}-{fileName}");
+        using var client = new HttpClient { BaseAddress = new Uri(_settings.ServerUrl), Timeout = TimeSpan.FromMinutes(3) };
+        client.DefaultRequestHeaders.Add(HubProtocol.AgentIdHeader, _settings.AgentId.ToString());
+        client.DefaultRequestHeaders.Add(HubProtocol.AgentTokenHeader, _settings.AgentToken);
+        await using (var input = await client.GetStreamAsync(downloadUrl))
+        await using (var output = File.Create(path))
+        {
+            await input.CopyToAsync(output);
+        }
+        await using (var stream = File.OpenRead(path))
+        {
+            var actualHash = Convert.ToHexString(await SHA256.HashDataAsync(stream));
+            if (!string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Delete(path);
+                throw new InvalidOperationException(AgentStrings.UpdateHashInvalid);
+            }
+        }
+        await Dispatcher.InvokeAsync(() =>
+        {
+            StopMedia();
+            _mediaPath = path;
+            _mediaWindow = new MediaDisplayWindow(path, contentType);
+            _mediaWindow.Show();
+        });
+    }
+
+    private void StopMedia()
+    {
+        _mediaWindow?.CloseFromAgent();
+        _mediaWindow = null;
+        if (!string.IsNullOrWhiteSpace(_mediaPath))
+        {
+            try { File.Delete(_mediaPath); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            _mediaPath = null;
+        }
     }
 
     private async Task CheckForUpdatesAsync()
@@ -466,9 +606,12 @@ public partial class MainWindow : Window
         _profileTimer.Stop();
         _logUploadTimer.Stop();
         await _logs.UploadAsync(_settings, CancellationToken.None);
+        await _studentCapture.DisposeAsync();
         await _screenCapture.DisposeAsync();
         await _connection.DisposeAsync();
         _screenWindow?.CloseFromAgent();
+        StopBlackout();
+        StopMedia();
     }
 
     protected override async void OnClosed(EventArgs e)

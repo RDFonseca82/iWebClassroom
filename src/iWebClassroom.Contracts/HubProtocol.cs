@@ -8,6 +8,7 @@ public static class HubProtocol
     public const string ScreenStopped = "ScreenStopped";
     public const string PublishScreenFrame = "PublishScreenFrame";
     public const string PublishScreenStopped = "PublishScreenStopped";
+    public const string PublishStudentScreenFrame = "PublishStudentScreenFrame";
 
     public const string AgentIdHeader = "X-Agent-Id";
     public const string AgentTokenHeader = "X-Agent-Token";

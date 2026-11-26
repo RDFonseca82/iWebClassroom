@@ -9,7 +9,7 @@
 
     <MajorUpgrade DowngradeErrorMessage="A newer version is already installed. / Já está instalada uma versão mais recente. / Ya está instalada una versión más reciente." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
-    <Icon Id="AgentAppIcon" SourceFile="$(var.PublishDir)\iWebClassroom.ico" />
+    <Icon Id="AgentAppIcon.ico" SourceFile="$(var.PublishDir)\iWebClassroom.ico" />
 
     <Property Id="SERVERURL" Secure="yes">
       <RegistrySearch Id="InstalledAgentServerUrl"
@@ -204,13 +204,13 @@
                   Directory="AgentProgramsFolder"
                   Name="iWebClassroom Agent"
                   Description="iWebClassroom classroom agent"
-                  Icon="AgentAppIcon"
+                  Icon="AgentAppIcon.ico"
                   Advertise="yes" />
         <Shortcut Id="AgentDesktopShortcut"
                   Directory="DesktopFolder"
                   Name="iWebClassroom"
                   Description="iWebClassroom Agent"
-                  Icon="AgentAppIcon"
+                  Icon="AgentAppIcon.ico"
                   Advertise="yes" />
       </File>
       <RemoveFolder Id="RemoveAgentProgramsFolder" Directory="AgentProgramsFolder" On="uninstall" />

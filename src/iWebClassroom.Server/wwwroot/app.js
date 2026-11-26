@@ -5,13 +5,13 @@ const translations = {
     classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Computador usado pelo professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
     studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação",
-    notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento",
+    notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento", attention: "Atenção", blackout: "Bloquear ecrãs", restoreScreens: "Repor ecrãs", monitor: "Monitor", recipients: "Destinatários", selectedComputers: "Computadores selecionados", allComputers: "Todos os computadores", studentScreen: "Ecrã do aluno", viewStudent: "Ver aluno selecionado", fullscreenMedia: "Imagem ou vídeo em ecrã inteiro", showMedia: "Mostrar ficheiro", stopMedia: "Parar apresentação", close: "Fechar", waitingScreen: "A aguardar imagem do aluno…",
     invalidCode: "O código é inválido ou expirou.", invalidEmail: "Introduza um endereço de e-mail válido.", accessUnavailable: "Não foi possível contactar a gestão central. Tente novamente dentro de instantes.", codeRequested: "Se o e-mail estiver autorizado, o código foi enviado.", tooManyRequests: "Foram feitos demasiados pedidos. Aguarde um minuto e tente novamente.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", sharedComputer: "Partilhado", online: "online", offline: "offline",
     noRooms: "Ainda não existem salas configuradas.", noTeachers: "O administrador ainda não definiu um computador de professor para esta sala.", noSharedTeachers: "Não existem computadores partilhados online disponíveis.", noAgents: "Ainda não existem computadores de aluno nesta sala.",
     selectComputer: "Selecione pelo menos um computador online.", actionSent: "Ação enviada com sucesso.", writeMessage: "Escreva uma mensagem.", selectTeacher: "Selecione o computador que está a usar.",
     startFirst: "Inicie a aula para controlar os computadores desta sala.", lessonReady: "Sala pronta. Confirme o computador do professor e inicie a aula.",
     lessonActive: "Aula ativa em {room} · {online}/{total} computadores online · termina às {time}", lessonStarted: "A aula foi iniciada e os computadores foram associados automaticamente.",
-    lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível", enterRoomName: "Indique um nome para a sala temporária.", temporaryPin: "Código da sala: {pin}", teacherWelcome: "Sessão de {name}. Escolha uma sala fixa ou crie uma sala temporária."
+    lessonEnded: "A aula terminou.", confirmEnd: "Terminar esta aula e desligar os computadores da sessão?", serverAvailable: "Servidor disponível", serverUnavailable: "Servidor indisponível", enterRoomName: "Indique um nome para a sala temporária.", temporaryPin: "Código da sala: {pin}", teacherWelcome: "Sessão de {name}. Escolha uma sala fixa ou crie uma sala temporária.", lessonEnding: "A aula termina dentro de {minutes} minutos.", extendLesson: "Prolongar aula", extended: "A aula foi prolongada.", selectOneStudent: "Selecione apenas um aluno online.", selectMedia: "Selecione uma imagem ou vídeo até 25 MB.", displayLabel: "Monitor {number} · {width}×{height}", noApplications: "Sem aplicações configuradas"
   },
   en: {
     teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
@@ -19,13 +19,13 @@ const translations = {
     classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Computer used by the teacher", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
     studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application",
-    notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring",
+    notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring", attention: "Attention", blackout: "Blank screens", restoreScreens: "Restore screens", monitor: "Display", recipients: "Recipients", selectedComputers: "Selected computers", allComputers: "All computers", studentScreen: "Student screen", viewStudent: "View selected student", fullscreenMedia: "Full-screen image or video", showMedia: "Show file", stopMedia: "Stop presentation", close: "Close", waitingScreen: "Waiting for the student screen…",
     invalidCode: "The code is invalid or has expired.", invalidEmail: "Enter a valid email address.", accessUnavailable: "Central management could not be reached. Please try again shortly.", codeRequested: "If the email is authorised, the code has been sent.", tooManyRequests: "Too many requests were made. Wait one minute and try again.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", sharedComputer: "Shared", online: "online", offline: "offline",
     noRooms: "There are no configured rooms yet.", noTeachers: "The administrator has not assigned a teacher computer to this room yet.", noSharedTeachers: "There are no online shared computers available.", noAgents: "There are no student computers in this room yet.",
     selectComputer: "Select at least one online computer.", actionSent: "Action sent successfully.", writeMessage: "Write a message.", selectTeacher: "Select the computer you are using.",
     startFirst: "Start the lesson to control the computers in this room.", lessonReady: "Room ready. Confirm the teacher computer and start the lesson.",
     lessonActive: "Lesson active in {room} · {online}/{total} computers online · ends at {time}", lessonStarted: "The lesson started and the computers were added automatically.",
-    lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable", enterRoomName: "Enter a name for the temporary room.", temporaryPin: "Room code: {pin}", teacherWelcome: "Session for {name}. Choose a fixed room or create a temporary room."
+    lessonEnded: "The lesson has ended.", confirmEnd: "End this lesson and disconnect its computers?", serverAvailable: "Server available", serverUnavailable: "Server unavailable", enterRoomName: "Enter a name for the temporary room.", temporaryPin: "Room code: {pin}", teacherWelcome: "Session for {name}. Choose a fixed room or create a temporary room.", lessonEnding: "The lesson ends in {minutes} minutes.", extendLesson: "Extend lesson", extended: "The lesson was extended.", selectOneStudent: "Select exactly one online student.", selectMedia: "Select an image or video up to 25 MB.", displayLabel: "Display {number} · {width}×{height}", noApplications: "No applications configured"
   },
   es: {
     teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
@@ -33,27 +33,27 @@ const translations = {
     classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Equipo utilizado por el profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
     studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación",
-    notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación",
+    notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación", attention: "Atención", blackout: "Bloquear pantallas", restoreScreens: "Restaurar pantallas", monitor: "Monitor", recipients: "Destinatarios", selectedComputers: "Equipos seleccionados", allComputers: "Todos los equipos", studentScreen: "Pantalla del alumno", viewStudent: "Ver alumno seleccionado", fullscreenMedia: "Imagen o vídeo a pantalla completa", showMedia: "Mostrar archivo", stopMedia: "Detener presentación", close: "Cerrar", waitingScreen: "Esperando la pantalla del alumno…",
     invalidCode: "El código no es válido o ha caducado.", invalidEmail: "Introduzca una dirección de correo válida.", accessUnavailable: "No se pudo contactar con la gestión central. Inténtelo de nuevo en unos instantes.", codeRequested: "Si el correo está autorizado, se ha enviado el código.", tooManyRequests: "Se han realizado demasiadas solicitudes. Espere un minuto e inténtelo de nuevo.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", sharedComputer: "Compartido", online: "conectado", offline: "desconectado",
     noRooms: "Todavía no hay aulas configuradas.", noTeachers: "El administrador todavía no ha asignado un equipo de profesor a esta aula.", noSharedTeachers: "No hay equipos compartidos en línea disponibles.", noAgents: "Todavía no hay equipos de alumnos en esta aula.",
     selectComputer: "Seleccione al menos un equipo conectado.", actionSent: "Acción enviada correctamente.", writeMessage: "Escriba un mensaje.", selectTeacher: "Seleccione el equipo que está utilizando.",
     startFirst: "Inicie la clase para controlar los equipos de esta aula.", lessonReady: "Aula preparada. Confirme el equipo del profesor e inicie la clase.",
     lessonActive: "Clase activa en {room} · {online}/{total} equipos conectados · termina a las {time}", lessonStarted: "La clase se inició y los equipos se añadieron automáticamente.",
-    lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible", enterRoomName: "Indique un nombre para el aula temporal.", temporaryPin: "Código del aula: {pin}", teacherWelcome: "Sesión de {name}. Elija un aula fija o cree un aula temporal."
+    lessonEnded: "La clase ha terminado.", confirmEnd: "¿Terminar esta clase y desconectar sus equipos?", serverAvailable: "Servidor disponible", serverUnavailable: "Servidor no disponible", enterRoomName: "Indique un nombre para el aula temporal.", temporaryPin: "Código del aula: {pin}", teacherWelcome: "Sesión de {name}. Elija un aula fija o cree un aula temporal.", lessonEnding: "La clase termina dentro de {minutes} minutos.", extendLesson: "Ampliar clase", extended: "La clase se ha ampliado.", selectOneStudent: "Seleccione un único alumno conectado.", selectMedia: "Seleccione una imagen o vídeo de hasta 25 MB.", displayLabel: "Monitor {number} · {width}×{height}", noApplications: "Sin aplicaciones configuradas"
   }
 };
 
 const detectedLanguage = navigator.language?.toLowerCase().startsWith("es") ? "es" : navigator.language?.toLowerCase().startsWith("en") ? "en" : "pt-PT";
 const storedLanguage = localStorage.getItem("language");
 const state = {
-  session: sessionStorage.getItem("teacher-session") || "", teacher: null, agents: [], lessons: [], fixedRooms: [], selected: new Set(), renderedLessonId: null, durationInitialized: false,
-  language: storedLanguage || detectedLanguage, pendingEmail: ""
+  session: sessionStorage.getItem("teacher-session") || "", teacher: null, agents: [], lessons: [], fixedRooms: [], applications: [], selected: new Set(), renderedLessonId: null, durationInitialized: false,
+  language: storedLanguage || detectedLanguage, pendingEmail: "", screenAgentId: null, screenLessonId: null, screenTimer: null, screenObjectUrl: null
 };
 const elements = {
   authPanel: document.querySelector("#auth-panel"), workspace: document.querySelector("#workspace"), requestForm: document.querySelector("#access-request-form"), verifyForm: document.querySelector("#access-verify-form"),
   email: document.querySelector("#teacher-email"), code: document.querySelector("#teacher-code"), accessEmail: document.querySelector("#access-email"), agents: document.querySelector("#agents"), room: document.querySelector("#room"), roomMode: document.querySelector("#room-mode"), temporaryRoomName: document.querySelector("#temporary-room-name"), teacher: document.querySelector("#teacher"),
   duration: document.querySelector("#duration"), start: document.querySelector("#start-lesson"), end: document.querySelector("#end-lesson"),
-  lessonStatus: document.querySelector("#lesson-status"), count: document.querySelector("#selection-count"), toast: document.querySelector("#toast")
+  lessonStatus: document.querySelector("#lesson-status"), count: document.querySelector("#selection-count"), toast: document.querySelector("#toast"), attentionAudience: document.querySelector("#attention-audience"), shareMonitor: document.querySelector("#share-monitor"), shareAudience: document.querySelector("#share-audience"), mediaAudience: document.querySelector("#media-audience"), mediaFile: document.querySelector("#media-file"), screenModal: document.querySelector("#student-screen-modal"), screenImage: document.querySelector("#student-screen-image"), screenWait: document.querySelector("#student-screen-wait")
 };
 
 function t(key, values = {}) {
@@ -109,6 +109,10 @@ function toast(message) {
 }
 
 function logout() {
+  if (state.screenTimer) window.clearTimeout(state.screenTimer);
+  if (state.screenObjectUrl) URL.revokeObjectURL(state.screenObjectUrl);
+  state.screenAgentId = null; state.screenLessonId = null; state.screenTimer = null; state.screenObjectUrl = null;
+  elements.screenImage.removeAttribute("src"); elements.screenModal.hidden = true;
   state.session = ""; state.teacher = null; state.pendingEmail = ""; sessionStorage.removeItem("teacher-session");
   elements.code.value = ""; elements.verifyForm.hidden = true; elements.requestForm.hidden = false;
   elements.authPanel.hidden = false; elements.workspace.hidden = true;
@@ -126,6 +130,7 @@ async function loadOverview() {
   state.agents = overview.agents || [];
   state.lessons = overview.lessons || [];
   state.fixedRooms = overview.fixedRooms || [];
+  state.applications = overview.applications || [];
   state.teacher = overview.teacher || state.teacher;
   if (!state.durationInitialized && overview.defaultLessonDurationMinutes) {
     const duration = String(overview.defaultLessonDurationMinutes);
@@ -147,6 +152,7 @@ function renderOverview() {
   elements.room.value = rooms.some(([code]) => code === previousRoom) ? previousRoom : (rooms[0]?.[0] || "");
 
   const temporary = elements.roomMode.value === "temporary";
+  const previousTeacher = elements.teacher.value;
   const teachers = state.agents.filter(agent => agent.isAssigned !== false && (temporary
     ? (agent.isOnline && (agent.isShared || agent.role === 1))
     : (agent.role === 1 && !agent.isShared && agent.classroomId === elements.room.value)
@@ -154,8 +160,10 @@ function renderOverview() {
   elements.teacher.innerHTML = teachers.length
     ? teachers.map(agent => `<option value="${agent.agentId}">${escapeHtml(agent.displayName)} · ${escapeHtml(agent.isShared ? (agent.sharedZone || t("sharedComputer")) : agent.classroomId)} · ${t(agent.isOnline ? "online" : "offline")}</option>`).join("")
     : `<option value="">${t(temporary ? "noSharedTeachers" : "noTeachers")}</option>`;
+  if (teachers.some(agent => agent.agentId === previousTeacher)) elements.teacher.value = previousTeacher;
 
   const lesson = currentLesson();
+  if (state.screenAgentId && (!lesson || lesson.lessonId !== state.screenLessonId)) void closeStudentScreen(false);
   const ownedLesson = Boolean(lesson && lesson.teacherId === state.teacher?.teacherId);
   if (lesson) elements.teacher.value = lesson.teacherAgentId;
   elements.teacher.disabled = Boolean(lesson);
@@ -165,6 +173,15 @@ function renderOverview() {
   document.querySelector("#fixed-room-field").hidden = temporary;
   document.querySelector("#temporary-room-field").hidden = !temporary;
   elements.start.disabled = (!temporary && !rooms.length) || !teachers.length;
+  const selectedTeacher = state.agents.find(agent => agent.agentId === elements.teacher.value);
+  const displays = selectedTeacher?.displays?.length ? selectedTeacher.displays : [{ index: 0, width: 0, height: 0, isPrimary: true }];
+  const previousDisplay = elements.shareMonitor.value;
+  elements.shareMonitor.innerHTML = displays.map(display => `<option value="${display.index}">${escapeHtml(t("displayLabel", { number: display.index + 1, width: display.width || "?", height: display.height || "?" }))}${display.isPrimary ? " ★" : ""}</option>`).join("");
+  if ([...elements.shareMonitor.options].some(option => option.value === previousDisplay)) elements.shareMonitor.value = previousDisplay;
+  const applicationContainer = document.querySelector("#application-buttons");
+  applicationContainer.innerHTML = state.applications.length
+    ? state.applications.map(application => `<button data-command="app" data-app="${escapeHtml(application.id)}" class="secondary">${escapeHtml(application.displayName)}</button>`).join("")
+    : `<span class="empty">${t("noApplications")}</span>`;
   document.querySelector("#teacher-welcome").textContent = state.teacher ? t("teacherWelcome", { name: state.teacher.displayName }) : t("lessonReady");
   setActionsEnabled(ownedLesson);
   renderLessonStatus(lesson);
@@ -180,9 +197,20 @@ function renderLessonStatus(lesson) {
   const students = state.agents.filter(agent => agent.agentId !== lesson.teacherAgentId && lesson.memberAgentIds.includes(agent.agentId) && agent.role === 0);
   const online = students.filter(agent => agent.isOnline).length;
   const time = new Intl.DateTimeFormat(state.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(lesson.expiresAtUtc));
-  elements.lessonStatus.className = "lesson-status card active";
+  const remainingMinutes = Math.max(0, Math.ceil((new Date(lesson.expiresAtUtc).getTime() - Date.now()) / 60000));
+  const owned = lesson.teacherId === state.teacher?.teacherId;
+  elements.lessonStatus.className = `lesson-status card ${remainingMinutes <= 10 ? "warning" : "active"}`;
   const base = t("lessonActive", { room: lesson.roomName || lesson.roomId, online, total: students.length, time });
-  elements.lessonStatus.textContent = lesson.isTemporary && lesson.joinCode ? `${base} · ${t("temporaryPin", { pin: lesson.joinCode })}` : base;
+  const text = lesson.isTemporary && lesson.joinCode ? `${base} · ${t("temporaryPin", { pin: lesson.joinCode })}` : base;
+  const warning = remainingMinutes <= 10 ? `<strong>${escapeHtml(t("lessonEnding", { minutes: remainingMinutes }))}</strong> ` : "";
+  const controls = owned && remainingMinutes <= 10 ? `<span class="lesson-status-actions"><select id="extension-minutes"><option value="15">+15 min</option><option value="30">+30 min</option><option value="60">+60 min</option></select><button id="extend-lesson">${escapeHtml(t("extendLesson"))}</button></span>` : "";
+  elements.lessonStatus.innerHTML = `<div class="lesson-status-content"><span>${warning}${escapeHtml(text)}</span>${controls}</div>`;
+  document.querySelector("#extend-lesson")?.addEventListener("click", async () => {
+    try {
+      await api(`/api/v1/lessons/${lesson.lessonId}/extend`, { method: "POST", body: JSON.stringify({ minutes: Number(document.querySelector("#extension-minutes").value) }) });
+      await loadOverview(); toast(t("extended"));
+    } catch (error) { toast(error.message); }
+  });
 }
 
 function renderAgents(lesson) {
@@ -215,8 +243,10 @@ function renderAgents(lesson) {
 }
 
 function updateCount() { const count = selectedIds().length; elements.count.textContent = `${count} ${count === 1 ? t("selectedOne") : t("selectedMany")}`; }
+function allAvailableIds() { return [...elements.agents.querySelectorAll("input:not(:disabled)")].map(input => input.value); }
+function audienceTargets(audience) { return audience === "all" ? allAvailableIds() : selectedIds(); }
 function setActionsEnabled(enabled) {
-  document.querySelectorAll("#lesson-actions button, #lesson-actions textarea").forEach(element => { element.disabled = !enabled; });
+  document.querySelectorAll("#lesson-actions button, #lesson-actions textarea, #lesson-actions select, #lesson-actions input").forEach(element => { element.disabled = !enabled; });
   document.querySelector("#lesson-actions").classList.toggle("disabled", !enabled);
 }
 
@@ -226,6 +256,74 @@ async function send(kind, payload, targets = selectedIds()) {
   if (!targets.length) { toast(t("selectComputer")); return; }
   await api(`/api/v1/lessons/${lesson.lessonId}/commands`, { method: "POST", body: JSON.stringify({ targetAgentIds: targets, kind, payload }) });
   toast(t("actionSent"));
+}
+
+async function uploadMedia() {
+  const lesson = currentLesson();
+  const file = elements.mediaFile.files[0];
+  const targets = audienceTargets(elements.mediaAudience.value);
+  if (!lesson) return toast(t("startFirst"));
+  if (!file || file.size > 25000000) return toast(t("selectMedia"));
+  if (!targets.length) return toast(t("selectComputer"));
+  const form = new FormData();
+  form.append("media", file);
+  form.append("targetAgentIds", JSON.stringify(targets));
+  const response = await fetch(`/api/v1/lessons/${lesson.lessonId}/media`, {
+    method: "POST",
+    headers: { "Accept-Language": state.language, "X-Teacher-Session": state.session },
+    body: form
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Erro ${response.status}`);
+  }
+  elements.mediaFile.value = "";
+  toast(t("actionSent"));
+}
+
+async function openStudentScreen() {
+  const targets = selectedIds();
+  if (targets.length !== 1) return toast(t("selectOneStudent"));
+  const lesson = currentLesson();
+  if (!lesson) return toast(t("startFirst"));
+  state.screenAgentId = targets[0];
+  state.screenLessonId = lesson.lessonId;
+  const agent = state.agents.find(item => item.agentId === state.screenAgentId);
+  document.querySelector("#student-screen-title").textContent = agent?.displayName || t("studentScreen");
+  elements.screenImage.removeAttribute("src"); elements.screenWait.hidden = false; elements.screenModal.hidden = false;
+  await send(7, { monitorIndex: 0 }, [state.screenAgentId]);
+  const poll = async () => {
+    if (!state.screenAgentId || elements.screenModal.hidden) return;
+    try {
+      const response = await fetch(`/api/v1/lessons/${lesson.lessonId}/screens/${state.screenAgentId}?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Accept-Language": state.language, "X-Teacher-Session": state.session }
+      });
+      if (response.ok && response.status !== 204) {
+        const blob = await response.blob();
+        if (state.screenObjectUrl) URL.revokeObjectURL(state.screenObjectUrl);
+        state.screenObjectUrl = URL.createObjectURL(blob);
+        elements.screenImage.src = state.screenObjectUrl;
+        elements.screenWait.hidden = true;
+      }
+    } catch { /* Retry while the viewer remains open. */ }
+    state.screenTimer = window.setTimeout(poll, 450);
+  };
+  await poll();
+}
+
+async function closeStudentScreen(notifyAgent = true) {
+  const agentId = state.screenAgentId;
+  state.screenAgentId = null;
+  state.screenLessonId = null;
+  if (state.screenTimer) window.clearTimeout(state.screenTimer);
+  state.screenTimer = null;
+  if (state.screenObjectUrl) URL.revokeObjectURL(state.screenObjectUrl);
+  state.screenObjectUrl = null;
+  elements.screenImage.removeAttribute("src"); elements.screenModal.hidden = true;
+  if (notifyAgent && agentId && currentLesson()) {
+    try { await send(8, {}, [agentId]); } catch { /* The lesson may already have ended. */ }
+  }
 }
 
 elements.requestForm.addEventListener("submit", async event => {
@@ -271,20 +369,29 @@ elements.end.addEventListener("click", async () => {
 
 elements.room.addEventListener("change", renderOverview);
 elements.roomMode.addEventListener("change", renderOverview);
+elements.teacher.addEventListener("change", renderOverview);
 document.querySelector("#language").addEventListener("change", event => { state.language = event.target.value; localStorage.setItem("language", state.language); applyLanguage(); });
 document.querySelector("#refresh").addEventListener("click", () => loadOverview().catch(error => toast(error.message)));
 document.querySelector("#select-all").addEventListener("click", () => {
   elements.agents.querySelectorAll("input:not(:disabled)").forEach(input => { input.checked = true; state.selected.add(input.value); });
   updateCount();
 });
-document.querySelectorAll("[data-command]").forEach(button => button.addEventListener("click", async () => {
+document.querySelector("#lesson-actions").addEventListener("click", async event => {
+  const button = event.target.closest("button[data-command]");
+  if (!button) return;
   try {
     if (button.dataset.command === "message") { const message = document.querySelector("#message").value.trim(); if (!message) return toast(t("writeMessage")); await send(0, { message }); }
     if (button.dataset.command === "app") await send(1, { applicationId: button.dataset.app });
-    if (button.dataset.command === "share") { const lesson = currentLesson(); if (!lesson) return toast(t("startFirst")); await send(2, {}, [lesson.teacherAgentId]); }
+    if (button.dataset.command === "blackout") await send(5, {}, audienceTargets(elements.attentionAudience.value));
+    if (button.dataset.command === "stop-blackout") await send(6, {}, audienceTargets(elements.attentionAudience.value));
+    if (button.dataset.command === "share") { const lesson = currentLesson(); if (!lesson) return toast(t("startFirst")); const viewers = audienceTargets(elements.shareAudience.value); if (!viewers.length) return toast(t("selectComputer")); await send(2, { monitorIndex: Number(elements.shareMonitor.value || 0), viewerAgentIds: viewers }, [lesson.teacherAgentId]); }
     if (button.dataset.command === "stop-share") { const lesson = currentLesson(); if (!lesson) return toast(t("startFirst")); await send(3, {}, [lesson.teacherAgentId]); }
+    if (button.dataset.command === "view-student") await openStudentScreen();
+    if (button.dataset.command === "media") await uploadMedia();
+    if (button.dataset.command === "stop-media") await send(10, {}, audienceTargets(elements.mediaAudience.value));
   } catch (error) { toast(error.message); }
-}));
+});
+document.querySelector("#close-student-screen").addEventListener("click", () => closeStudentScreen());
 
 applyLanguage();
 void applyInstallerLanguage();

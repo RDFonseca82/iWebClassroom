@@ -220,6 +220,28 @@ public sealed class LessonRegistry(
         }
     }
 
+    public async Task<LessonSessionSummary?> ExtendAsync(Guid lessonId, TimeSpan extension, CancellationToken cancellationToken)
+    {
+        await _stateLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_lessons.TryGetValue(lessonId, out var lesson) || !IsActive(lesson) ||
+                extension < TimeSpan.FromMinutes(5) || extension > TimeSpan.FromHours(4))
+            {
+                return null;
+            }
+
+            lesson = lesson with { ExpiresAtUtc = lesson.ExpiresAtUtc.Add(extension) };
+            _lessons[lessonId] = lesson;
+            await PersistAsync(cancellationToken);
+            return ToSummary(lesson);
+        }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
+
     public async Task<IReadOnlyCollection<LessonSessionSummary>> EndExpiredAsync(CancellationToken cancellationToken)
     {
         await _stateLock.WaitAsync(cancellationToken);

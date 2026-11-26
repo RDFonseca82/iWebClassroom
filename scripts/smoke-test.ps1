@@ -57,6 +57,10 @@ try {
         machineId = "smoke-teacher-$([Guid]::NewGuid())"; displayName = 'Smoke Teacher'; role = 1
         classroomId = $roomId; enrollmentCode = $enrollmentCode
     } | ConvertTo-Json)
+    $teacherAgentHeaders = @{ 'X-Agent-Id' = $teacher.agentId; 'X-Agent-Token' = $teacher.agentToken }
+    Invoke-RestMethod -Method Put -Uri "$baseUrl/api/v1/agent/capabilities" -Headers $teacherAgentHeaders -ContentType 'application/json' -Body (@{
+        displays = @(@{ index = 0; name = 'Monitor principal'; width = 1920; height = 1080; isPrimary = $true })
+    } | ConvertTo-Json -Depth 5)
     $outsideStudent = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/enrollment" -ContentType 'application/json' -Body (@{
         machineId = "smoke-outside-$([Guid]::NewGuid())"; displayName = 'Outside Student'; role = 0
         classroomId = 'OUTRA-SALA'; enrollmentCode = $enrollmentCode
@@ -132,6 +136,46 @@ try {
     $lessonCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
         targetAgentIds = @($student.agentId); kind = 0; payload = @{ message = 'Teste da aula' }
     } | ConvertTo-Json -Depth 5)
+    $blackoutCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
+        targetAgentIds = @($student.agentId); kind = 5; payload = @{}
+    } | ConvertTo-Json -Depth 5)
+    $shareCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
+        targetAgentIds = @($teacher.agentId); kind = 2; payload = @{ monitorIndex = 0; viewerAgentIds = @($student.agentId) }
+    } | ConvertTo-Json -Depth 7)
+    $studentViewCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
+        targetAgentIds = @($student.agentId); kind = 7; payload = @{}
+    } | ConvertTo-Json -Depth 5)
+    $applicationCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
+        targetAgentIds = @($student.agentId); kind = 1; payload = @{ applicationId = 'notepad' }
+    } | ConvertTo-Json -Depth 5)
+    $mediaPath = Join-Path $testDataDirectory 'smoke.png'
+    [IO.File]::WriteAllBytes($mediaPath, [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='))
+    $mediaClient = [Net.Http.HttpClient]::new()
+    $mediaForm = [Net.Http.MultipartFormDataContent]::new()
+    try {
+        $mediaClient.DefaultRequestHeaders.Add('X-Admin-Token', $adminToken)
+        $mediaBytes = [Net.Http.ByteArrayContent]::new([IO.File]::ReadAllBytes($mediaPath))
+        $mediaBytes.Headers.ContentType = [Net.Http.Headers.MediaTypeHeaderValue]::new('image/png')
+        $mediaForm.Add($mediaBytes, 'media', 'smoke.png')
+        $mediaForm.Add([Net.Http.StringContent]::new((ConvertTo-Json -InputObject @($student.agentId) -Compress)), 'targetAgentIds')
+        $mediaResponse = $mediaClient.PostAsync("$baseUrl/api/v1/lessons/$($lesson.lessonId)/media", $mediaForm).GetAwaiter().GetResult()
+        $mediaStatus = [int]$mediaResponse.StatusCode
+        $mediaResult = $mediaResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+    }
+    finally {
+        $mediaForm.Dispose()
+        $mediaClient.Dispose()
+    }
+    $mediaDownload = Invoke-WebRequest -Uri ($baseUrl + $mediaResult.downloadUrl) -Headers @{
+        'X-Agent-Id' = $student.agentId; 'X-Agent-Token' = $student.agentToken
+    } -SkipHttpErrorCheck
+    $screenWithoutFrame = Invoke-WebRequest -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/screens/$($student.agentId)" -Headers $teacherHeaders -SkipHttpErrorCheck
+    $oldExpiry = [DateTimeOffset]$lesson.expiresAtUtc
+    $extendedLesson = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/extend" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
+        minutes = 15
+    } | ConvertTo-Json)
+    $teacherOverviewAgent = @($overview.agents | Where-Object agentId -eq $teacher.agentId)[0]
+    $extensionAdvanced = [DateTimeOffset]$extendedLesson.expiresAtUtc -gt $oldExpiry
     Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)" -Headers $teacherHeaders
     $finalOverview = Invoke-RestMethod -Uri "$baseUrl/api/v1/teacher/overview" -Headers $teacherHeaders
 
@@ -161,6 +205,17 @@ try {
         $overviewAfterSettings.defaultLessonDurationMinutes -ne 75 -or
         $command.targetCount -ne 1 -or
         $lessonCommand.targetCount -ne 1 -or
+        $blackoutCommand.targetCount -ne 1 -or
+        $shareCommand.targetCount -ne 1 -or
+        $studentViewCommand.targetCount -ne 1 -or
+        $applicationCommand.targetCount -ne 1 -or
+        $mediaStatus -ne 202 -or
+        $mediaDownload.StatusCode -ne 200 -or
+        $mediaDownload.RawContentLength -lt 1 -or
+        $screenWithoutFrame.StatusCode -ne 204 -or
+        -not $extensionAdvanced -or
+        $overview.applications.Count -lt 2 -or
+        $teacherOverviewAgent.displays.Count -ne 1 -or
         @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0 -or
         $overview.teacher.teacherId -ne 'local-administrator' -or
         $temporaryLesson.joinCode -notmatch '^\d{6}$' -or
@@ -172,7 +227,7 @@ try {
         $agentLogRecord.computer_name -ne 'Shared Student' -or
         -not $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId) -or
         $joinedTemporaryLesson.participants[0].studentName -ne 'Aluno Smoke') {
-        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; local={16}; joined={17}; participant={18}." -f
+        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; local={16}; joined={17}; participant={18}; blackout={19}; share={20}; studentView={21}; app={22}; media={23}/{24}/{25}; screen={26}; extended={27}; apps={28}; displays={29}." -f
             $health.status,
             $agents.Count,
             $overview.agents.Count,
@@ -191,7 +246,18 @@ try {
             $temporaryLesson.joinCode,
             $roomResolution.isLocal,
             $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId),
-            $joinedTemporaryLesson.participants[0].studentName)
+            $joinedTemporaryLesson.participants[0].studentName,
+            $blackoutCommand.targetCount,
+            $shareCommand.targetCount,
+            $studentViewCommand.targetCount,
+            $applicationCommand.targetCount,
+            $mediaStatus,
+            $mediaDownload.StatusCode,
+            $mediaDownload.RawContentLength,
+            $screenWithoutFrame.StatusCode,
+            $extensionAdvanced,
+            $overview.applications.Count,
+            $teacherOverviewAgent.displays.Count)
     }
     Write-Host 'Smoke test passed.'
 }

@@ -65,4 +65,28 @@ public sealed class EnrollmentClient
         return await response.Content.ReadFromJsonAsync<AgentSummary>(cancellationToken)
                ?? throw new InvalidOperationException(AgentStrings.EmptyEnrollmentResponse);
     }
+
+    public async Task UpdateCapabilitiesAsync(AgentSettings settings, CancellationToken cancellationToken)
+    {
+        var displays = System.Windows.Forms.Screen.AllScreens
+            .Select((screen, index) => new DisplayDescriptor(
+                index,
+                string.IsNullOrWhiteSpace(screen.DeviceName) ? $"Display {index + 1}" : screen.DeviceName,
+                screen.Bounds.Width,
+                screen.Bounds.Height,
+                screen.Primary))
+            .ToArray();
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri(settings.ServerUrl),
+            Timeout = TimeSpan.FromSeconds(20)
+        };
+        client.DefaultRequestHeaders.Add(HubProtocol.AgentIdHeader, settings.AgentId.ToString());
+        client.DefaultRequestHeaders.Add(HubProtocol.AgentTokenHeader, settings.AgentToken);
+        using var response = await client.PutAsJsonAsync(
+            "/api/v1/agent/capabilities",
+            new AgentCapabilitiesRequest(displays),
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 }

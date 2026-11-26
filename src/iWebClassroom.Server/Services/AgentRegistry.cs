@@ -76,7 +76,8 @@ public sealed class AgentRegistry(
             now,
             isRoaming,
             !string.Equals(request.ClassroomId, "PENDENTE", StringComparison.OrdinalIgnoreCase),
-            null);
+            null,
+            existing?.Displays ?? []);
 
         _agents[agent.AgentId] = agent;
         await PersistAsync(cancellationToken);
@@ -148,6 +149,26 @@ public sealed class AgentRegistry(
             .ThenBy(item => item.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(ToSummary)
             .ToArray();
+
+    public async Task<bool> UpdateCapabilitiesAsync(
+        Guid agentId,
+        IReadOnlyCollection<DisplayDescriptor> displays,
+        CancellationToken cancellationToken)
+    {
+        if (!_agents.TryGetValue(agentId, out var agent))
+        {
+            return false;
+        }
+
+        var normalized = displays
+            .Where(display => display.Index is >= 0 and < 16 && display.Width is > 0 and <= 16384 && display.Height is > 0 and <= 16384)
+            .OrderBy(display => display.Index)
+            .Take(16)
+            .ToArray();
+        _agents[agentId] = agent with { Displays = normalized, LastSeenUtc = DateTimeOffset.UtcNow };
+        await PersistAsync(cancellationToken);
+        return true;
+    }
 
     public async Task ApplyAssignmentsAsync(
         IReadOnlyCollection<CloudDeviceAssignment>? assignments,
@@ -242,7 +263,7 @@ public sealed class AgentRegistry(
     }
 
     private static AgentSummary ToSummary(PersistedAgent agent) =>
-        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc, agent.IsRoaming, agent.IsAssigned, agent.SharedZone);
+        new(agent.AgentId, agent.MachineId, agent.DisplayName, agent.Role, agent.ClassroomId, agent.IsShared, agent.IsOnline, agent.LastSeenUtc, agent.IsRoaming, agent.IsAssigned, agent.SharedZone, agent.Displays ?? []);
 
     private static string ResolvePath(string root, string configuredPath, string fileName)
     {
@@ -264,5 +285,6 @@ public sealed class AgentRegistry(
         DateTimeOffset LastSeenUtc,
         bool IsRoaming = false,
         bool IsAssigned = true,
-        string? SharedZone = null);
+        string? SharedZone = null,
+        IReadOnlyCollection<DisplayDescriptor>? Displays = null);
 }

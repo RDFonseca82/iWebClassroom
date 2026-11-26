@@ -74,13 +74,25 @@
             <aside class="cloud-card actions-card" id="lesson-actions">
               <span class="section-kicker" data-i18n="actions">AÇÕES</span><h2 data-i18n="classControls">Controlos da aula</h2>
               <label for="message" data-i18n="studentMessage">Mensagem aos alunos</label><textarea id="message" maxlength="500" rows="3" placeholder="Escreva uma indicação breve…" data-i18n-placeholder="messagePlaceholder"></textarea><button data-command="message" data-i18n="sendMessage">Enviar mensagem</button>
-              <div class="divider"></div><p class="group-label" data-i18n="openApplication">Abrir aplicação</p><div class="button-grid"><button data-command="app" data-app="notepad" class="secondary" data-i18n="notepad">Bloco de Notas</button><button data-command="app" data-app="calculator" class="secondary" data-i18n="calculator">Calculadora</button></div>
-              <div class="divider"></div><p class="group-label" data-i18n="teacherScreen">Ecrã do professor</p><button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button><button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
+              <div class="divider"></div><p class="group-label" data-i18n="attention">Atenção</p><label for="attention-audience" data-i18n="recipients">Destinatários</label><select id="attention-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select><div class="button-grid"><button data-command="blackout" data-i18n="blackout">Bloquear ecrãs</button><button data-command="stop-blackout" class="secondary" data-i18n="restoreScreens">Repor ecrãs</button></div>
+              <div class="divider"></div><p class="group-label" data-i18n="openApplication">Abrir aplicação</p><div class="button-grid" id="application-buttons"></div>
+              <div class="divider"></div><p class="group-label" data-i18n="teacherScreen">Ecrã do professor</p>
+              <label for="share-monitor" data-i18n="monitor">Monitor</label><select id="share-monitor"></select>
+              <label for="share-audience" data-i18n="recipients">Destinatários</label><select id="share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+              <button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button><button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
+              <div class="divider"></div><p class="group-label" data-i18n="studentScreen">Ecrã do aluno</p><button data-command="view-student" data-i18n="viewStudent">Ver aluno selecionado</button>
+              <div class="divider"></div><p class="group-label" data-i18n="fullscreenMedia">Imagem ou vídeo em ecrã inteiro</p>
+              <input id="media-file" type="file" accept="image/jpeg,image/png,image/gif,image/bmp,video/mp4,video/x-ms-wmv">
+              <label for="media-audience" data-i18n="recipients">Destinatários</label><select id="media-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+              <button data-command="media" data-i18n="showMedia">Mostrar ficheiro</button><button data-command="stop-media" class="danger secondary" data-i18n="stopMedia">Parar apresentação</button>
             </aside>
           </section>
         </div>
       </main>
     </div>
+  </div>
+  <div id="student-screen-modal" class="screen-modal" hidden>
+    <div class="screen-modal-card"><div class="screen-modal-heading"><strong id="student-screen-title"></strong><button id="close-student-screen" class="danger secondary" data-i18n="close">Fechar</button></div><div class="student-screen-stage"><img id="student-screen-image" alt=""><span id="student-screen-wait" data-i18n="waitingScreen">A aguardar imagem do aluno…</span></div></div>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="/app.js" defer></script>
