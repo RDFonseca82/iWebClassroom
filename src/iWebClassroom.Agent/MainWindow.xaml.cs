@@ -3,6 +3,8 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using System.ComponentModel;
+using MessageBox = System.Windows.MessageBox;
 using IWebClassroom.Agent.Configuration;
 using IWebClassroom.Agent.Localization;
 using IWebClassroom.Agent.Services;
@@ -24,6 +26,7 @@ public partial class MainWindow : Window
     private AgentSettings _settings = AgentSettings.Empty;
     private ScreenDisplayWindow? _screenWindow;
     private bool _closing;
+    private bool _disposed;
 
     public MainWindow()
     {
@@ -55,7 +58,9 @@ public partial class MainWindow : Window
     private void ApplySettingsToForm()
     {
         ServerUrlText.Text = _settings.ServerUrl;
-        DisplayNameText.Text = _settings.DisplayName;
+        DisplayNameText.Text = string.IsNullOrWhiteSpace(_settings.DisplayName)
+            ? Environment.MachineName
+            : _settings.DisplayName;
         ClassroomText.Text = _settings.ClassroomId;
         RoleCombo.SelectedIndex = _settings.Role == AgentRole.Teacher ? 1 : 0;
         SharedComputerCheck.IsChecked = _settings.IsShared;
@@ -258,8 +263,9 @@ public partial class MainWindow : Window
                 await Dispatcher.InvokeAsync(() =>
                 {
                     ActivityText.Text = AgentStrings.InstallingUpdate;
-                    Close();
                 });
+                await DisposeAgentAsync();
+                await Dispatcher.InvokeAsync(() => ((App)System.Windows.Application.Current).ShutdownAgent());
             }
         }
         catch (Exception exception)
@@ -385,13 +391,67 @@ public partial class MainWindow : Window
         ActivityText.Text = activity;
     }
 
-    protected override async void OnClosed(EventArgs e)
+    internal string TrayStatus => StatusText.Text;
+    internal string TrayAssignment => AssignmentText.Text;
+    internal string TrayServer => _settings.ServerUrl;
+    internal string TrayComputer => string.IsNullOrWhiteSpace(_settings.DisplayName) ? Environment.MachineName : _settings.DisplayName;
+
+    internal void ShowFromTray()
     {
+        if (!IsVisible)
+        {
+            Show();
+        }
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
+
+    internal async Task RefreshFromTrayAsync()
+    {
+        await RefreshProfileAsync();
+        if (!_connection.IsConnected)
+        {
+            await ConnectAsync(reenroll: false);
+        }
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!((App)System.Windows.Application.Current).IsShuttingDown)
+        {
+            e.Cancel = true;
+            Hide();
+            ((App)System.Windows.Application.Current).NotifyStillRunning();
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    private async Task DisposeAgentAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         _closing = true;
         _profileTimer.Stop();
         await _screenCapture.DisposeAsync();
         await _connection.DisposeAsync();
         _screenWindow?.CloseFromAgent();
+    }
+
+    protected override async void OnClosed(EventArgs e)
+    {
+        await DisposeAgentAsync();
         base.OnClosed(e);
     }
 }

@@ -21,7 +21,7 @@ public sealed class AgentSettingsStore
     {
         if (File.Exists(_path))
         {
-            return await LoadFromAsync(_path, machineScope: true, cancellationToken);
+            return Normalize(await LoadFromAsync(_path, machineScope: true, cancellationToken));
         }
 
         if (!File.Exists(_legacyPath))
@@ -48,7 +48,7 @@ public sealed class AgentSettingsStore
             }
         }
 
-        return legacy;
+        return Normalize(legacy);
     }
 
     public async Task SaveAsync(AgentSettings settings, CancellationToken cancellationToken = default)
@@ -61,7 +61,7 @@ public sealed class AgentSettingsStore
                 settings.ServerUrl,
                 settings.AgentId,
                 UserSecretProtector.Protect(settings.AgentToken),
-                settings.DisplayName,
+                string.IsNullOrWhiteSpace(settings.DisplayName) ? Environment.MachineName : settings.DisplayName,
                 settings.Role,
                 settings.ClassroomId,
                 settings.IsShared);
@@ -95,6 +95,13 @@ public sealed class AgentSettingsStore
             return AgentSettings.Empty;
         }
     }
+
+    private static AgentSettings Normalize(AgentSettings settings) => settings with
+    {
+        DisplayName = string.IsNullOrWhiteSpace(settings.DisplayName)
+            ? Environment.MachineName
+            : settings.DisplayName.Trim()
+    };
 
     private sealed record PersistedSettings(
         string ServerUrl,

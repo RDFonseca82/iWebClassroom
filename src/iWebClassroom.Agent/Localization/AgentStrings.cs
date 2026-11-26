@@ -72,7 +72,16 @@ public static class AgentStrings
         [nameof(UpdateHttpsRequired)] = ["A atualização foi rejeitada porque não utiliza HTTPS.", "The update was rejected because it does not use HTTPS.", "La actualización fue rechazada porque no utiliza HTTPS."],
         [nameof(UpdateHashInvalid)] = ["A atualização foi rejeitada porque o hash SHA-256 não corresponde.", "The update was rejected because its SHA-256 hash does not match.", "La actualización fue rechazada porque el hash SHA-256 no coincide."],
         [nameof(UpdateSignatureInvalid)] = ["A atualização foi rejeitada porque a assinatura digital não é válida.", "The update was rejected because its digital signature is invalid.", "La actualización fue rechazada porque la firma digital no es válida."],
-        [nameof(UpdaterMissing)] = ["O componente de atualização não está instalado.", "The update component is not installed.", "El componente de actualización no está instalado."]
+        [nameof(UpdaterMissing)] = ["O componente de atualização não está instalado.", "The update component is not installed.", "El componente de actualización no está instalado."],
+        [nameof(OpenAgent)] = ["Abrir iWebClassroom", "Open iWebClassroom", "Abrir iWebClassroom"],
+        [nameof(TrayStatus)] = ["Estado", "Status", "Estado"],
+        [nameof(TrayAssignment)] = ["Atribuição", "Assignment", "Asignación"],
+        [nameof(TrayComputer)] = ["Computador", "Computer", "Equipo"],
+        [nameof(TrayServer)] = ["Servidor", "Server", "Servidor"],
+        [nameof(TrayVersion)] = ["Versão", "Version", "Versión"],
+        [nameof(CopyServerAddress)] = ["Copiar endereço do servidor", "Copy server address", "Copiar dirección del servidor"],
+        [nameof(RefreshInformation)] = ["Atualizar informações", "Refresh information", "Actualizar información"],
+        [nameof(AgentKeepsRunning)] = ["O agente continua ativo junto ao relógio e não pode ser encerrado pelo utilizador.", "The agent remains active in the notification area and cannot be closed by the user.", "El agente permanece activo en el área de notificación y el usuario no puede cerrarlo."]
     };
 
     private static int Index => Language == "pt" ? 0 : Language == "es" ? 2 : 1;
@@ -145,4 +154,13 @@ public static class AgentStrings
     public static string UpdateHashInvalid => Text(nameof(UpdateHashInvalid));
     public static string UpdateSignatureInvalid => Text(nameof(UpdateSignatureInvalid));
     public static string UpdaterMissing => Text(nameof(UpdaterMissing));
+    public static string OpenAgent => Text(nameof(OpenAgent));
+    public static string TrayStatus => Text(nameof(TrayStatus));
+    public static string TrayAssignment => Text(nameof(TrayAssignment));
+    public static string TrayComputer => Text(nameof(TrayComputer));
+    public static string TrayServer => Text(nameof(TrayServer));
+    public static string TrayVersion => Text(nameof(TrayVersion));
+    public static string CopyServerAddress => Text(nameof(CopyServerAddress));
+    public static string RefreshInformation => Text(nameof(RefreshInformation));
+    public static string AgentKeepsRunning => Text(nameof(AgentKeepsRunning));
 }

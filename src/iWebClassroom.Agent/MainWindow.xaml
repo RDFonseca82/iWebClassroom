@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:IWebClassroom.Agent.Localization"
         Title="iWebClassroom" Width="760" Height="760" MinWidth="620" MinHeight="620"
+        Icon="{StaticResource BrandIcon}"
         Background="{StaticResource PaperBrush}" WindowStartupLocation="CenterScreen">
   <Grid>
     <Grid.RowDefinitions>
@@ -13,6 +14,7 @@
 
     <Border Background="{StaticResource InkBrush}" Padding="28,22">
       <DockPanel>
+        <Image DockPanel.Dock="Left" Source="{StaticResource BrandIcon}" Width="48" Height="48" Margin="0,0,14,0" />
         <StackPanel DockPanel.Dock="Left">
           <TextBlock Text="{x:Static loc:AgentStrings.AgentWindows}" Foreground="#78C7AD" FontSize="11" FontWeight="Bold" />
           <TextBlock Text="iWebClassroom" Foreground="White" FontFamily="Georgia" FontSize="31" />

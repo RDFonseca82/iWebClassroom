@@ -25,7 +25,7 @@ Este repositório contém um MVP funcional com:
 - HTTPS local gerido, certificado renovado automaticamente e escuta em todas as placas de rede IPv4/IPv6;
 - versão do servidor sempre visível nas consolas web.
 - ícone do servidor na área de notificação do Windows, com atalhos para administração, consola do professor, estado, versão e cópia do endereço seguro;
-- sincronização leve de professores e salas aproximadamente a cada 45 segundos, separada da sincronização completa.
+- sincronização leve de professores, salas e atribuições de computadores a cada 20–60 segundos, separada da sincronização completa.
 - deteção da versão publicada no catálogo local da Cloud e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
 - página autenticada de transferências por escola, com os MSI do servidor e agente, hashes e instruções de instalação normal e silenciosa.
 
@@ -127,7 +127,7 @@ Cada escola pode ter vários servidores. No portal central, registe cada servido
 
 Depois da ligação inicial, a administração local deixa de pedir a credencial técnica e passa a pedir o email e a palavra-passe de um administrador ativo da escola. A cloud valida a palavra-passe; o servidor local sincroniza apenas a identidade, o email e a função do administrador, nunca o respetivo hash. O token local continua disponível exclusivamente como recuperação offline.
 
-A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. Professores, alterações de PIN, administradores e salas fixas são consultados num endpoint pequeno a cada 45 segundos; o `ETag` evita transferir dados quando nada mudou. As salas temporárias e a carga têm um heartbeat próprio de 20 segundos, e a resolução de um código é feita apenas quando um aluno tenta entrar. Inventário, configuração e licença usam a sincronização completa a cada cinco minutos. A verificação de novas versões continua independente, por omissão a cada seis horas. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
+A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. Professores, administradores, salas fixas e atribuições de computadores são consultados num endpoint pequeno a cada 20–60 segundos; o `ETag` evita transferir dados quando nada mudou. As salas temporárias e a carga têm um heartbeat próprio de 20 segundos, e a resolução de um código é feita apenas quando um aluno tenta entrar. Configuração e licença usam a sincronização completa a cada cinco minutos. A verificação de novas versões continua independente, por omissão a cada seis horas. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
 
 O token de `bootstrap-secrets.json` permanece disponível no ecrã em **Acesso local de recuperação**, para permitir a administração quando a cloud estiver indisponível.
 
@@ -174,13 +174,13 @@ Cada release produz dois MSI self-contained, sem necessidade de instalar previam
 
 Os administradores de escola podem descarregar estes ficheiros no portal Cloud em **Escola → Transferências**, onde também encontram os comandos de instalação normal, silenciosa, para computadores partilhados e para salas fixas.
 
-O instalador apresenta Português de Portugal, Inglês e Espanhol na mesma interface. No servidor, a escolha define o idioma inicial das consolas. No agente, além do idioma, é pedido o endereço HTTPS do servidor local e esse valor aparece já preenchido no primeiro registo do computador.
+O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês ou Espanhol. A partir daí, todos os textos são apresentados apenas no idioma escolhido. No servidor, a escolha define ainda o idioma inicial das consolas. No agente é pedido apenas o endereço HTTPS do servidor local; o nome do computador vem automaticamente preenchido com o `hostname` do Windows.
 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.11.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.11.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.12.2-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.12.2-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
@@ -195,6 +195,8 @@ C:\ProgramData\iWebClassroom\Server\certificates\
 Esses ficheiros só podem ser lidos por `SYSTEM` e pelos administradores locais. O servidor cria uma autoridade local com validade longa e um certificado de serviço com todos os nomes e IP ativos; verifica alterações de rede e renova o certificado antes de expirar. No primeiro registo, o agente valida o código de inscrição, instala a autoridade em `CurrentUser\Root` e passa a usar HTTPS. Em computadores sem agente, distribua `iwebclassroom-root.cer` por GPO/Intune ou use um certificado de AD CS/autoridade pública. IIS/ARR passa a ser opcional.
 
 O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A URL e o idioma são guardados em `HKLM\SOFTWARE\iWebClassroom\Agent`. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
+
+O agente permanece ativo na área de notificação do Windows com o mesmo símbolo do portal. Um duplo clique abre a janela; o menu permite consultar estado, atribuição, computador, servidor e versão, copiar o endereço do servidor e atualizar a ligação. Fechar a janela apenas a oculta: não existe opção de saída para o utilizador e o agente só termina durante o encerramento do Windows, desinstalação ou atualização controlada.
 
 O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um utilizador entra no Windows. O ícone com o logótipo iWebClassroom permite abrir os dois portais, consultar estado e versão, copiar `https://localhost:7443` e encerrar apenas o ícone sem parar o serviço.
 
