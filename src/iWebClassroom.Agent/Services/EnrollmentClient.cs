@@ -85,7 +85,7 @@ public sealed class EnrollmentClient
         client.DefaultRequestHeaders.Add(HubProtocol.AgentTokenHeader, settings.AgentToken);
         using var response = await client.PutAsJsonAsync(
             "/api/v1/agent/capabilities",
-            new AgentCapabilitiesRequest(displays),
+            new AgentCapabilitiesRequest(displays, Environment.MachineName),
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }

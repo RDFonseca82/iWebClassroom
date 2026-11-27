@@ -210,13 +210,13 @@ Cada release produz dois MSI self-contained, sem necessidade de instalar previam
 
 Os administradores de escola podem descarregar estes ficheiros no portal Cloud em **Escola → Transferências**, onde também encontram os comandos de instalação normal, silenciosa, para computadores partilhados e para salas fixas.
 
-O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês ou Espanhol. A partir daí, todos os textos são apresentados apenas no idioma escolhido. No servidor, a escolha define ainda o idioma inicial das consolas. No agente é pedido apenas o endereço HTTPS do servidor local; o nome do computador vem automaticamente preenchido com o `hostname` do Windows.
+O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês ou Espanhol. A partir daí, todos os textos são apresentados apenas no idioma escolhido. No servidor, a escolha define ainda o idioma inicial das consolas. No agente é pedido apenas o endereço HTTPS do servidor local; o nome comunicado ao servidor e à Cloud é sempre o `hostname` do próprio computador Windows. Em cada ligação, o agente volta a confirmar esse nome, corrigindo automaticamente registos antigos que tenham ficado com o nome do servidor local.
 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.14.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.14.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.14.1-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.14.1-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
@@ -234,7 +234,9 @@ O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entr
 
 O agente permanece ativo na área de notificação do Windows com o mesmo símbolo do portal. Um duplo clique abre a janela; o menu permite consultar estado, atribuição, computador, servidor e versão, copiar o endereço do servidor e atualizar a ligação. Fechar a janela apenas a oculta: não existe opção de saída para o utilizador e o agente só termina durante o encerramento do Windows, desinstalação ou atualização controlada.
 
-O botão **Ligar ao servidor** aparece dentro do cartão **Estado do agente**, na barra lateral, apenas quando a ligação está interrompida. Nos computadores fixos que o administrador atribuiu como posto do professor, a área principal do agente incorpora a consola web local através do Microsoft Edge WebView2, pelo que o professor pode iniciar sessão, criar a aula e usar todos os controlos sem abrir o navegador. A navegação incorporada fica limitada ao endereço do servidor configurado. Nos computadores partilhados mantém-se o formulário de entrada do aluno. O WebView2 Evergreen Runtime, incluído por omissão nas versões atuais do Windows, tem de estar disponível no posto do professor.
+O botão **Ligar ao servidor** aparece dentro do cartão **Estado do agente**, na barra lateral, apenas quando a ligação está interrompida. Nos computadores fixos que o administrador atribuiu como posto do professor, a área principal do agente incorpora a consola web local através do Microsoft Edge WebView2, pelo que o professor pode iniciar sessão, criar a aula e usar todos os controlos sem abrir o navegador. A navegação incorporada fica limitada ao endereço do servidor configurado. A inicialização do WebView é serializada e reutiliza o mesmo perfil local, incluindo ao escolher **Tentar novamente**, evitando falhas quando a ligação, a atualização periódica e a abertura da janela ocorrem ao mesmo tempo. Nos computadores partilhados mantém-se o formulário de entrada do aluno. O WebView2 Evergreen Runtime, incluído por omissão nas versões atuais do Windows, tem de estar disponível no posto do professor.
+
+Os dois MSI incluem os diálogos padrão de erros, ficheiros em utilização e execução administrativa exigidos pelo Windows Installer. A geração de uma release executa a validação ICE do primeiro build e termina com erro se o MSI não for válido; não é aceite um segundo build que apenas contorne avisos como o código 2803.
 
 O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um utilizador entra no Windows. O ícone com o logótipo iWebClassroom permite abrir os dois portais, consultar estado e versão, copiar `https://localhost:7443` e encerrar apenas o ícone sem parar o serviço.
 

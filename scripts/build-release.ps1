@@ -60,16 +60,8 @@ Compress-Archive -Path (Join-Path $serverOutput '*') -DestinationPath (Join-Path
 $agentInstallerOutput = Join-Path $installerBuildRoot 'agent'
 $serverInstallerOutput = Join-Path $installerBuildRoot 'server'
 & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -t:Rebuild -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning 'The first agent MSI build failed; retrying once.'
-    & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Agent.Setup\iWebClassroom.Agent.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$agentOutput -p:OutputPath=$agentInstallerOutput -p:NuGetAudit=false
-}
 if ($LASTEXITCODE -ne 0) { throw 'Building the agent MSI failed.' }
 & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -t:Rebuild -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning 'The first server MSI build failed; retrying once.'
-    & $dotnet build (Join-Path $repositoryRoot 'installer\iWebClassroom.Server.Setup\iWebClassroom.Server.Setup.wixproj') -c Release -p:ProductVersion=$Version -p:PublishDir=$serverOutput -p:OutputPath=$serverInstallerOutput -p:NuGetAudit=false
-}
 if ($LASTEXITCODE -ne 0) { throw 'Building the server MSI failed.' }
 
 $agentInstaller = Join-Path $artifactsRoot "iWebClassroom-Agent-$Version-win-x64.msi"

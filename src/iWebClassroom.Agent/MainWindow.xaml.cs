@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _profileTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     private readonly DispatcherTimer _logUploadTimer = new() { Interval = TimeSpan.FromMinutes(5) };
     private readonly DispatcherTimer _usageTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+    private readonly SemaphoreSlim _teacherConsoleInitialization = new(1, 1);
     private AgentSettings _settings = AgentSettings.Empty;
     private ScreenDisplayWindow? _screenWindow;
     private readonly List<BlackoutWindow> _blackoutWindows = [];
@@ -42,6 +43,7 @@ public partial class MainWindow : Window
     private bool _busy;
     private bool _profileIsAssigned;
     private bool _teacherConsoleHandlersAttached;
+    private CoreWebView2Environment? _teacherConsoleEnvironment;
     private string? _teacherConsoleServer;
     private DateTimeOffset _lastProfileWarningUtc = DateTimeOffset.MinValue;
 
@@ -631,8 +633,14 @@ public partial class MainWindow : Window
 
     private async Task EnsureTeacherConsoleAsync()
     {
+        await _teacherConsoleInitialization.WaitAsync();
         try
         {
+            if (_closing)
+            {
+                return;
+            }
+
             if (!Uri.TryCreate(_settings.ServerUrl, UriKind.Absolute, out var serverUri))
             {
                 throw new InvalidOperationException(AgentStrings.InvalidServer);
@@ -641,13 +649,18 @@ public partial class MainWindow : Window
             var userDataFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "iWebClassroom", "WebView2", "TeacherConsole");
-            var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
-            await TeacherConsole.EnsureCoreWebView2Async(environment);
+            _teacherConsoleEnvironment ??= await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
+            if (TeacherConsole.CoreWebView2 is null)
+            {
+                await TeacherConsole.EnsureCoreWebView2Async(_teacherConsoleEnvironment);
+            }
+            var webView = TeacherConsole.CoreWebView2
+                          ?? throw new InvalidOperationException("Microsoft Edge WebView2 could not be initialized.");
             if (!_teacherConsoleHandlersAttached)
             {
-                TeacherConsole.CoreWebView2.Settings.AreDevToolsEnabled = false;
-                TeacherConsole.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-                TeacherConsole.CoreWebView2.NavigationStarting += (_, args) =>
+                webView.Settings.AreDevToolsEnabled = false;
+                webView.Settings.AreDefaultContextMenusEnabled = false;
+                webView.NavigationStarting += (_, args) =>
                 {
                     if (Uri.TryCreate(args.Uri, UriKind.Absolute, out var destination) &&
                         Uri.TryCreate(_settings.ServerUrl, UriKind.Absolute, out var allowed) &&
@@ -656,15 +669,41 @@ public partial class MainWindow : Window
                         args.Cancel = true;
                     }
                 };
-                TeacherConsole.CoreWebView2.NewWindowRequested += (_, args) =>
+                webView.NewWindowRequested += (_, args) =>
                 {
                     args.Handled = true;
                     if (Uri.TryCreate(args.Uri, UriKind.Absolute, out var destination) &&
                         Uri.TryCreate(_settings.ServerUrl, UriKind.Absolute, out var allowed) &&
                         string.Equals(destination.Authority, allowed.Authority, StringComparison.OrdinalIgnoreCase))
                     {
-                        TeacherConsole.CoreWebView2.Navigate(destination.AbsoluteUri);
+                        webView.Navigate(destination.AbsoluteUri);
                     }
+                };
+                webView.NavigationCompleted += (_, args) =>
+                {
+                    if (args.IsSuccess)
+                    {
+                        TeacherConsoleErrorPanel.Visibility = Visibility.Collapsed;
+                        TeacherConsole.Visibility = Visibility.Visible;
+                        return;
+                    }
+
+                    _logs.Warning(
+                        "TeacherConsole",
+                        $"The embedded teacher console navigation failed: {args.WebErrorStatus}.",
+                        eventCode: "teacher_console_navigation_failed");
+                    TeacherConsole.Visibility = Visibility.Collapsed;
+                    TeacherConsoleErrorPanel.Visibility = Visibility.Visible;
+                };
+                webView.ProcessFailed += (_, args) =>
+                {
+                    _logs.Warning(
+                        "TeacherConsole",
+                        $"The embedded teacher console process failed: {args.ProcessFailedKind}.",
+                        eventCode: "teacher_console_process_failed");
+                    _teacherConsoleServer = null;
+                    TeacherConsole.Visibility = Visibility.Collapsed;
+                    TeacherConsoleErrorPanel.Visibility = Visibility.Visible;
                 };
                 _teacherConsoleHandlersAttached = true;
             }
@@ -672,7 +711,7 @@ public partial class MainWindow : Window
             var target = new Uri(serverUri, "/").AbsoluteUri;
             if (!string.Equals(_teacherConsoleServer, target, StringComparison.OrdinalIgnoreCase))
             {
-                TeacherConsole.CoreWebView2.Navigate(target);
+                webView.Navigate(target);
                 _teacherConsoleServer = target;
             }
             TeacherConsoleErrorPanel.Visibility = Visibility.Collapsed;
@@ -683,6 +722,10 @@ public partial class MainWindow : Window
             _logs.Warning("TeacherConsole", "The embedded teacher console could not be initialized.", exception, "teacher_console_failed");
             TeacherConsole.Visibility = Visibility.Collapsed;
             TeacherConsoleErrorPanel.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            _teacherConsoleInitialization.Release();
         }
     }
 

@@ -153,6 +153,7 @@ public sealed class AgentRegistry(
     public async Task<bool> UpdateCapabilitiesAsync(
         Guid agentId,
         IReadOnlyCollection<DisplayDescriptor> displays,
+        string? displayName,
         CancellationToken cancellationToken)
     {
         if (!_agents.TryGetValue(agentId, out var agent))
@@ -165,9 +166,28 @@ public sealed class AgentRegistry(
             .OrderBy(display => display.Index)
             .Take(16)
             .ToArray();
-        _agents[agentId] = agent with { Displays = normalized, LastSeenUtc = DateTimeOffset.UtcNow };
+        var normalizedDisplayName = NormalizeDisplayName(displayName, agent.DisplayName);
+        _agents[agentId] = agent with
+        {
+            DisplayName = normalizedDisplayName,
+            Displays = normalized,
+            LastSeenUtc = DateTimeOffset.UtcNow
+        };
         await PersistAsync(cancellationToken);
         return true;
+    }
+
+    private static string NormalizeDisplayName(string? displayName, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return fallback;
+        }
+
+        var normalized = displayName.Trim();
+        return normalized.Length <= 100 && normalized.All(character => !char.IsControl(character))
+            ? normalized
+            : fallback;
     }
 
     public async Task ApplyAssignmentsAsync(

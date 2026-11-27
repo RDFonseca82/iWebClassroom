@@ -292,7 +292,6 @@ app.MapPost("/api/v1/enrollment", async (
         ? request
         : request with
         {
-            DisplayName = Environment.MachineName,
             Role = AgentRole.Student,
             ClassroomId = "PENDENTE",
             IsShared = false,
@@ -326,7 +325,11 @@ app.MapPut("/api/v1/agent/capabilities", async (
         return Results.Unauthorized();
     }
 
-    return await agentRegistry.UpdateCapabilitiesAsync(agent.AgentId, capabilities.Displays, cancellationToken)
+    return await agentRegistry.UpdateCapabilitiesAsync(
+            agent.AgentId,
+            capabilities.Displays,
+            capabilities.DisplayName,
+            cancellationToken)
         ? Results.NoContent()
         : Results.NotFound();
 }).RequireRateLimiting("teacher");

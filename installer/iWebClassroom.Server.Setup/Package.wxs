@@ -22,6 +22,8 @@
     </Property>
     <Property Id="UI_CONFIG_TITLE" Value="Instalação do servidor" /><Property Id="UI_CONFIG_DESC" Value="O servidor está pronto para ser instalado em Português de Portugal." />
     <Property Id="UI_CANCEL" Value="Cancelar" /><Property Id="UI_INSTALL" Value="Instalar" />
+    <Property Id="UI_RETRY" Value="Tentar novamente" /><Property Id="UI_IGNORE" Value="Ignorar" /><Property Id="UI_EXIT" Value="Sair" /><Property Id="UI_YES" Value="Sim" /><Property Id="UI_NO" Value="Não" />
+    <Property Id="UI_FILES_TITLE" Value="Ficheiros em utilização" /><Property Id="UI_FILES_TEXT" Value="Feche as aplicações indicadas antes de continuar a atualização." /><Property Id="UI_RM_TEXT" Value="O Windows pode fechar e reiniciar estas aplicações automaticamente." />
     <Property Id="UI_INSTALLING_TITLE" Value="A instalar" /><Property Id="UI_INSTALLING_DESC" Value="Aguarde enquanto o servidor é instalado." /><Property Id="UI_WAIT" Value="Não desligue o computador." />
     <Property Id="UI_SUCCESS_TITLE" Value="Instalação concluída" /><Property Id="UI_SUCCESS_DESC" Value="O servidor foi instalado. A consola segura está disponível em https://localhost:7443 e em todos os IP deste servidor." /><Property Id="UI_FINISH" Value="Concluir" />
     <Property Id="UI_ERROR_TITLE" Value="Falha na instalação" /><Property Id="UI_ERROR_DESC" Value="O servidor não foi instalado. Consulte o registo do Windows Installer." /><Property Id="UI_CLOSE" Value="Fechar" />
@@ -31,6 +33,37 @@
       <TextStyle Id="DlgFont8" FaceName="Segoe UI" Size="9" />
       <TextStyle Id="DlgTitleFont" FaceName="Segoe UI" Size="13" Bold="yes" />
       <Property Id="DefaultUIFont" Value="DlgFont8" />
+      <Property Id="ErrorDialog" Value="ErrorDlg" />
+
+      <Dialog Id="ErrorDlg" Width="270" Height="105" Title="iWebClassroom Server" ErrorDialog="yes">
+        <Control Id="ErrorText" Type="Text" X="15" Y="15" Width="240" Height="55" TabSkip="no" NoPrefix="yes" Text="Information text" />
+        <Control Id="Y" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="[UI_YES]"><Publish Event="EndDialog" Value="ErrorYes" /></Control>
+        <Control Id="A" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="[UI_CANCEL]"><Publish Event="EndDialog" Value="ErrorAbort" /></Control>
+        <Control Id="C" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="[UI_CANCEL]"><Publish Event="EndDialog" Value="ErrorCancel" /></Control>
+        <Control Id="I" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="[UI_IGNORE]"><Publish Event="EndDialog" Value="ErrorIgnore" /></Control>
+        <Control Id="N" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="[UI_NO]"><Publish Event="EndDialog" Value="ErrorNo" /></Control>
+        <Control Id="O" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="OK"><Publish Event="EndDialog" Value="ErrorOk" /></Control>
+        <Control Id="R" Type="PushButton" X="107" Y="80" Width="56" Height="17" TabSkip="yes" Text="[UI_RETRY]"><Publish Event="EndDialog" Value="ErrorRetry" /></Control>
+      </Dialog>
+
+      <Dialog Id="FilesInUse" Width="370" Height="270" Title="iWebClassroom Server" KeepModeless="yes">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" Text="{\DlgTitleFont}[UI_FILES_TITLE]" />
+        <Control Id="Text" Type="Text" X="20" Y="48" Width="330" Height="32" NoPrefix="yes" Text="[UI_FILES_TEXT]" />
+        <Control Id="List" Type="ListBox" X="20" Y="88" Width="330" Height="130" Property="FileInUseProcess" Sunken="yes" TabSkip="yes" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Exit" Type="PushButton" X="166" Y="243" Width="56" Height="17" Text="[UI_EXIT]"><Publish Event="EndDialog" Value="Exit" /></Control>
+        <Control Id="Ignore" Type="PushButton" X="235" Y="243" Width="56" Height="17" Text="[UI_IGNORE]"><Publish Event="EndDialog" Value="Ignore" /></Control>
+        <Control Id="Retry" Type="PushButton" X="304" Y="243" Width="56" Height="17" Default="yes" Cancel="yes" Text="[UI_RETRY]"><Publish Event="EndDialog" Value="Retry" /></Control>
+      </Dialog>
+
+      <Dialog Id="MsiRMFilesInUse" Width="370" Height="240" Title="iWebClassroom Server" KeepModeless="yes">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="22" Transparent="yes" NoPrefix="yes" Text="{\DlgTitleFont}[UI_FILES_TITLE]" />
+        <Control Id="Text" Type="Text" X="20" Y="48" Width="330" Height="38" NoPrefix="yes" Text="[UI_RM_TEXT]" />
+        <Control Id="List" Type="ListBox" X="20" Y="92" Width="330" Height="100" Property="FileInUseProcess" Sunken="yes" TabSkip="yes" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="204" Width="370" Height="0" />
+        <Control Id="Cancel" Type="PushButton" X="235" Y="215" Width="56" Height="17" Cancel="yes" Text="[UI_CANCEL]"><Publish Event="EndDialog" Value="Exit" /></Control>
+        <Control Id="OK" Type="PushButton" X="304" Y="215" Width="56" Height="17" Default="yes" Text="OK"><Publish Event="EndDialog" Value="Return" /><Publish Event="RMShutdownAndRestart" Value="0" /></Control>
+      </Dialog>
 
       <Dialog Id="ServerLanguageDlg" Width="370" Height="210" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes" Text="{\DlgTitleFont}Idioma / Language / Idioma" />
@@ -42,6 +75,14 @@
           <Publish Property="UI_CONFIG_TITLE" Value="Server setup" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CONFIG_TITLE" Value="Instalación del servidor" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
           <Publish Property="UI_CONFIG_DESC" Value="The server is ready to be installed in English." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CONFIG_DESC" Value="El servidor está listo para instalarse en español." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
           <Publish Property="UI_CANCEL" Value="Cancel" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_CANCEL" Value="Cancelar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_RETRY" Value="Retry" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_RETRY" Value="Reintentar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_IGNORE" Value="Ignore" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_IGNORE" Value="Ignorar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_EXIT" Value="Exit" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_EXIT" Value="Salir" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_YES" Value="Yes" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_YES" Value="Sí" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_NO" Value="No" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_NO" Value="No" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_FILES_TITLE" Value="Files in use" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_FILES_TITLE" Value="Archivos en uso" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_FILES_TEXT" Value="Close the listed applications before continuing the update." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_FILES_TEXT" Value="Cierre las aplicaciones indicadas antes de continuar la actualización." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
+          <Publish Property="UI_RM_TEXT" Value="Windows can close and restart these applications automatically." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_RM_TEXT" Value="Windows puede cerrar y reiniciar estas aplicaciones automáticamente." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
           <Publish Property="UI_INSTALL" Value="Install" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_INSTALL" Value="Instalar" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
           <Publish Property="UI_INSTALLING_TITLE" Value="Installing" Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_INSTALLING_TITLE" Value="Instalando" Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
           <Publish Property="UI_INSTALLING_DESC" Value="Please wait while the server is installed." Condition="INSTALLLANGUAGE=&quot;en-US&quot;" /><Publish Property="UI_INSTALLING_DESC" Value="Espere mientras se instala el servidor." Condition="INSTALLLANGUAGE=&quot;es-ES&quot;" />
@@ -88,7 +129,7 @@
                  Text="[UI_WAIT]" />
       </Dialog>
 
-      <Dialog Id="ServerSuccessDlg" Width="370" Height="230" Title="iWebClassroom Server">
+      <Dialog Id="ExitDialog" Width="370" Height="230" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
                  Text="{\DlgTitleFont}[UI_SUCCESS_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="70" Transparent="yes" NoPrefix="yes"
@@ -99,7 +140,7 @@
         </Control>
       </Dialog>
 
-      <Dialog Id="ServerErrorDlg" Width="370" Height="190" Title="iWebClassroom Server">
+      <Dialog Id="FatalError" Width="370" Height="190" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
                  Text="{\DlgTitleFont}[UI_ERROR_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="55" Transparent="yes" NoPrefix="yes"
@@ -110,7 +151,7 @@
         </Control>
       </Dialog>
 
-      <Dialog Id="ServerCancelledDlg" Width="370" Height="190" Title="iWebClassroom Server">
+      <Dialog Id="UserExit" Width="370" Height="190" Title="iWebClassroom Server">
         <Control Id="Title" Type="Text" X="20" Y="20" Width="330" Height="25" Transparent="yes" NoPrefix="yes"
                  Text="{\DlgTitleFont}[UI_CANCELLED_TITLE]" />
         <Control Id="Description" Type="Text" X="20" Y="62" Width="330" Height="45" Transparent="yes" NoPrefix="yes"
@@ -124,10 +165,15 @@
       <InstallUISequence>
         <Show Dialog="ServerLanguageDlg" After="CostFinalize" Condition="NOT Installed" />
         <Show Dialog="ServerProgressDlg" Before="ExecuteAction" />
-        <Show Dialog="ServerSuccessDlg" OnExit="success" />
-        <Show Dialog="ServerErrorDlg" OnExit="error" />
-        <Show Dialog="ServerCancelledDlg" OnExit="cancel" />
+        <Show Dialog="ExitDialog" OnExit="success" />
+        <Show Dialog="FatalError" OnExit="error" />
+        <Show Dialog="UserExit" OnExit="cancel" />
       </InstallUISequence>
+      <AdminUISequence>
+        <Show Dialog="ExitDialog" OnExit="success" />
+        <Show Dialog="FatalError" OnExit="error" />
+        <Show Dialog="UserExit" OnExit="cancel" />
+      </AdminUISequence>
     </UI>
 
     <StandardDirectory Id="ProgramFiles64Folder">

@@ -37,7 +37,8 @@ public sealed record DisplayDescriptor(
     bool IsPrimary);
 
 public sealed record AgentCapabilitiesRequest(
-    IReadOnlyCollection<DisplayDescriptor> Displays);
+    IReadOnlyCollection<DisplayDescriptor> Displays,
+    string? DisplayName = null);
 
 public sealed record TeacherAccessRequest(string Email);
 

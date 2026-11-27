@@ -59,6 +59,7 @@ try {
     } | ConvertTo-Json)
     $teacherAgentHeaders = @{ 'X-Agent-Id' = $teacher.agentId; 'X-Agent-Token' = $teacher.agentToken }
     Invoke-RestMethod -Method Put -Uri "$baseUrl/api/v1/agent/capabilities" -Headers $teacherAgentHeaders -ContentType 'application/json' -Body (@{
+        displayName = 'Smoke Teacher Host'
         displays = @(@{ index = 0; name = 'Monitor principal'; width = 1920; height = 1080; isPrimary = $true })
     } | ConvertTo-Json -Depth 5)
     $outsideStudent = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/enrollment" -ContentType 'application/json' -Body (@{
@@ -70,12 +71,18 @@ try {
         classroomId = 'PARTILHADO'; enrollmentCode = $enrollmentCode; isShared = $true
     } | ConvertTo-Json)
     $pendingDevice = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/enrollment" -ContentType 'application/json' -Body (@{
-        machineId = "smoke-pending-$([Guid]::NewGuid())"; displayName = 'Ignored name'; role = 1
+        machineId = "smoke-pending-$([Guid]::NewGuid())"; displayName = 'Pending Endpoint'; role = 1
         classroomId = 'IGNORADA'; enrollmentCode = ''
     } | ConvertTo-Json)
-    $pendingProfile = Invoke-RestMethod -Uri "$baseUrl/api/v1/agent/profile" -Headers @{
+    $pendingHeaders = @{
         'X-Agent-Id' = $pendingDevice.agentId; 'X-Agent-Token' = $pendingDevice.agentToken
     }
+    $pendingProfile = Invoke-RestMethod -Uri "$baseUrl/api/v1/agent/profile" -Headers $pendingHeaders
+    Invoke-RestMethod -Method Put -Uri "$baseUrl/api/v1/agent/capabilities" -Headers $pendingHeaders -ContentType 'application/json' -Body (@{
+        displayName = 'Corrected Endpoint Host'
+        displays = @(@{ index = 0; name = 'Monitor'; width = 1366; height = 768; isPrimary = $true })
+    } | ConvertTo-Json -Depth 5)
+    $correctedPendingProfile = Invoke-RestMethod -Uri "$baseUrl/api/v1/agent/profile" -Headers $pendingHeaders
     $agentLogEventId = [Guid]::NewGuid()
     $agentLogUpload = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/agent/logs" -Headers @{
         'X-Agent-Id' = $sharedStudent.agentId; 'X-Agent-Token' = $sharedStudent.agentToken
@@ -227,12 +234,15 @@ try {
         -not $extensionAdvanced -or
         $overview.applications.Count -lt 2 -or
         $teacherOverviewAgent.displays.Count -ne 1 -or
+        $teacherOverviewAgent.displayName -ne 'Smoke Teacher Host' -or
         @($finalOverview.lessons | Where-Object roomId -eq $roomId).Count -ne 0 -or
         $overview.teacher.teacherId -ne 'local-administrator' -or
         $temporaryLesson.joinCode -notmatch '^\d{6}$' -or
         $roomResolution.isLocal -ne $true -or
         $pendingProfile.isAssigned -ne $false -or
         $pendingProfile.classroomId -ne 'PENDENTE' -or
+        $pendingProfile.displayName -ne 'Pending Endpoint' -or
+        $correctedPendingProfile.displayName -ne 'Corrected Endpoint Host' -or
         $agentLogUpload.accepted -ne 1 -or
         $agentLogRecord.agent_id -ne $sharedStudent.agentId -or
         $agentLogRecord.computer_name -ne 'Shared Student' -or
