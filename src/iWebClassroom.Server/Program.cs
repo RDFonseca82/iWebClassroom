@@ -72,6 +72,7 @@ builder.Services.AddSingleton<AgentRegistry>();
 builder.Services.AddSingleton<LessonRegistry>();
 builder.Services.AddSingleton<StudentScreenStore>();
 builder.Services.AddSingleton<LessonMediaStore>();
+builder.Services.AddSingleton<UsageStatisticsStore>();
 builder.Services.AddSingleton<CloudSyncStateStore>();
 builder.Services.AddSingleton<CloudLicenseStore>();
 builder.Services.AddSingleton<CloudApprovedUpdateStore>();
@@ -101,6 +102,7 @@ builder.Services.AddHostedService<CloudSyncWorker>();
 builder.Services.AddHostedService<CloudDirectorySyncWorker>();
 builder.Services.AddHostedService<CloudRoomHeartbeatWorker>();
 builder.Services.AddHostedService<CloudLogUploadWorker>();
+builder.Services.AddHostedService<UsageStatisticsWorker>();
 builder.Services.AddHostedService<PeerCoordinationWorker>();
 builder.Services.AddHostedService<LessonExpirationWorker>();
 builder.Services.AddHostedService<ServerUpdateWorker>();
@@ -155,6 +157,8 @@ var registry = app.Services.GetRequiredService<AgentRegistry>();
 await registry.InitializeAsync(app.Lifetime.ApplicationStopping);
 var lessons = app.Services.GetRequiredService<LessonRegistry>();
 await lessons.InitializeAsync(app.Lifetime.ApplicationStopping);
+var usageStatistics = app.Services.GetRequiredService<UsageStatisticsStore>();
+await usageStatistics.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudState = app.Services.GetRequiredService<CloudSyncStateStore>();
 await cloudState.InitializeAsync(app.Lifetime.ApplicationStopping);
 var cloudLicense = app.Services.GetRequiredService<CloudLicenseStore>();
@@ -349,6 +353,28 @@ app.MapPost("/api/v1/agent/logs", (
     return Results.Accepted(value: new { accepted = upload.Entries.Count });
 }).RequireRateLimiting("teacher");
 
+app.MapPost("/api/v1/agent/statistics", async (
+    HttpRequest request,
+    AgentUsageSnapshot snapshot,
+    AgentRegistry agentRegistry,
+    UsageStatisticsStore statistics,
+    CancellationToken cancellationToken) =>
+{
+    if (!TryAuthenticateAgentWithSummary(request, agentRegistry, out var agent) || agent is null)
+    {
+        return Results.Unauthorized();
+    }
+    if (!DateOnly.TryParse(snapshot.Date, out var date) ||
+        date < DateOnly.FromDateTime(DateTime.Today.AddDays(-7)) || date > DateOnly.FromDateTime(DateTime.Today.AddDays(1)) ||
+        snapshot.ProcessStarts is < 0 or > 10000 || snapshot.ConnectedSeconds is < 0 or > 172800)
+    {
+        return Results.BadRequest(new { error = "Invalid agent usage snapshot." });
+    }
+
+    await statistics.RecordAgentSnapshotAsync(agent.AgentId, snapshot, cancellationToken);
+    return Results.Accepted();
+}).RequireRateLimiting("teacher");
+
 app.MapGet("/api/v1/agents", (HttpRequest request, AgentRegistry agentRegistry, IConfiguration configuration) =>
     IsAdmin(request, configuration)
         ? Results.Ok(agentRegistry.List())
@@ -419,6 +445,7 @@ app.MapGet("/api/v1/teacher/overview", (
     HttpRequest request,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    UsageStatisticsStore statistics,
     CloudDirectoryStore directory,
     IOptionsMonitor<ClassroomOptions> classroomOptions,
     IConfiguration configuration) =>
@@ -471,6 +498,7 @@ app.MapPost("/api/v1/rooms/join", async (
     JoinRoomRequest join,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    UsageStatisticsStore statistics,
     IHubContext<ClassroomHub> hub,
     CancellationToken cancellationToken) =>
 {
@@ -495,6 +523,7 @@ app.MapPost("/api/v1/rooms/join", async (
         await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(lesson.LessonId), cancellationToken);
     }
 
+    await statistics.RecordStudentJoinedAsync(lesson, agent.AgentId, cancellationToken);
     return Results.Ok(lesson);
 }).RequireRateLimiting("teacher");
 
@@ -503,6 +532,7 @@ app.MapPost("/api/v1/rooms/resolve", async (
     ResolveRoomRequest resolve,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    UsageStatisticsStore statistics,
     CloudRoomService cloudRooms,
     IHubContext<ClassroomHub> hub,
     CancellationToken cancellationToken) =>
@@ -538,6 +568,8 @@ app.MapPost("/api/v1/rooms/resolve", async (
             await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(joined.LessonId), cancellationToken);
         }
 
+        await statistics.RecordStudentJoinedAsync(joined, agent.AgentId, cancellationToken);
+
         return Results.Ok(new ResolveRoomResponse(true, joined.RoomName, [], null, joined));
     }
 
@@ -562,6 +594,7 @@ app.MapPost("/api/v1/rooms/roam", async (
     CloudRoomService cloudRooms,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    UsageStatisticsStore statistics,
     IHubContext<ClassroomHub> hub,
     CancellationToken cancellationToken) =>
 {
@@ -594,6 +627,8 @@ app.MapPost("/api/v1/rooms/roam", async (
     {
         await hub.Groups.AddToGroupAsync(connectionId, ClassroomHub.LessonGroup(joined.LessonId), cancellationToken);
     }
+
+    await statistics.RecordStudentJoinedAsync(joined, roamingAgent.AgentId, cancellationToken);
 
     var serverUrl = $"https://{request.Host.Host}:{(request.Host.Port ?? 7443)}";
     return Results.Ok(new RoamingJoinResponse(serverUrl, enrollment, joined));
@@ -801,6 +836,7 @@ app.MapPost("/api/v1/lessons", async (
     LessonRegistry lessonRegistry,
     CloudDirectoryStore directory,
     CloudRoomService cloudRooms,
+    UsageStatisticsStore statistics,
     IHubContext<ClassroomHub> hub,
     ILoggerFactory loggerFactory,
     IConfiguration configuration,
@@ -906,6 +942,7 @@ app.MapPost("/api/v1/lessons", async (
         }
     }
 
+    await statistics.RecordLessonStartedAsync(lesson, cancellationToken);
     return Results.Ok(lesson);
 }).RequireRateLimiting("teacher");
 
@@ -914,6 +951,7 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
     HttpRequest httpRequest,
     AgentRegistry agentRegistry,
     LessonRegistry lessonRegistry,
+    UsageStatisticsStore statistics,
     CloudRoomService cloudRooms,
     StudentScreenStore studentScreens,
     LessonMediaStore media,
@@ -965,6 +1003,7 @@ app.MapDelete("/api/v1/lessons/{lessonId:guid}", async (
         }
     }
     await agentRegistry.RemoveRoamingAsync(lesson.MemberAgentIds, cancellationToken);
+    await statistics.RecordLessonEndedAsync(lesson, cancellationToken);
 
     return Results.NoContent();
 }).RequireRateLimiting("teacher");
@@ -1028,6 +1067,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/media", async (
     HttpRequest request,
     LessonRegistry lessonRegistry,
     LessonMediaStore media,
+    UsageStatisticsStore statistics,
     IHubContext<ClassroomHub> hub,
     CommandAuditStore audit,
     IConfiguration configuration,
@@ -1087,6 +1127,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/media", async (
         await hub.Clients.Group(ClassroomHub.AgentGroup(target)).SendAsync(HubProtocol.ReceiveCommand, command, cancellationToken);
     }
     await audit.AppendAsync(command, targets, cancellationToken);
+    await statistics.RecordCommandAsync(ClassroomCommandKind.ShowMedia, cancellationToken);
     return Results.Accepted(value: new
     {
         command.CommandId,
@@ -1120,6 +1161,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     IHubContext<ClassroomHub> hub,
     CommandAuditStore audit,
     StudentScreenStore studentScreens,
+    UsageStatisticsStore statistics,
     CloudDirectoryStore directory,
     IConfiguration configuration,
     CancellationToken cancellationToken) =>
@@ -1160,9 +1202,12 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
 
     if (request.Kind == ClassroomCommandKind.StartStudentView)
     {
+        var authorizedViewers = ReadGuidArray(request.Payload, "viewerAgentIds")
+            .Where(id => allowedTargets.Contains(id) && !targets.Contains(id))
+            .Distinct().Take(200).ToArray();
         foreach (var target in targets)
         {
-            studentScreens.Authorize(lessonId, target);
+            studentScreens.Authorize(lessonId, target, authorizedViewers);
         }
     }
     else if (request.Kind == ClassroomCommandKind.StopStudentView)
@@ -1201,6 +1246,25 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
             viewerAgentIds = viewers
         });
     }
+    else if (request.Kind is ClassroomCommandKind.StartStudentView or ClassroomCommandKind.StopStudentView)
+    {
+        var viewers = ReadGuidArray(request.Payload, "viewerAgentIds")
+            .Where(id => allowedTargets.Contains(id) && !targets.Contains(id))
+            .Distinct().Take(200).ToArray();
+        payload = JsonSerializer.SerializeToElement(new
+        {
+            monitorIndex = request.Payload.TryGetProperty("monitorIndex", out var studentMonitor) && studentMonitor.TryGetInt32(out var display)
+                ? display
+                : 0,
+            viewerAgentIds = viewers
+        });
+
+        if (request.Kind == ClassroomCommandKind.StopStudentView && viewers.Length > 0)
+        {
+            await hub.Clients.Groups(viewers.Select(ClassroomHub.AgentGroup))
+                .SendAsync(HubProtocol.ScreenStopped, cancellationToken);
+        }
+    }
 
     var command = new ClassroomCommand(Guid.NewGuid(), request.Kind, payload, DateTimeOffset.UtcNow);
     foreach (var target in targets)
@@ -1210,6 +1274,7 @@ app.MapPost("/api/v1/lessons/{lessonId:guid}/commands", async (
     }
 
     await audit.AppendAsync(command, targets, cancellationToken);
+    await statistics.RecordCommandAsync(request.Kind, cancellationToken);
     return Results.Accepted(value: new { command.CommandId, targetCount = targets.Length });
 }).RequireRateLimiting("teacher");
 
@@ -1413,6 +1478,12 @@ static string? ValidateCommand(
         case ClassroomCommandKind.StartBlackout:
         case ClassroomCommandKind.StopBlackout:
         case ClassroomCommandKind.StartStudentView:
+            if (request.Payload.TryGetProperty("monitorIndex", out var studentMonitor) &&
+                (studentMonitor.ValueKind != JsonValueKind.Number || !studentMonitor.TryGetInt32(out var studentDisplay) || studentDisplay is < 0 or > 15))
+            {
+                return ApiText.Get(httpRequest, "InvalidMonitor");
+            }
+            break;
         case ClassroomCommandKind.StopStudentView:
         case ClassroomCommandKind.StopMedia:
             break;

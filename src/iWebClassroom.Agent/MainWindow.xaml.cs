@@ -10,6 +10,7 @@ using IWebClassroom.Agent.Configuration;
 using IWebClassroom.Agent.Localization;
 using IWebClassroom.Agent.Services;
 using IWebClassroom.Contracts;
+using Microsoft.Web.WebView2.Core;
 
 namespace IWebClassroom.Agent;
 
@@ -25,8 +26,10 @@ public partial class MainWindow : Window
     private readonly ScreenCaptureService _studentCapture = new();
     private readonly UpdateService _updates = new();
     private readonly AgentLogStore _logs = AgentLogStore.Current;
+    private readonly AgentUsageStore _usage = new();
     private readonly DispatcherTimer _profileTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     private readonly DispatcherTimer _logUploadTimer = new() { Interval = TimeSpan.FromMinutes(5) };
+    private readonly DispatcherTimer _usageTimer = new() { Interval = TimeSpan.FromMinutes(1) };
     private AgentSettings _settings = AgentSettings.Empty;
     private ScreenDisplayWindow? _screenWindow;
     private readonly List<BlackoutWindow> _blackoutWindows = [];
@@ -36,6 +39,10 @@ public partial class MainWindow : Window
     private int _screenFramePending;
     private bool _closing;
     private bool _disposed;
+    private bool _busy;
+    private bool _profileIsAssigned;
+    private bool _teacherConsoleHandlersAttached;
+    private string? _teacherConsoleServer;
     private DateTimeOffset _lastProfileWarningUtc = DateTimeOffset.MinValue;
 
     public MainWindow()
@@ -45,15 +52,28 @@ public partial class MainWindow : Window
         _connection.CommandReceived += HandleCommandAsync;
         _connection.ScreenFrameReceived += HandleScreenFrame;
         _connection.ScreenStopped += HandleScreenStopped;
-        _connection.StateChanged += state => Dispatcher.Invoke(() => StatusText.Text = state);
+        _connection.StateChanged += state => Dispatcher.Invoke(() =>
+        {
+            StatusText.Text = state;
+            UpdateConnectionControls();
+            UpdateRolePanels();
+        });
         _profileTimer.Tick += async (_, _) => await RefreshProfileAsync();
-        _logUploadTimer.Tick += async (_, _) => await _logs.UploadAsync(_settings, CancellationToken.None);
-        Loaded += MainWindow_Loaded;
+        _logUploadTimer.Tick += async (_, _) => await UploadBackgroundDataAsync();
+        _usageTimer.Tick += async (_, _) => await RecordUsageMinuteAsync();
     }
 
-    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    internal async Task StartAsync()
     {
         _settings = await _settingsStore.LoadAsync();
+        try
+        {
+            await _usage.RecordStartAsync();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _logs.Warning("Usage", "The agent start statistic could not be persisted.", exception, "usage_start_failed");
+        }
         _logs.Information("Configuration", "Agent settings loaded.", "settings_loaded");
         ApplySettingsToForm();
         if (_settings.AgentId != Guid.Empty && !string.IsNullOrWhiteSpace(_settings.AgentToken))
@@ -66,6 +86,7 @@ public partial class MainWindow : Window
         }
         _profileTimer.Start();
         _logUploadTimer.Start();
+        _usageTimer.Start();
     }
 
     private void ApplySettingsToForm()
@@ -84,6 +105,8 @@ public partial class MainWindow : Window
                 ? AgentStrings.SharedComputer
                 : $"{(_settings.Role == AgentRole.Teacher ? AgentStrings.Teacher : AgentStrings.Student)} · {_settings.ClassroomId}";
         IdentityText.Text = _settings.AgentId == Guid.Empty ? AgentStrings.NotEnrolled : _settings.AgentId.ToString();
+        UpdateConnectionControls();
+        UpdateRolePanels();
     }
 
     private async void ConnectButton_Click(object sender, RoutedEventArgs e) => await ConnectAsync(reenroll: false);
@@ -146,14 +169,17 @@ public partial class MainWindow : Window
             ShareButton.IsEnabled = _settings.Role == AgentRole.Teacher;
             SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
             _logs.Information("Connection", $"Connected to {_settings.ServerUrl}.", "server_connected");
-            _ = _logs.UploadAsync(_settings, CancellationToken.None);
+            _ = UploadBackgroundDataAsync();
             _ = CheckForUpdatesAsync();
         }
         catch (Exception exception)
         {
             _logs.Error("Connection", "The agent could not connect to the local server.", exception, "server_connection_failed");
             StatusText.Text = AgentStrings.ConnectionError;
-            MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (IsVisible)
+            {
+                MessageBox.Show(this, exception.Message, AgentStrings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
         finally
         {
@@ -171,6 +197,7 @@ public partial class MainWindow : Window
         try
         {
             var profile = await _enrollmentClient.GetProfileAsync(_settings, CancellationToken.None);
+            _profileIsAssigned = profile.IsAssigned;
             var updated = _settings with
             {
                 DisplayName = profile.DisplayName,
@@ -184,6 +211,7 @@ public partial class MainWindow : Window
                 await _settingsStore.SaveAsync(_settings);
                 ApplySettingsToForm();
             }
+            UpdateRolePanels();
         }
         catch (Exception exception)
         {
@@ -235,7 +263,11 @@ public partial class MainWindow : Window
                 case ClassroomCommandKind.StartStudentView:
                     var studentMonitor = command.Payload.TryGetProperty("monitorIndex", out var studentDisplay)
                         ? studentDisplay.GetInt32() : 0;
-                    await StartStudentViewAsync(studentMonitor);
+                    var studentViewers = command.Payload.TryGetProperty("viewerAgentIds", out var studentViewerIds) &&
+                                         studentViewerIds.ValueKind == JsonValueKind.Array
+                        ? studentViewerIds.EnumerateArray().Select(value => value.GetGuid()).ToArray()
+                        : [];
+                    await StartStudentViewAsync(studentMonitor, studentViewers);
                     break;
                 case ClassroomCommandKind.StopStudentView:
                     await _studentCapture.StopAsync();
@@ -338,10 +370,12 @@ public partial class MainWindow : Window
         });
     }
 
-    private async Task StartStudentViewAsync(int monitorIndex)
+    private async Task StartStudentViewAsync(int monitorIndex, IReadOnlyCollection<Guid> viewers)
     {
         await _studentCapture.StopAsync();
-        _studentCapture.Start(monitorIndex, _connection.PublishStudentFrameAsync);
+        var recipients = viewers.Distinct().ToArray();
+        _studentCapture.Start(monitorIndex, (frame, cancellationToken) =>
+            _connection.PublishStudentFrameAsync(frame, recipients, cancellationToken));
     }
 
     private void StartBlackout()
@@ -547,8 +581,115 @@ public partial class MainWindow : Window
 
     private void SetBusy(bool busy, string activity)
     {
-        ConnectButton.IsEnabled = !busy;
+        _busy = busy;
+        UpdateConnectionControls();
         ActivityText.Text = activity;
+    }
+
+    private async Task RecordUsageMinuteAsync()
+    {
+        try
+        {
+            await _usage.RecordConnectedMinuteAsync(_connection.IsConnected);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _logs.Warning("Usage", "Agent usage statistics could not be persisted.", exception, "usage_persist_failed");
+        }
+    }
+
+    private async Task UploadBackgroundDataAsync()
+    {
+        await _logs.UploadAsync(_settings, CancellationToken.None);
+        try
+        {
+            await _usage.UploadAsync(_settings, CancellationToken.None);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException or TaskCanceledException)
+        {
+            _logs.Warning("Usage", "Agent usage statistics could not be sent to the local server.", exception, "usage_upload_failed");
+        }
+    }
+
+    private void UpdateConnectionControls()
+    {
+        ConnectButton.Visibility = _connection.IsConnected ? Visibility.Collapsed : Visibility.Visible;
+        ConnectButton.IsEnabled = !_busy;
+    }
+
+    private void UpdateRolePanels()
+    {
+        var fixedTeacher = _profileIsAssigned && _settings.Role == AgentRole.Teacher && !_settings.IsShared &&
+                           !string.Equals(_settings.ClassroomId, "PENDENTE", StringComparison.OrdinalIgnoreCase);
+        TeacherConsolePanel.Visibility = fixedTeacher ? Visibility.Visible : Visibility.Collapsed;
+        SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
+        if (fixedTeacher && _connection.IsConnected && IsVisible)
+        {
+            _ = EnsureTeacherConsoleAsync();
+        }
+    }
+
+    private async Task EnsureTeacherConsoleAsync()
+    {
+        try
+        {
+            if (!Uri.TryCreate(_settings.ServerUrl, UriKind.Absolute, out var serverUri))
+            {
+                throw new InvalidOperationException(AgentStrings.InvalidServer);
+            }
+
+            var userDataFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "iWebClassroom", "WebView2", "TeacherConsole");
+            var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
+            await TeacherConsole.EnsureCoreWebView2Async(environment);
+            if (!_teacherConsoleHandlersAttached)
+            {
+                TeacherConsole.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                TeacherConsole.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                TeacherConsole.CoreWebView2.NavigationStarting += (_, args) =>
+                {
+                    if (Uri.TryCreate(args.Uri, UriKind.Absolute, out var destination) &&
+                        Uri.TryCreate(_settings.ServerUrl, UriKind.Absolute, out var allowed) &&
+                        !string.Equals(destination.Authority, allowed.Authority, StringComparison.OrdinalIgnoreCase))
+                    {
+                        args.Cancel = true;
+                    }
+                };
+                TeacherConsole.CoreWebView2.NewWindowRequested += (_, args) =>
+                {
+                    args.Handled = true;
+                    if (Uri.TryCreate(args.Uri, UriKind.Absolute, out var destination) &&
+                        Uri.TryCreate(_settings.ServerUrl, UriKind.Absolute, out var allowed) &&
+                        string.Equals(destination.Authority, allowed.Authority, StringComparison.OrdinalIgnoreCase))
+                    {
+                        TeacherConsole.CoreWebView2.Navigate(destination.AbsoluteUri);
+                    }
+                };
+                _teacherConsoleHandlersAttached = true;
+            }
+
+            var target = new Uri(serverUri, "/").AbsoluteUri;
+            if (!string.Equals(_teacherConsoleServer, target, StringComparison.OrdinalIgnoreCase))
+            {
+                TeacherConsole.CoreWebView2.Navigate(target);
+                _teacherConsoleServer = target;
+            }
+            TeacherConsoleErrorPanel.Visibility = Visibility.Collapsed;
+            TeacherConsole.Visibility = Visibility.Visible;
+        }
+        catch (Exception exception)
+        {
+            _logs.Warning("TeacherConsole", "The embedded teacher console could not be initialized.", exception, "teacher_console_failed");
+            TeacherConsole.Visibility = Visibility.Collapsed;
+            TeacherConsoleErrorPanel.Visibility = Visibility.Visible;
+        }
+    }
+
+    private async void RetryTeacherConsole_Click(object sender, RoutedEventArgs e)
+    {
+        _teacherConsoleServer = null;
+        await EnsureTeacherConsoleAsync();
     }
 
     internal string TrayStatus => StatusText.Text;
@@ -570,6 +711,7 @@ public partial class MainWindow : Window
         Topmost = true;
         Topmost = false;
         Focus();
+        UpdateRolePanels();
     }
 
     internal async Task RefreshFromTrayAsync()
@@ -605,13 +747,15 @@ public partial class MainWindow : Window
         _closing = true;
         _profileTimer.Stop();
         _logUploadTimer.Stop();
-        await _logs.UploadAsync(_settings, CancellationToken.None);
+        _usageTimer.Stop();
+        await UploadBackgroundDataAsync();
         await _studentCapture.DisposeAsync();
         await _screenCapture.DisposeAsync();
         await _connection.DisposeAsync();
         _screenWindow?.CloseFromAgent();
         StopBlackout();
         StopMedia();
+        TeacherConsole.Dispose();
     }
 
     protected override async void OnClosed(EventArgs e)

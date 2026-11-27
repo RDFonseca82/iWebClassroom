@@ -11,6 +11,7 @@ public sealed class LessonExpirationWorker(
     CloudRoomService cloudRooms,
     StudentScreenStore studentScreens,
     LessonMediaStore media,
+    UsageStatisticsStore statistics,
     IHubContext<ClassroomHub> hub,
     ILogger<LessonExpirationWorker> logger) : BackgroundService
 {
@@ -48,6 +49,7 @@ public sealed class LessonExpirationWorker(
                     }
                 }
                 await agents.RemoveRoamingAsync(lesson.MemberAgentIds, stoppingToken);
+                await statistics.RecordLessonEndedAsync(lesson, stoppingToken);
 
                 logger.LogInformation("Lesson {LessonId} in room {RoomId} expired.", lesson.LessonId, lesson.RoomId);
             }

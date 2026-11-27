@@ -18,6 +18,7 @@ Este repositório contém um MVP funcional com:
 - blackout dos ecrãs de todos os alunos ou apenas dos computadores selecionados;
 - espelhamento de um monitor escolhido pelo professor para todos ou apenas para os alunos selecionados;
 - visualização temporária do ecrã de um aluno escolhido, sem gravação no servidor;
+- partilha do ecrã de um aluno escolhido com todos ou apenas com os computadores selecionados;
 - apresentação de imagens ou vídeos em ecrã inteiro nos computadores escolhidos;
 - aviso de fim de aula e prolongamento imediato em 15, 30 ou 60 minutos;
 - registo de auditoria dos comandos, sem guardar o conteúdo das mensagens;
@@ -32,6 +33,9 @@ Este repositório contém um MVP funcional com:
 - sincronização leve de professores, salas e atribuições de computadores a cada 20–60 segundos, separada da sincronização completa.
 - deteção da versão publicada no catálogo local da Cloud e aprovação única, por escola, antes de atualizar todos os servidores locais quando estiverem sem computadores ligados.
 - página autenticada de transferências por escola, com os MSI do servidor e agente, hashes e instruções de instalação normal e silenciosa.
+- agente iniciado de forma silenciosa, apenas com ícone na área de notificação, sem abrir a janela em cada início de sessão;
+- consola do professor incorporada no agente dos computadores fixos atribuídos ao professor;
+- estatísticas locais de aulas, computadores online, tempo de ligação, funcionalidades usadas e utilização por professor, enviadas para a cloud em horas de menor utilização.
 
 Todas as interfaces destinadas ao utilizador estão disponíveis em Português de Portugal, Inglês e Espanhol. O idioma inicial é escolhido durante a instalação e pode ser alterado posteriormente nas consolas web.
 
@@ -79,7 +83,19 @@ O espelhamento adaptado à rede local usa JPEG com resolução máxima de 1024 �
 
 O professor escolhe o monitor a partilhar e os destinatários. A visualização do ecrã de um aluno só começa após uma ação explícita do professor, termina ao fechar a janela e é autorizada apenas dentro da aula ativa. O servidor mantém somente o último frame em memória durante cinco segundos; não cria gravações nem envia estas imagens para a cloud.
 
+O mesmo aluno pode ser escolhido como origem de uma apresentação para a turma. O professor seleciona separadamente o **Aluno a apresentar** e os destinatários — todos ou apenas os computadores marcados. O agente do aluno envia os frames diretamente ao servidor local da aula, que os retransmite exclusivamente aos membros autorizados. Parar a partilha fecha a apresentação nos destinatários; esta função não cria gravações e continua a funcionar sem acesso à cloud.
+
 Imagens JPEG, PNG, GIF ou BMP e vídeos MP4/WMV até 25 MB podem ser enviados aos computadores escolhidos e apresentados em ecrã inteiro. O ficheiro circula apenas pelo servidor local da aula, é validado por tipo e SHA-256 e é removido quando a aula termina.
+
+### Estatísticas de utilização
+
+Cada servidor mantém em `C:\ProgramData\iWebClassroom\Server\usage-statistics.json` contadores diários de aulas fixas e temporárias, duração, entradas de alunos, computadores únicos e pico online. Também contabiliza, sem guardar o conteúdo, aberturas de aplicações, espelhamentos, blackouts, visualizações/partilhas de ecrãs de alunos e apresentações multimédia. Cada agente acrescenta o número de arranques e o tempo em que esteve ligado ao servidor; envia apenas estes acumulados ao servidor local.
+
+Os dados ficam disponíveis localmente mesmo sem Internet. Entre as 02:00 e as 06:00, o servidor tenta enviar para a cloud os dias já concluídos dos últimos 62 dias. Uma falha não elimina nem perde os contadores: o envio é repetido noutra janela de horas mortas. O portal apresenta períodos de 30, 90 ou 365 dias, totais da escola, atividade diária, utilização por servidor e os professores com maior utilização.
+
+Não são enviados ecrãs, mensagens, ficheiros multimédia, endereços de email nem nomes de alunos. A identificação do professor é necessária apenas para calcular a utilização por professor. Em escolas com vários servidores, **Computadores/dia** é a soma dos valores diários comunicados por servidor e pode contar duas vezes um computador que tenha mudado de servidor no mesmo dia.
+
+Para instalar as tabelas no SQL Server do portal, execute [docs/sql/2026-11-27-school-usage-statistics.sql](docs/sql/2026-11-27-school-usage-statistics.sql). O projeto Laravel inclui também a migration `2026_11_27_000020_create_server_usage_statistics_tables.php` na pasta própria do portal.
 
 ## Estrutura
 
@@ -199,8 +215,8 @@ O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.13.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.13.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.14.0-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.14.0-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
@@ -214,9 +230,11 @@ C:\ProgramData\iWebClassroom\Server\certificates\
 
 Esses ficheiros só podem ser lidos por `SYSTEM` e pelos administradores locais. O servidor cria uma autoridade local com validade longa e um certificado de serviço com todos os nomes e IP ativos; verifica alterações de rede e renova o certificado antes de expirar. No primeiro registo, o agente valida o código de inscrição, instala a autoridade em `CurrentUser\Root` e passa a usar HTTPS. Em computadores sem agente, distribua `iwebclassroom-root.cer` por GPO/Intune ou use um certificado de AD CS/autoridade pública. IIS/ARR passa a ser opcional.
 
-O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. A URL e o idioma são guardados em `HKLM\SOFTWARE\iWebClassroom\Agent`. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
+O MSI do agente instala em `C:\Program Files\iWebClassroom\Agent`, cria uma entrada no menu Iniciar e configura o arranque para todos os utilizadores. O arranque é silencioso: a janela principal **não abre quando o utilizador inicia sessão**, embora ligação, comandos, logs e atualizações permaneçam ativos em segundo plano. A URL e o idioma são guardados em `HKLM\SOFTWARE\iWebClassroom\Agent`. A identidade partilhada do computador fica em `C:\ProgramData\iWebClassroom\Agent\agent.json`; versões anteriores são migradas automaticamente a partir do perfil do primeiro utilizador que executar a atualização.
 
 O agente permanece ativo na área de notificação do Windows com o mesmo símbolo do portal. Um duplo clique abre a janela; o menu permite consultar estado, atribuição, computador, servidor e versão, copiar o endereço do servidor e atualizar a ligação. Fechar a janela apenas a oculta: não existe opção de saída para o utilizador e o agente só termina durante o encerramento do Windows, desinstalação ou atualização controlada.
+
+O botão **Ligar ao servidor** aparece dentro do cartão **Estado do agente**, na barra lateral, apenas quando a ligação está interrompida. Nos computadores fixos que o administrador atribuiu como posto do professor, a área principal do agente incorpora a consola web local através do Microsoft Edge WebView2, pelo que o professor pode iniciar sessão, criar a aula e usar todos os controlos sem abrir o navegador. A navegação incorporada fica limitada ao endereço do servidor configurado. Nos computadores partilhados mantém-se o formulário de entrada do aluno. O WebView2 Evergreen Runtime, incluído por omissão nas versões atuais do Windows, tem de estar disponível no posto do professor.
 
 O MSI do servidor instala ainda `iWebClassroom.Server.Tray`, iniciado quando um utilizador entra no Windows. O ícone com o logótipo iWebClassroom permite abrir os dois portais, consultar estado e versão, copiar `https://localhost:7443` e encerrar apenas o ícone sem parar o serviço.
 

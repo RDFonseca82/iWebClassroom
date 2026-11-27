@@ -189,6 +189,18 @@ public sealed class CloudSyncClient(IHttpClientFactory httpClientFactory, IOptio
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task UploadStatisticsAsync(
+        Guid serverId,
+        string accessToken,
+        CloudUsageStatisticsUploadRequest request,
+        CancellationToken cancellationToken)
+    {
+        await WaitForRateLimitAsync(cancellationToken);
+        var client = CreateAuthorizedClient(serverId, accessToken);
+        using var response = await client.PostAsJsonAsync("/api/v1/server/statistics", request, JsonOptions, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     private HttpClient CreateAuthorizedClient(Guid serverId, string accessToken)
     {
         var client = CreateClient();

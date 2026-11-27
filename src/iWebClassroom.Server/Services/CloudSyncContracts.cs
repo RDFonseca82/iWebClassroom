@@ -96,6 +96,35 @@ public sealed record CloudSyncStatus(
     bool Conflict,
     string CloudUrl);
 
+public sealed record CloudUsageStatisticsUploadRequest(
+    [property: JsonPropertyName("entries")] IReadOnlyCollection<CloudDailyUsageStatistics> Entries);
+
+public sealed record CloudDailyUsageStatistics(
+    [property: JsonPropertyName("date")] string Date,
+    [property: JsonPropertyName("lessons_created")] long LessonsCreated,
+    [property: JsonPropertyName("fixed_lessons")] long FixedLessons,
+    [property: JsonPropertyName("temporary_lessons")] long TemporaryLessons,
+    [property: JsonPropertyName("completed_lessons")] long CompletedLessons,
+    [property: JsonPropertyName("total_lesson_minutes")] long TotalLessonMinutes,
+    [property: JsonPropertyName("student_joins")] long StudentJoins,
+    [property: JsonPropertyName("unique_teachers")] int UniqueTeachers,
+    [property: JsonPropertyName("unique_computers")] int UniqueComputers,
+    [property: JsonPropertyName("peak_online_computers")] int PeakOnlineComputers,
+    [property: JsonPropertyName("agent_starts")] long AgentStarts,
+    [property: JsonPropertyName("agent_online_seconds")] long AgentOnlineSeconds,
+    [property: JsonPropertyName("applications_launched")] long ApplicationsLaunched,
+    [property: JsonPropertyName("screen_shares")] long ScreenShares,
+    [property: JsonPropertyName("blackouts")] long Blackouts,
+    [property: JsonPropertyName("student_views")] long StudentViews,
+    [property: JsonPropertyName("media_presentations")] long MediaPresentations,
+    [property: JsonPropertyName("teachers")] IReadOnlyCollection<CloudTeacherUsageStatistics> Teachers);
+
+public sealed record CloudTeacherUsageStatistics(
+    [property: JsonPropertyName("teacher_id")] string TeacherId,
+    [property: JsonPropertyName("teacher_name")] string TeacherName,
+    [property: JsonPropertyName("lessons")] long Lessons,
+    [property: JsonPropertyName("minutes")] long Minutes);
+
 public sealed record CloudRoomAllocationRequest(
     [property: JsonPropertyName("lesson_uid")] Guid LessonUid,
     [property: JsonPropertyName("room_name")] string RoomName,

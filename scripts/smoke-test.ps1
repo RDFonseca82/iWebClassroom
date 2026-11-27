@@ -94,6 +94,11 @@ try {
         ForEach-Object { $_ | ConvertFrom-Json } |
         Where-Object event_id -eq $agentLogEventId |
         Select-Object -First 1
+    $agentUsageUpload = Invoke-WebRequest -Method Post -Uri "$baseUrl/api/v1/agent/statistics" -Headers @{
+        'X-Agent-Id' = $sharedStudent.agentId; 'X-Agent-Token' = $sharedStudent.agentToken
+    } -ContentType 'application/json' -Body (@{
+        date = [DateTime]::Today.ToString('yyyy-MM-dd'); processStarts = 1; connectedSeconds = 120
+    } | ConvertTo-Json)
     $headers = @{ 'X-Admin-Token' = $adminToken }
     $agents = @(Invoke-RestMethod -Uri "$baseUrl/api/v1/agents" -Headers $headers)
     $command = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/commands" -Headers $headers -ContentType 'application/json' -Body (@{
@@ -145,6 +150,9 @@ try {
     $studentViewCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
         targetAgentIds = @($student.agentId); kind = 7; payload = @{}
     } | ConvertTo-Json -Depth 5)
+    $studentShareCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
+        targetAgentIds = @($student.agentId); kind = 7; payload = @{ monitorIndex = 0; viewerAgentIds = @($teacher.agentId) }
+    } | ConvertTo-Json -Depth 7)
     $applicationCommand = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/v1/lessons/$($lesson.lessonId)/commands" -Headers $teacherHeaders -ContentType 'application/json' -Body (@{
         targetAgentIds = @($student.agentId); kind = 1; payload = @{ applicationId = 'notepad' }
     } | ConvertTo-Json -Depth 5)
@@ -190,6 +198,8 @@ try {
     } | ConvertTo-Json)
     $joinedTemporaryLesson = $roomResolution.lesson
     Invoke-RestMethod -Method Delete -Uri "$baseUrl/api/v1/lessons/$($temporaryLesson.lessonId)" -Headers $teacherSessionHeaders
+    $usageStatistics = Get-Content -LiteralPath (Join-Path $testDataDirectory 'usage-statistics.json') | ConvertFrom-Json
+    $todayUsage = $usageStatistics.days.([DateTime]::Today.ToString('yyyy-MM-dd'))
 
     if ($health.status -ne 'healthy' -or
         $agents.Count -lt 1 -or
@@ -208,6 +218,7 @@ try {
         $blackoutCommand.targetCount -ne 1 -or
         $shareCommand.targetCount -ne 1 -or
         $studentViewCommand.targetCount -ne 1 -or
+        $studentShareCommand.targetCount -ne 1 -or
         $applicationCommand.targetCount -ne 1 -or
         $mediaStatus -ne 202 -or
         $mediaDownload.StatusCode -ne 200 -or
@@ -225,9 +236,14 @@ try {
         $agentLogUpload.accepted -ne 1 -or
         $agentLogRecord.agent_id -ne $sharedStudent.agentId -or
         $agentLogRecord.computer_name -ne 'Shared Student' -or
+        $agentUsageUpload.StatusCode -ne 202 -or
+        $todayUsage.lessonsCreated -lt 2 -or
+        $todayUsage.completedLessons -lt 2 -or
+        $todayUsage.agentStarts -lt 1 -or
+        $todayUsage.agentOnlineSeconds -lt 120 -or
         -not $joinedTemporaryLesson.memberAgentIds.Contains($sharedStudent.agentId) -or
         $joinedTemporaryLesson.participants[0].studentName -ne 'Aluno Smoke') {
-        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; local={16}; joined={17}; participant={18}; blackout={19}; share={20}; studentView={21}; app={22}; media={23}/{24}/{25}; screen={26}; extended={27}; apps={28}; displays={29}." -f
+        throw ("Uma ou mais verificações do protocolo falharam: health={0}; agents={1}; overviewAgents={2}; members={3}; unauthorized={4}; duplicate={5}; outside={6}; cloudLogin={7}; cloudConnected={8}; duration={9}; liveDuration={10}; adminTargets={11}; lessonTargets={12}; activeLessons={13}; teacher={14}; joinCode={15}; local={16}; joined={17}; participant={18}; blackout={19}; share={20}; studentView={21}; app={22}; media={23}/{24}/{25}; screen={26}; extended={27}; apps={28}; displays={29}; studentShare={30}; usageStatus={31}; lessons={32}; completed={33}; starts={34}; seconds={35}." -f
             $health.status,
             $agents.Count,
             $overview.agents.Count,
@@ -257,7 +273,13 @@ try {
             $screenWithoutFrame.StatusCode,
             $extensionAdvanced,
             $overview.applications.Count,
-            $teacherOverviewAgent.displays.Count)
+            $teacherOverviewAgent.displays.Count,
+            $studentShareCommand.targetCount,
+            $agentUsageUpload.StatusCode,
+            $todayUsage.lessonsCreated,
+            $todayUsage.completedLessons,
+            $todayUsage.agentStarts,
+            $todayUsage.agentOnlineSeconds)
     }
     Write-Host 'Smoke test passed.'
 }

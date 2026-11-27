@@ -87,7 +87,10 @@ public static class AgentStrings
         [nameof(CopyServerAddress)] = ["Copiar endereço do servidor", "Copy server address", "Copiar dirección del servidor"],
         [nameof(RefreshInformation)] = ["Atualizar informações", "Refresh information", "Actualizar información"],
         [nameof(AgentKeepsRunning)] = ["O agente continua ativo junto ao relógio e não pode ser encerrado pelo utilizador.", "The agent remains active in the notification area and cannot be closed by the user.", "El agente permanece activo en el área de notificación y el usuario no puede cerrarlo."],
-        [nameof(AttentionToTeacher)] = ["Atenção ao professor", "Please pay attention to the teacher", "Atención al profesor"]
+        [nameof(AttentionToTeacher)] = ["Atenção ao professor", "Please pay attention to the teacher", "Atención al profesor"],
+        [nameof(TeacherConsoleUnavailable)] = ["Não foi possível apresentar a consola do professor.", "The teacher console could not be displayed.", "No se pudo mostrar la consola del profesor."],
+        [nameof(TeacherConsoleRuntimeHelp)] = ["Confirme a ligação ao servidor e que o Microsoft Edge WebView2 Runtime está instalado.", "Check the server connection and that Microsoft Edge WebView2 Runtime is installed.", "Compruebe la conexión al servidor y que Microsoft Edge WebView2 Runtime esté instalado."],
+        [nameof(TryAgain)] = ["Tentar novamente", "Try again", "Intentar de nuevo"]
     };
 
     private static int Index => Language == "pt" ? 0 : Language == "es" ? 2 : 1;
@@ -175,4 +178,7 @@ public static class AgentStrings
     public static string RefreshInformation => Text(nameof(RefreshInformation));
     public static string AgentKeepsRunning => Text(nameof(AgentKeepsRunning));
     public static string AttentionToTeacher => Text(nameof(AttentionToTeacher));
+    public static string TeacherConsoleUnavailable => Text(nameof(TeacherConsoleUnavailable));
+    public static string TeacherConsoleRuntimeHelp => Text(nameof(TeacherConsoleRuntimeHelp));
+    public static string TryAgain => Text(nameof(TryAgain));
 }

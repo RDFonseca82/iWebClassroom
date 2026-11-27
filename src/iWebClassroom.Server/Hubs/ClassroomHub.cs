@@ -124,18 +124,36 @@ public sealed class ClassroomHub(
             .SendAsync(HubProtocol.ScreenStopped, Context.ConnectionAborted);
     }
 
-    public Task PublishStudentScreenFrame(byte[] jpegFrame)
+    public async Task PublishStudentScreenFrame(byte[] jpegFrame, IReadOnlyCollection<Guid> viewerAgentIds)
     {
         if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) || agent is null ||
             agent.Role != AgentRole.Student || !lessons.TryGetForAgent(agent, out var lesson) ||
-            !studentScreens.CanPublish(lesson!.LessonId, agent.AgentId) ||
+            !studentScreens.TryAuthorizePublish(lesson!.LessonId, agent.AgentId, viewerAgentIds, out var authorizedViewerIds) ||
             jpegFrame.Length == 0 || jpegFrame.Length > options.CurrentValue.MaximumFrameBytes)
         {
             throw new HubException("Only a student in an active lesson can publish a monitor preview.");
         }
 
+        var now = Environment.TickCount64;
+        var previous = LastFrameTicks.GetOrAdd(Context.ConnectionId, 0);
+        if (now - previous < options.CurrentValue.MinimumFrameIntervalMilliseconds)
+        {
+            return;
+        }
+
+        LastFrameTicks[Context.ConnectionId] = now;
         studentScreens.Update(lesson.LessonId, agent.AgentId, jpegFrame);
-        return Task.CompletedTask;
+
+        var viewers = authorizedViewerIds.Distinct()
+            .Where(agentId => agentId != agent.AgentId && lesson.MemberAgentIds.Contains(agentId))
+            .Take(200)
+            .Select(AgentGroup)
+            .ToArray();
+        if (viewers.Length > 0)
+        {
+            await Clients.Groups(viewers)
+                .SendAsync(HubProtocol.ScreenFrame, jpegFrame, Context.ConnectionAborted);
+        }
     }
 
     public static string AgentGroup(Guid agentId) => $"agent:{agentId:N}";

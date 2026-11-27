@@ -80,7 +80,11 @@
               <label for="share-monitor" data-i18n="monitor">Monitor</label><select id="share-monitor"></select>
               <label for="share-audience" data-i18n="recipients">Destinatários</label><select id="share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
               <button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button><button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
-              <div class="divider"></div><p class="group-label" data-i18n="studentScreen">Ecrã do aluno</p><button data-command="view-student" data-i18n="viewStudent">Ver aluno selecionado</button>
+              <div class="divider"></div><p class="group-label" data-i18n="studentScreen">Ecrã do aluno</p>
+              <label for="student-source" data-i18n="studentSource">Aluno a apresentar</label><select id="student-source"></select>
+              <button data-command="view-student" data-i18n="viewStudent">Ver ecrã do aluno</button>
+              <label for="student-share-audience" data-i18n="recipients">Destinatários</label><select id="student-share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+              <button data-command="share-student" data-i18n="shareStudent">Partilhar ecrã do aluno</button><button data-command="stop-student-share" class="danger secondary" data-i18n="stopStudentShare">Parar partilha do aluno</button>
               <div class="divider"></div><p class="group-label" data-i18n="fullscreenMedia">Imagem ou vídeo em ecrã inteiro</p>
               <input id="media-file" type="file" accept="image/jpeg,image/png,image/gif,image/bmp,video/mp4,video/x-ms-wmv">
               <label for="media-audience" data-i18n="recipients">Destinatários</label><select id="media-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>

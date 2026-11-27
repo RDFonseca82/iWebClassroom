@@ -20,7 +20,19 @@ public partial class App : System.Windows.Application
         var window = new MainWindow();
         MainWindow = window;
         _trayIcon = new AgentTrayIcon(window);
-        window.Show();
+        _ = StartAgentAsync(window);
+    }
+
+    private async Task StartAgentAsync(MainWindow window)
+    {
+        try
+        {
+            await window.StartAsync();
+        }
+        catch (Exception exception)
+        {
+            _logs.Error("Lifecycle", "The background agent initialization failed.", exception, "agent_initialization_failed");
+        }
     }
 
     internal void NotifyStillRunning() => _trayIcon?.NotifyStillRunning();

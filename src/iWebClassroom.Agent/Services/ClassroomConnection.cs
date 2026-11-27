@@ -65,8 +65,8 @@ public sealed class ClassroomConnection : IAsyncDisposable
         _connection?.InvokeAsync(HubProtocol.PublishScreenStopped, viewers, cancellationToken)
         ?? Task.CompletedTask;
 
-    public Task PublishStudentFrameAsync(byte[] frame, CancellationToken cancellationToken) =>
-        _connection?.InvokeAsync(HubProtocol.PublishStudentScreenFrame, frame, cancellationToken)
+    public Task PublishStudentFrameAsync(byte[] frame, IReadOnlyCollection<Guid> viewers, CancellationToken cancellationToken) =>
+        _connection?.InvokeAsync(HubProtocol.PublishStudentScreenFrame, frame, viewers, cancellationToken)
         ?? Task.CompletedTask;
 
     public async ValueTask DisposeAsync()
