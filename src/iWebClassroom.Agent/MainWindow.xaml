@@ -6,8 +6,8 @@
         Title="iWebClassroom" Width="1020" Height="720" MinWidth="850" MinHeight="620"
         Icon="{StaticResource BrandIcon}" Background="{StaticResource CanvasBrush}" WindowStartupLocation="CenterScreen">
   <Grid>
-    <Grid.ColumnDefinitions><ColumnDefinition Width="250" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-    <Border Grid.Column="0" Background="{StaticResource NavyBrush}">
+    <Grid.ColumnDefinitions><ColumnDefinition x:Name="SidebarColumn" Width="250" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+    <Border x:Name="AgentSidebar" Grid.Column="0" Background="{StaticResource NavyBrush}">
       <Grid Margin="24,28,24,22">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal">
@@ -62,8 +62,8 @@
     </Border>
 
     <Grid Grid.Column="1">
-      <Grid.RowDefinitions><RowDefinition Height="82" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-      <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid.RowDefinitions><RowDefinition x:Name="AgentHeaderRow" Height="82" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+      <Border x:Name="AgentHeader" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
         <Grid Margin="32,0">
           <StackPanel VerticalAlignment="Center">
             <TextBlock Text="iWebClassroom" Foreground="#7B8CA2" FontSize="11" />
@@ -78,7 +78,7 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="32,28,32,28">
+      <Grid x:Name="AgentContentHost" Grid.Row="1" Margin="32,28,32,28">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <Border x:Name="SharedRoomsPanel" Style="{StaticResource CardStyle}" Visibility="Collapsed">
             <Grid>
@@ -113,7 +113,7 @@
         </Border>
       </Grid>
 
-      <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="32,17">
+      <Border x:Name="AgentFooter" Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="32,17">
         <Grid>
           <StackPanel Orientation="Horizontal">
             <Button x:Name="ShareButton" Content="{x:Static loc:AgentStrings.ShareScreen}" Click="ShareButton_Click" Margin="10,0,0,0" IsEnabled="False" Visibility="Collapsed" Style="{StaticResource SecondaryButtonStyle}" />

@@ -4,7 +4,7 @@ const translations = {
     tokenHelp: "Introduza o seu e-mail. Enviaremos um código único para confirmar este acesso.", teacherEmail: "E-mail do professor", sendCode: "Enviar código", accessCode: "Código de acesso", codeSent: "Se o e-mail estiver autorizado, receberá um código. Introduza-o abaixo.", changeEmail: "Usar outro e-mail", enter: "Entrar",
     classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Computador usado pelo professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
-    studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação",
+    studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação", messagesTab: "Mensagem", applicationsTab: "Aplicações", screensMediaTab: "Ecrãs e multimédia", attentionHelp: "Bloqueie temporariamente os ecrãs para captar a atenção da turma.", applicationsHelp: "Abra uma aplicação nos computadores selecionados.",
     notepad: "Bloco de Notas", calculator: "Calculadora", teacherScreen: "Ecrã do professor", startMirroring: "Iniciar espelhamento", stopMirroring: "Parar espelhamento", attention: "Atenção", blackout: "Bloquear ecrãs", restoreScreens: "Repor ecrãs", monitor: "Monitor", recipients: "Destinatários", selectedComputers: "Computadores selecionados", allComputers: "Todos os computadores", studentScreen: "Ecrã do aluno", studentSource: "Aluno a apresentar", viewStudent: "Ver ecrã do aluno", shareStudent: "Partilhar ecrã do aluno", stopStudentShare: "Parar partilha do aluno", fullscreenMedia: "Imagem ou vídeo em ecrã inteiro", showMedia: "Mostrar ficheiro", stopMedia: "Parar apresentação", close: "Fechar", waitingScreen: "A aguardar imagem do aluno…",
     invalidCode: "O código é inválido ou expirou.", invalidEmail: "Introduza um endereço de e-mail válido.", accessUnavailable: "Não foi possível contactar a gestão central. Tente novamente dentro de instantes.", codeRequested: "Se o e-mail estiver autorizado, o código foi enviado.", tooManyRequests: "Foram feitos demasiados pedidos. Aguarde um minuto e tente novamente.", selectedOne: "selecionado", selectedMany: "selecionados", student: "Aluno", computer: "Computador", sharedComputer: "Partilhado", online: "online", offline: "offline",
     noRooms: "Ainda não existem salas configuradas.", noTeachers: "O administrador ainda não definiu um computador de professor para esta sala.", noSharedTeachers: "Não existem computadores partilhados online disponíveis.", noAgents: "Ainda não existem computadores de aluno nesta sala.",
@@ -18,7 +18,7 @@ const translations = {
     tokenHelp: "Enter your email address. We will send a unique code to confirm this access.", teacherEmail: "Teacher email", sendCode: "Send code", accessCode: "Access code", codeSent: "If the email is authorised, you will receive a code. Enter it below.", changeEmail: "Use another email", enter: "Sign in",
     classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Computer used by the teacher", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
-    studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application",
+    studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application", messagesTab: "Message", applicationsTab: "Applications", screensMediaTab: "Screens and media", attentionHelp: "Temporarily blank the screens to focus the class's attention.", applicationsHelp: "Open an application on the selected computers.",
     notepad: "Notepad", calculator: "Calculator", teacherScreen: "Teacher screen", startMirroring: "Start mirroring", stopMirroring: "Stop mirroring", attention: "Attention", blackout: "Blank screens", restoreScreens: "Restore screens", monitor: "Display", recipients: "Recipients", selectedComputers: "Selected computers", allComputers: "All computers", studentScreen: "Student screen", studentSource: "Student to present", viewStudent: "View student screen", shareStudent: "Share student screen", stopStudentShare: "Stop student sharing", fullscreenMedia: "Full-screen image or video", showMedia: "Show file", stopMedia: "Stop presentation", close: "Close", waitingScreen: "Waiting for the student screen…",
     invalidCode: "The code is invalid or has expired.", invalidEmail: "Enter a valid email address.", accessUnavailable: "Central management could not be reached. Please try again shortly.", codeRequested: "If the email is authorised, the code has been sent.", tooManyRequests: "Too many requests were made. Wait one minute and try again.", selectedOne: "selected", selectedMany: "selected", student: "Student", computer: "Computer", sharedComputer: "Shared", online: "online", offline: "offline",
     noRooms: "There are no configured rooms yet.", noTeachers: "The administrator has not assigned a teacher computer to this room yet.", noSharedTeachers: "There are no online shared computers available.", noAgents: "There are no student computers in this room yet.",
@@ -32,7 +32,7 @@ const translations = {
     tokenHelp: "Introduzca su correo electrónico. Enviaremos un código único para confirmar este acceso.", teacherEmail: "Correo del profesor", sendCode: "Enviar código", accessCode: "Código de acceso", codeSent: "Si el correo está autorizado, recibirá un código. Introdúzcalo abajo.", changeEmail: "Usar otro correo", enter: "Entrar",
     classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Equipo utilizado por el profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
-    studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación",
+    studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación", messagesTab: "Mensaje", applicationsTab: "Aplicaciones", screensMediaTab: "Pantallas y multimedia", attentionHelp: "Bloquee temporalmente las pantallas para centrar la atención de la clase.", applicationsHelp: "Abra una aplicación en los equipos seleccionados.",
     notepad: "Bloc de notas", calculator: "Calculadora", teacherScreen: "Pantalla del profesor", startMirroring: "Iniciar duplicación", stopMirroring: "Detener duplicación", attention: "Atención", blackout: "Bloquear pantallas", restoreScreens: "Restaurar pantallas", monitor: "Monitor", recipients: "Destinatarios", selectedComputers: "Equipos seleccionados", allComputers: "Todos los equipos", studentScreen: "Pantalla del alumno", studentSource: "Alumno que va a presentar", viewStudent: "Ver pantalla del alumno", shareStudent: "Compartir pantalla del alumno", stopStudentShare: "Detener pantalla compartida", fullscreenMedia: "Imagen o vídeo a pantalla completa", showMedia: "Mostrar archivo", stopMedia: "Detener presentación", close: "Cerrar", waitingScreen: "Esperando la pantalla del alumno…",
     invalidCode: "El código no es válido o ha caducado.", invalidEmail: "Introduzca una dirección de correo válida.", accessUnavailable: "No se pudo contactar con la gestión central. Inténtelo de nuevo en unos instantes.", codeRequested: "Si el correo está autorizado, se ha enviado el código.", tooManyRequests: "Se han realizado demasiadas solicitudes. Espere un minuto e inténtelo de nuevo.", selectedOne: "seleccionado", selectedMany: "seleccionados", student: "Alumno", computer: "Equipo", sharedComputer: "Compartido", online: "conectado", offline: "desconectado",
     noRooms: "Todavía no hay aulas configuradas.", noTeachers: "El administrador todavía no ha asignado un equipo de profesor a esta aula.", noSharedTeachers: "No hay equipos compartidos en línea disponibles.", noAgents: "Todavía no hay equipos de alumnos en esta aula.",
@@ -68,6 +68,7 @@ function applyLanguage() {
   document.querySelector("#language").value = state.language;
   document.querySelectorAll("[data-i18n]").forEach(element => element.textContent = t(element.dataset.i18n));
   document.querySelectorAll("[data-i18n-placeholder]").forEach(element => element.placeholder = t(element.dataset.i18nPlaceholder));
+  document.querySelectorAll("[data-i18n-aria-label]").forEach(element => element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel)));
   if (state.agents.length) renderOverview(); else updateCount();
 }
 
@@ -258,8 +259,31 @@ function renderAgents(lesson) {
 function updateCount() { const count = selectedIds().length; elements.count.textContent = `${count} ${count === 1 ? t("selectedOne") : t("selectedMany")}`; }
 function allAvailableIds() { return [...elements.agents.querySelectorAll("input:not(:disabled)")].map(input => input.value); }
 function audienceTargets(audience) { return audience === "all" ? allAvailableIds() : selectedIds(); }
+function activateActionTab(tab) {
+  document.querySelectorAll("[data-action-tab]").forEach(candidate => {
+    const active = candidate === tab;
+    candidate.setAttribute("aria-selected", String(active));
+    candidate.tabIndex = active ? 0 : -1;
+  });
+  document.querySelectorAll("[data-action-panel]").forEach(panel => { panel.hidden = panel.dataset.actionPanel !== tab.dataset.actionTab; });
+}
+function setupActionTabs() {
+  const tabs = [...document.querySelectorAll("[data-action-tab]")];
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => activateActionTab(tab));
+    tab.addEventListener("keydown", event => {
+      let target = null;
+      if (event.key === "ArrowRight") target = tabs[(index + 1) % tabs.length];
+      if (event.key === "ArrowLeft") target = tabs[(index - 1 + tabs.length) % tabs.length];
+      if (event.key === "Home") target = tabs[0];
+      if (event.key === "End") target = tabs[tabs.length - 1];
+      if (!target) return;
+      event.preventDefault(); activateActionTab(target); target.focus();
+    });
+  });
+}
 function setActionsEnabled(enabled) {
-  document.querySelectorAll("#lesson-actions button, #lesson-actions textarea, #lesson-actions select, #lesson-actions input").forEach(element => { element.disabled = !enabled; });
+  document.querySelectorAll("#lesson-actions button:not([role='tab']), #lesson-actions textarea, #lesson-actions select, #lesson-actions input").forEach(element => { element.disabled = !enabled; });
   document.querySelector("#lesson-actions").classList.toggle("disabled", !enabled);
 }
 
@@ -435,6 +459,7 @@ document.querySelector("#lesson-actions").addEventListener("click", async event 
 });
 document.querySelector("#close-student-screen").addEventListener("click", () => closeStudentScreen());
 
+setupActionTabs();
 applyLanguage();
 void applyInstallerLanguage();
 fetch("/health").then(async response => { if (!response.ok) throw new Error(); const health = await response.json(); document.querySelectorAll("[data-server-version]").forEach(element => element.textContent = health.version); document.querySelector("#server-dot").classList.add("online"); document.querySelector("#server-status").dataset.i18n = "serverAvailable"; applyLanguage(); }).catch(() => { document.querySelector("#server-status").dataset.i18n = "serverUnavailable"; applyLanguage(); });

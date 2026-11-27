@@ -623,12 +623,25 @@ public partial class MainWindow : Window
     {
         var fixedTeacher = _profileIsAssigned && _settings.Role == AgentRole.Teacher && !_settings.IsShared &&
                            !string.Equals(_settings.ClassroomId, "PENDENTE", StringComparison.OrdinalIgnoreCase);
+        UpdateAgentChrome(fixedTeacher);
         TeacherConsolePanel.Visibility = fixedTeacher ? Visibility.Visible : Visibility.Collapsed;
         SharedRoomsPanel.Visibility = _settings.IsShared ? Visibility.Visible : Visibility.Collapsed;
         if (fixedTeacher && _connection.IsConnected && IsVisible)
         {
             _ = EnsureTeacherConsoleAsync();
         }
+    }
+
+    private void UpdateAgentChrome(bool teacherConsoleMode)
+    {
+        AgentSidebar.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
+        SidebarColumn.Width = teacherConsoleMode ? new GridLength(0) : new GridLength(250);
+        AgentHeader.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
+        AgentHeaderRow.Height = teacherConsoleMode ? new GridLength(0) : new GridLength(82);
+        AgentFooter.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
+        AgentContentHost.Margin = teacherConsoleMode ? new Thickness(0) : new Thickness(32, 28, 32, 28);
+        TeacherConsolePanel.CornerRadius = teacherConsoleMode ? new CornerRadius(0) : new CornerRadius(16);
+        TeacherConsolePanel.BorderThickness = teacherConsoleMode ? new Thickness(0) : new Thickness(1);
     }
 
     private async Task EnsureTeacherConsoleAsync()
@@ -708,7 +721,7 @@ public partial class MainWindow : Window
                 _teacherConsoleHandlersAttached = true;
             }
 
-            var target = new Uri(serverUri, "/").AbsoluteUri;
+            var target = new Uri(serverUri, "/?embedded=agent").AbsoluteUri;
             if (!string.Equals(_teacherConsoleServer, target, StringComparison.OrdinalIgnoreCase))
             {
                 webView.Navigate(target);

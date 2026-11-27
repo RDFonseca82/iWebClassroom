@@ -168,6 +168,8 @@ internal sealed class AgentTrayIcon : IDisposable
         _timer.Stop();
         _timer.Dispose();
         _notifyIcon.Visible = false;
+        _notifyIcon.Icon = null;
+        _notifyIcon.ContextMenuStrip?.Dispose();
         _notifyIcon.Dispose();
         _icon.Dispose();
         DestroyIcon(_iconHandle);

@@ -106,7 +106,7 @@ button.text-button { min-height: 0; padding: 5px; color: var(--blue); background
 .lesson-status-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .lesson-status-actions select { width: auto; min-height: 38px; padding: 7px 32px 7px 10px; }
 .lesson-status-actions button { min-height: 38px; padding: 7px 12px; }
-.layout { display: grid; grid-template-columns: minmax(0,1fr) 350px; gap: 20px; align-items: start; }
+.layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(360px,410px); gap: 20px; align-items: start; }
 .devices-card, .actions-card, .admin-section { padding: 26px; }
 .selection-tools { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .agent-list { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 12px; margin-top: 20px; }
@@ -120,14 +120,33 @@ button.text-button { min-height: 0; padding: 5px; color: var(--blue); background
 .status-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #aeb8c6; }
 .status-dot.online { background: var(--mint); box-shadow: 0 0 0 4px rgba(18,185,129,.1); }
 .actions-card { position: sticky; top: 96px; }
-.actions-card.disabled { opacity: .6; }
-.actions-card > button { width: 100%; margin-top: 7px; }
+.actions-heading { margin-bottom: 16px; }
+.actions-card.disabled .action-panel { opacity: .55; }
 .actions-card select, .actions-card input[type="file"] { margin-bottom: 10px; }
 .actions-card input[type="file"] { min-height: 0; padding: 9px; font-size: 12px; }
+.action-tabs { display: flex; gap: 6px; margin: 0 -6px 18px; padding: 0 6px 8px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.action-tabs button { min-width: max-content; min-height: 36px; padding: 8px 10px; color: var(--muted); background: transparent; border: 0; border-radius: 9px; box-shadow: none; font-size: 12px; }
+.action-tabs button:hover { color: var(--blue); background: #edf3ff; transform: none; }
+.action-tabs button[aria-selected="true"] { color: #fff; background: var(--blue); box-shadow: 0 7px 16px rgba(36,107,253,.18); }
+.action-panel > button, .action-group > button { width: 100%; margin-top: 7px; }
+.action-panel textarea { margin-bottom: 3px; }
+.action-help { margin: 0 0 15px; font-size: 13px; line-height: 1.45; }
+.action-group + .action-group { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .divider { height: 1px; margin: 22px 0; background: var(--line); }
 .group-label { margin-bottom: 8px; color: var(--ink); font-size: 13px; font-weight: 800; }
 .empty { grid-column: 1/-1; padding: 50px 20px; color: var(--muted); text-align: center; }
+
+html.embedded-agent, html.embedded-agent body { min-height: 100%; }
+html.embedded-agent .cloud-sidebar, html.embedded-agent .cloud-topbar { display: none; }
+html.embedded-agent .cloud-workspace { width: 100%; margin-left: 0; }
+html.embedded-agent .cloud-main { width: 100%; max-width: none; padding: 12px 14px 24px; }
+html.embedded-agent .auth-card { margin: 12px auto; }
+html.embedded-agent .page-heading { margin: 0 0 12px; }
+html.embedded-agent .page-heading h1 { margin-bottom: 5px; font-size: 27px; }
+html.embedded-agent .page-heading .section-kicker { display: none; }
+html.embedded-agent .toolbar { padding: 14px 16px; }
+html.embedded-agent .actions-card { top: 12px; }
 
 .admin-section { margin-bottom: 0; }
 .form-card { margin-top: 20px; }
@@ -158,7 +177,9 @@ button.text-button { min-height: 0; padding: 5px; color: var(--blue); background
   .cloud-sidebar { width: 230px; }
   .cloud-workspace { width: calc(100% - 230px); margin-left: 230px; }
   .content-grid, .layout { grid-template-columns: 1fr; }
+  html.embedded-agent .layout { grid-template-columns: minmax(0,1fr) 360px; }
   .actions-card { position: static; }
+  html.embedded-agent .actions-card { position: sticky; }
 }
 
 @media (max-width: 760px) {
@@ -180,4 +201,6 @@ button.text-button { min-height: 0; padding: 5px; color: var(--blue); background
   .settings-grid .wide { grid-column: auto; }
   .recovery-access form { grid-template-columns: 1fr; }
   .selection-tools { align-items: flex-end; flex-direction: column; }
+  html.embedded-agent .layout { grid-template-columns: 1fr; }
+  html.embedded-agent .actions-card { position: static; }
 }

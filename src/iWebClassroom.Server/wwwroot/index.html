@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07162d">
   <title>iWebClassroom · Consola do professor</title>
+  <script>if (new URLSearchParams(location.search).get("embedded") === "agent") document.documentElement.classList.add("embedded-agent");</script>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -72,23 +73,50 @@
             </div>
 
             <aside class="cloud-card actions-card" id="lesson-actions">
-              <span class="section-kicker" data-i18n="actions">AÇÕES</span><h2 data-i18n="classControls">Controlos da aula</h2>
-              <label for="message" data-i18n="studentMessage">Mensagem aos alunos</label><textarea id="message" maxlength="500" rows="3" placeholder="Escreva uma indicação breve…" data-i18n-placeholder="messagePlaceholder"></textarea><button data-command="message" data-i18n="sendMessage">Enviar mensagem</button>
-              <div class="divider"></div><p class="group-label" data-i18n="attention">Atenção</p><label for="attention-audience" data-i18n="recipients">Destinatários</label><select id="attention-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select><div class="button-grid"><button data-command="blackout" data-i18n="blackout">Bloquear ecrãs</button><button data-command="stop-blackout" class="secondary" data-i18n="restoreScreens">Repor ecrãs</button></div>
-              <div class="divider"></div><p class="group-label" data-i18n="openApplication">Abrir aplicação</p><div class="button-grid" id="application-buttons"></div>
-              <div class="divider"></div><p class="group-label" data-i18n="teacherScreen">Ecrã do professor</p>
-              <label for="share-monitor" data-i18n="monitor">Monitor</label><select id="share-monitor"></select>
-              <label for="share-audience" data-i18n="recipients">Destinatários</label><select id="share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
-              <button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button><button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
-              <div class="divider"></div><p class="group-label" data-i18n="studentScreen">Ecrã do aluno</p>
-              <label for="student-source" data-i18n="studentSource">Aluno a apresentar</label><select id="student-source"></select>
-              <button data-command="view-student" data-i18n="viewStudent">Ver ecrã do aluno</button>
-              <label for="student-share-audience" data-i18n="recipients">Destinatários</label><select id="student-share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
-              <button data-command="share-student" data-i18n="shareStudent">Partilhar ecrã do aluno</button><button data-command="stop-student-share" class="danger secondary" data-i18n="stopStudentShare">Parar partilha do aluno</button>
-              <div class="divider"></div><p class="group-label" data-i18n="fullscreenMedia">Imagem ou vídeo em ecrã inteiro</p>
-              <input id="media-file" type="file" accept="image/jpeg,image/png,image/gif,image/bmp,video/mp4,video/x-ms-wmv">
-              <label for="media-audience" data-i18n="recipients">Destinatários</label><select id="media-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
-              <button data-command="media" data-i18n="showMedia">Mostrar ficheiro</button><button data-command="stop-media" class="danger secondary" data-i18n="stopMedia">Parar apresentação</button>
+              <div class="actions-heading"><span class="section-kicker" data-i18n="actions">AÇÕES</span><h2 data-i18n="classControls">Controlos da aula</h2></div>
+              <div class="action-tabs" role="tablist" aria-label="Controlos da aula" data-i18n-aria-label="classControls">
+                <button type="button" role="tab" id="action-tab-message" aria-controls="action-panel-message" aria-selected="true" data-action-tab="message" data-i18n="messagesTab">Mensagem</button>
+                <button type="button" role="tab" id="action-tab-attention" aria-controls="action-panel-attention" aria-selected="false" tabindex="-1" data-action-tab="attention" data-i18n="attention">Atenção</button>
+                <button type="button" role="tab" id="action-tab-applications" aria-controls="action-panel-applications" aria-selected="false" tabindex="-1" data-action-tab="applications" data-i18n="applicationsTab">Aplicações</button>
+                <button type="button" role="tab" id="action-tab-screens" aria-controls="action-panel-screens" aria-selected="false" tabindex="-1" data-action-tab="screens" data-i18n="screensMediaTab">Ecrãs e multimédia</button>
+              </div>
+
+              <div class="action-panel" id="action-panel-message" role="tabpanel" aria-labelledby="action-tab-message" data-action-panel="message">
+                <label for="message" data-i18n="studentMessage">Mensagem aos alunos</label>
+                <textarea id="message" maxlength="500" rows="4" placeholder="Escreva uma indicação breve…" data-i18n-placeholder="messagePlaceholder"></textarea>
+                <button data-command="message" data-i18n="sendMessage">Enviar mensagem</button>
+              </div>
+
+              <div class="action-panel" id="action-panel-attention" role="tabpanel" aria-labelledby="action-tab-attention" data-action-panel="attention" hidden>
+                <p class="action-help" data-i18n="attentionHelp">Bloqueie temporariamente os ecrãs para captar a atenção da turma.</p>
+                <label for="attention-audience" data-i18n="recipients">Destinatários</label>
+                <select id="attention-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+                <div class="button-grid"><button data-command="blackout" data-i18n="blackout">Bloquear ecrãs</button><button data-command="stop-blackout" class="secondary" data-i18n="restoreScreens">Repor ecrãs</button></div>
+              </div>
+
+              <div class="action-panel" id="action-panel-applications" role="tabpanel" aria-labelledby="action-tab-applications" data-action-panel="applications" hidden>
+                <p class="action-help" data-i18n="applicationsHelp">Abra uma aplicação nos computadores selecionados.</p>
+                <div class="button-grid" id="application-buttons"></div>
+              </div>
+
+              <div class="action-panel action-panel-screens" id="action-panel-screens" role="tabpanel" aria-labelledby="action-tab-screens" data-action-panel="screens" hidden>
+                <div class="action-group"><p class="group-label" data-i18n="teacherScreen">Ecrã do professor</p>
+                  <label for="share-monitor" data-i18n="monitor">Monitor</label><select id="share-monitor"></select>
+                  <label for="share-audience" data-i18n="recipients">Destinatários</label><select id="share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+                  <button data-command="share" data-i18n="startMirroring">Iniciar espelhamento</button><button data-command="stop-share" class="danger secondary" data-i18n="stopMirroring">Parar espelhamento</button>
+                </div>
+                <div class="action-group"><p class="group-label" data-i18n="studentScreen">Ecrã do aluno</p>
+                  <label for="student-source" data-i18n="studentSource">Aluno a apresentar</label><select id="student-source"></select>
+                  <button data-command="view-student" data-i18n="viewStudent">Ver ecrã do aluno</button>
+                  <label for="student-share-audience" data-i18n="recipients">Destinatários</label><select id="student-share-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+                  <button data-command="share-student" data-i18n="shareStudent">Partilhar ecrã do aluno</button><button data-command="stop-student-share" class="danger secondary" data-i18n="stopStudentShare">Parar partilha do aluno</button>
+                </div>
+                <div class="action-group"><p class="group-label" data-i18n="fullscreenMedia">Imagem ou vídeo em ecrã inteiro</p>
+                  <input id="media-file" type="file" accept="image/jpeg,image/png,image/gif,image/bmp,video/mp4,video/x-ms-wmv">
+                  <label for="media-audience" data-i18n="recipients">Destinatários</label><select id="media-audience"><option value="selected" data-i18n="selectedComputers">Computadores selecionados</option><option value="all" data-i18n="allComputers">Todos os computadores</option></select>
+                  <button data-command="media" data-i18n="showMedia">Mostrar ficheiro</button><button data-command="stop-media" class="danger secondary" data-i18n="stopMedia">Parar apresentação</button>
+                </div>
+              </div>
             </aside>
           </section>
         </div>

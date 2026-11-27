@@ -16,6 +16,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly HttpClient _client;
     private readonly Icon _icon;
     private readonly IntPtr _iconHandle;
+    private bool _disposed;
 
     public TrayApplicationContext()
     {
@@ -121,14 +122,27 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     protected override void ExitThreadCore()
     {
+        DisposeResources();
+        base.ExitThreadCore();
+    }
+
+    private void DisposeResources()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         _timer.Stop();
         _timer.Dispose();
         _client.Dispose();
         _notifyIcon.Visible = false;
+        _notifyIcon.Icon = null;
+        _notifyIcon.ContextMenuStrip?.Dispose();
         _notifyIcon.Dispose();
         _icon.Dispose();
         DestroyIcon(_iconHandle);
-        base.ExitThreadCore();
     }
 
     [DllImport("user32.dll", SetLastError = true)]
