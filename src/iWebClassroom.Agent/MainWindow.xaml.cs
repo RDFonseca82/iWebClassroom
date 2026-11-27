@@ -634,8 +634,16 @@ public partial class MainWindow : Window
 
     private void UpdateAgentChrome(bool teacherConsoleMode)
     {
-        AgentSidebar.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
-        SidebarColumn.Width = teacherConsoleMode ? new GridLength(0) : new GridLength(250);
+        AgentSidebar.Visibility = Visibility.Visible;
+        SidebarColumn.Width = teacherConsoleMode ? new GridLength(128) : new GridLength(250);
+        AgentSidebarLayout.Margin = teacherConsoleMode ? new Thickness(14, 18, 14, 16) : new Thickness(24, 28, 24, 22);
+        AgentBrand.HorizontalAlignment = teacherConsoleMode
+            ? System.Windows.HorizontalAlignment.Center
+            : System.Windows.HorizontalAlignment.Left;
+        AgentBrandCopy.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
+        AgentNavigation.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
+        AgentInformation.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
+        AgentStatusCard.Padding = teacherConsoleMode ? new Thickness(10) : new Thickness(16);
         AgentHeader.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;
         AgentHeaderRow.Height = teacherConsoleMode ? new GridLength(0) : new GridLength(82);
         AgentFooter.Visibility = teacherConsoleMode ? Visibility.Collapsed : Visibility.Visible;

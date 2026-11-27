@@ -1,7 +1,7 @@
 const translations = {
   "pt-PT": {
     teacherConsole: "CONSOLA DO PROFESSOR", language: "Idioma", administration: "Administração", localServer: "Servidor local", checkingServer: "A verificar servidor…", schoolAccess: "Acesso do professor",
-    tokenHelp: "Introduza o seu e-mail. Enviaremos um código único para confirmar este acesso.", teacherEmail: "E-mail do professor", sendCode: "Enviar código", accessCode: "Código de acesso", codeSent: "Se o e-mail estiver autorizado, receberá um código. Introduza-o abaixo.", changeEmail: "Usar outro e-mail", enter: "Entrar",
+    tokenHelp: "Introduza o seu e-mail. Enviaremos um código único para confirmar este acesso.", teacherEmail: "E-mail do professor", sendCode: "Enviar código", accessCode: "Código de acesso", codeSent: "Se o e-mail estiver autorizado, receberá um código. Introduza-o abaixo.", changeEmail: "Usar outro e-mail", enter: "Entrar", logout: "Terminar sessão", confirmLogout: "Terminar a sessão neste computador?", sessionEnded: "A sessão do professor foi terminada.",
     classroom: "Sala", roomMode: "Tipo de sala", fixedRoom: "Sala fixa", temporaryRoom: "Sala temporária", roomName: "Nome da sala", roomNamePlaceholder: "Ex.: Matemática 9.º A", teacherWorkstation: "Computador usado pelo professor", duration: "Duração", startLesson: "Iniciar aula", endLesson: "Terminar aula", refresh: "Atualizar lista",
     devices: "DISPOSITIVOS", computers: "Computadores da sala", selectVisible: "Selecionar disponíveis", actions: "AÇÕES", classControls: "Controlos da aula",
     studentMessage: "Mensagem aos alunos", messagePlaceholder: "Escreva uma indicação breve…", sendMessage: "Enviar mensagem", openApplication: "Abrir aplicação", messagesTab: "Mensagem", applicationsTab: "Aplicações", screensMediaTab: "Ecrãs e multimédia", attentionHelp: "Bloqueie temporariamente os ecrãs para captar a atenção da turma.", applicationsHelp: "Abra uma aplicação nos computadores selecionados.",
@@ -15,7 +15,7 @@ const translations = {
   },
   en: {
     teacherConsole: "TEACHER CONSOLE", language: "Language", administration: "Administration", localServer: "Local server", checkingServer: "Checking server…", schoolAccess: "Teacher access",
-    tokenHelp: "Enter your email address. We will send a unique code to confirm this access.", teacherEmail: "Teacher email", sendCode: "Send code", accessCode: "Access code", codeSent: "If the email is authorised, you will receive a code. Enter it below.", changeEmail: "Use another email", enter: "Sign in",
+    tokenHelp: "Enter your email address. We will send a unique code to confirm this access.", teacherEmail: "Teacher email", sendCode: "Send code", accessCode: "Access code", codeSent: "If the email is authorised, you will receive a code. Enter it below.", changeEmail: "Use another email", enter: "Sign in", logout: "Sign out", confirmLogout: "Sign out on this computer?", sessionEnded: "The teacher session has ended.",
     classroom: "Room", roomMode: "Room type", fixedRoom: "Fixed room", temporaryRoom: "Temporary room", roomName: "Room name", roomNamePlaceholder: "E.g. Mathematics 9A", teacherWorkstation: "Computer used by the teacher", duration: "Duration", startLesson: "Start lesson", endLesson: "End lesson", refresh: "Refresh list",
     devices: "DEVICES", computers: "Room computers", selectVisible: "Select available", actions: "ACTIONS", classControls: "Lesson controls",
     studentMessage: "Message to students", messagePlaceholder: "Write a short instruction…", sendMessage: "Send message", openApplication: "Open application", messagesTab: "Message", applicationsTab: "Applications", screensMediaTab: "Screens and media", attentionHelp: "Temporarily blank the screens to focus the class's attention.", applicationsHelp: "Open an application on the selected computers.",
@@ -29,7 +29,7 @@ const translations = {
   },
   es: {
     teacherConsole: "CONSOLA DEL PROFESOR", language: "Idioma", administration: "Administración", localServer: "Servidor local", checkingServer: "Comprobando servidor…", schoolAccess: "Acceso del profesor",
-    tokenHelp: "Introduzca su correo electrónico. Enviaremos un código único para confirmar este acceso.", teacherEmail: "Correo del profesor", sendCode: "Enviar código", accessCode: "Código de acceso", codeSent: "Si el correo está autorizado, recibirá un código. Introdúzcalo abajo.", changeEmail: "Usar otro correo", enter: "Entrar",
+    tokenHelp: "Introduzca su correo electrónico. Enviaremos un código único para confirmar este acceso.", teacherEmail: "Correo del profesor", sendCode: "Enviar código", accessCode: "Código de acceso", codeSent: "Si el correo está autorizado, recibirá un código. Introdúzcalo abajo.", changeEmail: "Usar otro correo", enter: "Entrar", logout: "Cerrar sesión", confirmLogout: "¿Cerrar la sesión en este equipo?", sessionEnded: "La sesión del profesor ha finalizado.",
     classroom: "Aula", roomMode: "Tipo de aula", fixedRoom: "Aula fija", temporaryRoom: "Aula temporal", roomName: "Nombre del aula", roomNamePlaceholder: "Ej.: Matemáticas 9.º A", teacherWorkstation: "Equipo utilizado por el profesor", duration: "Duración", startLesson: "Iniciar clase", endLesson: "Terminar clase", refresh: "Actualizar lista",
     devices: "DISPOSITIVOS", computers: "Equipos del aula", selectVisible: "Seleccionar disponibles", actions: "ACCIONES", classControls: "Controles de la clase",
     studentMessage: "Mensaje a los alumnos", messagePlaceholder: "Escriba una indicación breve…", sendMessage: "Enviar mensaje", openApplication: "Abrir aplicación", messagesTab: "Mensaje", applicationsTab: "Aplicaciones", screensMediaTab: "Pantallas y multimedia", attentionHelp: "Bloquee temporalmente las pantallas para centrar la atención de la clase.", applicationsHelp: "Abra una aplicación en los equipos seleccionados.",
@@ -411,6 +411,12 @@ elements.verifyForm.addEventListener("submit", async event => {
 
 document.querySelector("#change-email").addEventListener("click", () => {
   state.pendingEmail = ""; elements.code.value = ""; elements.verifyForm.hidden = true; elements.requestForm.hidden = false; elements.email.focus();
+});
+
+document.querySelector("#logout").addEventListener("click", async () => {
+  if (!window.confirm(t("confirmLogout"))) return;
+  try { await api("/api/v1/teacher/session", { method: "DELETE" }); } catch { /* Clear the local session even if the server is unreachable. */ }
+  logout(); elements.email.focus(); toast(t("sessionEnded"));
 });
 
 elements.start.addEventListener("click", async () => {

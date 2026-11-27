@@ -66,6 +66,8 @@ p { color: var(--muted); line-height: 1.55; }
 .cloud-card, .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .page-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin: 2px 0 24px; }
 .page-heading p { max-width: 720px; margin-bottom: 0; }
+.page-heading-actions { display: flex; flex: 0 0 auto; gap: 9px; padding-top: 5px; }
+.page-heading-actions button { min-height: 40px; padding: 9px 14px; }
 .section-kicker, .eyebrow { display: block; margin-bottom: 7px; color: var(--blue); font-size: 10px; font-weight: 850; letter-spacing: 1.5px; text-transform: uppercase; }
 .card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .card-heading p { margin-bottom: 0; }
@@ -106,7 +108,7 @@ button.text-button { min-height: 0; padding: 5px; color: var(--blue); background
 .lesson-status-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .lesson-status-actions select { width: auto; min-height: 38px; padding: 7px 32px 7px 10px; }
 .lesson-status-actions button { min-height: 38px; padding: 7px 12px; }
-.layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(360px,410px); gap: 20px; align-items: start; }
+.layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(400px,460px); gap: 20px; align-items: start; }
 .devices-card, .actions-card, .admin-section { padding: 26px; }
 .selection-tools { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; }
 .agent-list { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 12px; margin-top: 20px; }
@@ -146,7 +148,7 @@ html.embedded-agent .page-heading { margin: 0 0 12px; }
 html.embedded-agent .page-heading h1 { margin-bottom: 5px; font-size: 27px; }
 html.embedded-agent .page-heading .section-kicker { display: none; }
 html.embedded-agent .toolbar { padding: 14px 16px; }
-html.embedded-agent .actions-card { top: 12px; }
+html.embedded-agent .actions-card { top: 12px; min-width: 410px; }
 
 .admin-section { margin-bottom: 0; }
 .form-card { margin-top: 20px; }
@@ -177,7 +179,7 @@ html.embedded-agent .actions-card { top: 12px; }
   .cloud-sidebar { width: 230px; }
   .cloud-workspace { width: calc(100% - 230px); margin-left: 230px; }
   .content-grid, .layout { grid-template-columns: 1fr; }
-  html.embedded-agent .layout { grid-template-columns: minmax(0,1fr) 360px; }
+  html.embedded-agent .layout { grid-template-columns: minmax(0,1fr) minmax(390px,430px); }
   .actions-card { position: static; }
   html.embedded-agent .actions-card { position: sticky; }
 }
@@ -196,6 +198,7 @@ html.embedded-agent .actions-card { top: 12px; }
   .cloud-main { padding: 24px 14px 48px; }
   .auth-card { grid-template-columns: 1fr; gap: 28px; margin: 24px auto; padding: 26px; }
   .page-heading { display: block; }
+  .page-heading-actions { padding-top: 14px; }
   .page-heading > .status-pill { margin-top: 12px; }
   .cloud-connect-grid, .settings-grid { grid-template-columns: 1fr; }
   .settings-grid .wide { grid-column: auto; }

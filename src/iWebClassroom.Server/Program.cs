@@ -444,6 +444,14 @@ app.MapPost("/api/v1/teacher/access/verify", async (
     }
 }).RequireRateLimiting("teacher");
 
+app.MapDelete("/api/v1/teacher/session", (
+    HttpRequest request,
+    TeacherSessionService sessions) =>
+{
+    sessions.Revoke(request.Headers[TeacherSessionService.HeaderName].ToString());
+    return Results.NoContent();
+}).RequireRateLimiting("teacher");
+
 app.MapGet("/api/v1/teacher/overview", (
     HttpRequest request,
     AgentRegistry agentRegistry,

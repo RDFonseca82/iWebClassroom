@@ -59,6 +59,20 @@ public sealed class TeacherSessionService(CloudDirectoryStore directory)
             session.ExpiresAtUtc > now &&
             session.LastSeenUtc >= now.Subtract(OnlineWindow));
 
+    public void Revoke(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token) || token.Length > 128)
+        {
+            return;
+        }
+
+        if (_sessions.TryGetValue(token, out var session) &&
+            SecretComparer.Equals(SecretComparer.Hash(token), session.TokenHash))
+        {
+            _sessions.TryRemove(token, out _);
+        }
+    }
+
     private void Cleanup(DateTimeOffset now)
     {
         foreach (var item in _sessions.Where(item => item.Value.ExpiresAtUtc <= now))
