@@ -73,9 +73,9 @@ Se não existir outro servidor alcançável para formar o cluster provisório, u
 
 ### Logs locais e diagnóstico na Cloud
 
-O serviço Windows grava atividade, avisos e erros em JSONL diário dentro de `C:\ProgramData\iWebClassroom\Server\logs` (ou no diretório de dados configurado), com retenção local de 30 dias. O agente mantém igualmente os seus registos em `C:\ProgramData\iWebClassroom\Agent\logs` e envia-os autenticados ao servidor local em lotes de cinco em cinco minutos. O servidor acrescenta a identidade do agente, o identificador da máquina e o nome do computador antes de os integrar no mesmo fluxo central.
+O serviço Windows grava atividade, avisos e erros em JSONL diário dentro de `C:\ProgramData\iWebClassroom\Server\logs` (ou no diretório de dados configurado), com retenção local de 30 dias. O agente mantém igualmente registos detalhados em `C:\ProgramData\iWebClassroom\Agent\logs` e envia-os autenticados ao servidor local em lotes de cinco em cinco minutos. O servidor acrescenta a identidade do agente, o identificador da máquina e o nome do computador antes de os integrar no diagnóstico local. Os eventos `Information` e os avisos operacionais comuns permanecem na escola. São elegíveis para a Cloud os níveis `Error` e `Critical`, além de avisos acionáveis que incluam uma exceção técnica ou um código de falha, indisponibilidade, degradação, timeout ou repetição.
 
-Um cursor durável envia até 250 eventos por lote para a Cloud a cada 10 minutos; uma falha de rede não avança o cursor, portanto os eventos pendentes são retomados mais tarde. Na ficha de cada servidor no portal são apresentados os 100 eventos mais recentes, incluindo o computador de origem, data, nível, categoria, mensagem e detalhes técnicos. A retenção central é de 90 dias e a API elimina duplicados pelo identificador do evento. Execute primeiro `docs/sql/2026-11-26-server-logs.sql` e depois `docs/sql/2026-11-26-agent-logs.sql` no SQL Server do portal.
+Um cursor durável percorre os registos locais e envia até 250 erros ou avisos acionáveis por lote para a Cloud a cada 10 minutos; uma falha de rede não avança o cursor dos eventos pendentes. Cada evento inclui a versão instalada do agente ou servidor que o produziu. A API volta a aplicar o mesmo filtro, mesmo quando contactada por uma versão antiga do servidor. Na ficha de cada servidor são apresentados os diagnósticos recentes com o computador de origem, versão, data, categoria, mensagem e detalhes técnicos. O centro **Erros** permite aos administradores da plataforma consultar todas as escolas e aos administradores escolares consultar apenas a sua escola, filtrar ocorrências por versão, reconhecer e resolver problemas. A retenção central é de 90 dias e a API elimina duplicados pelo identificador do evento. Execute primeiro `docs/sql/2026-11-26-server-logs.sql`, depois `docs/sql/2026-11-26-agent-logs.sql` e finalmente `docs/sql/2026-11-28-error-monitoring.sql` no SQL Server do portal.
 
 Nas salas fixas, o administrador cria a sala no portal cloud e associa-a a um servidor local. Os agentes fixos usam o código dessa sala e ligam-se sempre à mesma sala. Só pode existir um professor ativo por sala e cada professor só pode dirigir uma aula de cada vez.
 
@@ -215,8 +215,8 @@ O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.14.3-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.14.3-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.14.4-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.14.4-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.

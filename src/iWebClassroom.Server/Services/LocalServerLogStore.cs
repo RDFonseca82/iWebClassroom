@@ -7,6 +7,8 @@ namespace IWebClassroom.Server.Services;
 public sealed class LocalServerLogStore : ILoggerProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly string ComponentVersion =
+        typeof(LocalServerLogStore).Assembly.GetName().Version?.ToString() ?? "0.0.0";
     private readonly object _gate = new();
     private readonly string _directory;
     private readonly string _cursorPath;
@@ -27,7 +29,7 @@ public sealed class LocalServerLogStore : ILoggerProvider
     {
     }
 
-    public Task<LocalLogBatch> ReadBatchAsync(int maximumEntries, CancellationToken cancellationToken)
+    public Task<LocalLogBatch> ReadCloudDiagnosticBatchAsync(int maximumEntries, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
@@ -35,6 +37,7 @@ public sealed class LocalServerLogStore : ILoggerProvider
             var entries = new List<CloudServerLogEntry>(Math.Clamp(maximumEntries, 1, 500));
             var files = Directory.GetFiles(_directory, "server-*.jsonl").OrderBy(Path.GetFileName, StringComparer.Ordinal).ToArray();
             var end = _cursor;
+            var cursorAdvanced = false;
             foreach (var file in files)
             {
                 var fileName = Path.GetFileName(file);
@@ -53,10 +56,11 @@ public sealed class LocalServerLogStore : ILoggerProvider
                     }
 
                     end = new LogCursor(fileName, lineNumber);
+                    cursorAdvanced = true;
                     try
                     {
                         var entry = JsonSerializer.Deserialize<CloudServerLogEntry>(line, JsonOptions);
-                        if (entry is not null)
+                        if (entry is not null && IsCloudDiagnostic(entry))
                         {
                             entries.Add(entry);
                         }
@@ -68,13 +72,36 @@ public sealed class LocalServerLogStore : ILoggerProvider
 
                     if (entries.Count >= maximumEntries)
                     {
-                        return Task.FromResult(new LocalLogBatch(entries, end));
+                        return Task.FromResult(new LocalLogBatch(entries, end, cursorAdvanced));
                     }
                 }
             }
 
-            return Task.FromResult(new LocalLogBatch(entries, end));
+            return Task.FromResult(new LocalLogBatch(entries, end, cursorAdvanced));
         }
+    }
+
+    private static bool IsCloudDiagnostic(CloudServerLogEntry entry)
+    {
+        if (string.Equals(entry.Level, nameof(LogLevel.Error), StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(entry.Level, nameof(LogLevel.Critical), StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.Equals(entry.Level, nameof(LogLevel.Warning), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.Exception))
+        {
+            return true;
+        }
+
+        var code = entry.EventCode ?? string.Empty;
+        return new[] { "failed", "error", "unavailable", "degraded", "retry", "timeout" }
+            .Any(marker => code.Contains(marker, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task AcknowledgeAsync(LogCursor cursor, CancellationToken cancellationToken)
@@ -99,6 +126,7 @@ public sealed class LocalServerLogStore : ILoggerProvider
                 source.EventId,
                 source.OccurredAtUtc,
                 source.Level,
+                source.ComponentVersion,
                 $"Agent.{source.Category}",
                 source.EventCode,
                 source.Message,
@@ -116,6 +144,7 @@ public sealed class LocalServerLogStore : ILoggerProvider
             Guid.NewGuid(),
             DateTimeOffset.UtcNow,
             level.ToString(),
+            ComponentVersion,
             category.Length > 200 ? category[..200] : category,
             eventId.Name ?? (eventId.Id == 0 ? null : eventId.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             message.Length > 4000 ? message[..4000] : message,
@@ -187,6 +216,7 @@ public sealed record CloudServerLogEntry(
     [property: JsonPropertyName("event_id")] Guid EventId,
     [property: JsonPropertyName("occurred_at_utc")] DateTimeOffset OccurredAtUtc,
     [property: JsonPropertyName("level")] string Level,
+    [property: JsonPropertyName("component_version")] string? ComponentVersion,
     [property: JsonPropertyName("category")] string Category,
     [property: JsonPropertyName("event_code")] string? EventCode,
     [property: JsonPropertyName("message")] string Message,
@@ -199,6 +229,7 @@ public sealed record AgentLogEntry(
     [property: JsonPropertyName("event_id")] Guid EventId,
     [property: JsonPropertyName("occurred_at_utc")] DateTimeOffset OccurredAtUtc,
     [property: JsonPropertyName("level")] string Level,
+    [property: JsonPropertyName("component_version")] string? ComponentVersion,
     [property: JsonPropertyName("category")] string Category,
     [property: JsonPropertyName("event_code")] string? EventCode,
     [property: JsonPropertyName("message")] string Message,
@@ -213,4 +244,7 @@ public sealed record LogCursor(string FileName, long LineNumber)
 {
     public static LogCursor Empty { get; } = new(string.Empty, 0);
 }
-public sealed record LocalLogBatch(IReadOnlyCollection<CloudServerLogEntry> Entries, LogCursor Cursor);
+public sealed record LocalLogBatch(
+    IReadOnlyCollection<CloudServerLogEntry> Entries,
+    LogCursor Cursor,
+    bool CursorAdvanced);

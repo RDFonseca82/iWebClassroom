@@ -347,6 +347,7 @@ app.MapPost("/api/v1/agent/logs", (
     if (upload.Entries.Count is < 1 or > 250 || upload.Entries.Any(entry =>
             entry.EventId == Guid.Empty || string.IsNullOrWhiteSpace(entry.Message) || entry.Message.Length > 4000 ||
             string.IsNullOrWhiteSpace(entry.Category) || entry.Category.Length > 200 ||
+            entry.ComponentVersion?.Length > 50 ||
             entry.Exception?.Length > 12000 ||
             entry.Level is not ("Information" or "Warning" or "Error" or "Critical")))
     {

@@ -11,11 +11,14 @@ namespace IWebClassroom.Agent.Services;
 public sealed class AgentLogStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly string ComponentVersion =
+        typeof(AgentLogStore).Assembly.GetName().Version?.ToString() ?? "0.0.0";
     private readonly object _gate = new();
     private readonly SemaphoreSlim _uploadGate = new(1, 1);
     private readonly string _directory;
     private readonly string _cursorPath;
     private AgentLogCursor _cursor;
+    private DateTimeOffset _lastUploadWarningUtc = DateTimeOffset.MinValue;
 
     public static AgentLogStore Current { get; } = new();
 
@@ -69,6 +72,9 @@ public sealed class AgentLogStore
                     cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
+                    RecordUploadWarning(
+                        $"The local server rejected the agent log batch with HTTP {(int)response.StatusCode}.",
+                        null);
                     return;
                 }
 
@@ -82,11 +88,24 @@ public sealed class AgentLogStore
         catch (Exception exception) when (exception is HttpRequestException or IOException or JsonException or TaskCanceledException)
         {
             // Keep the cursor unchanged. The same batch is retried after the next interval.
+            RecordUploadWarning("The agent log batch could not be sent to the local server.", exception);
         }
         finally
         {
             _uploadGate.Release();
         }
+    }
+
+    private void RecordUploadWarning(string message, Exception? exception)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastUploadWarningUtc < TimeSpan.FromMinutes(30))
+        {
+            return;
+        }
+
+        _lastUploadWarningUtc = now;
+        Append("Warning", "Diagnostics", message, exception, "agent_log_upload_failed");
     }
 
     private void Append(string level, string category, string message, Exception? exception, string? eventCode)
@@ -95,6 +114,7 @@ public sealed class AgentLogStore
             Guid.NewGuid(),
             DateTimeOffset.UtcNow,
             level,
+            ComponentVersion,
             Limit(category, 200),
             string.IsNullOrWhiteSpace(eventCode) ? null : Limit(eventCode, 100),
             Limit(message, 4000),
@@ -229,6 +249,7 @@ public sealed class AgentLogStore
         [property: JsonPropertyName("event_id")] Guid EventId,
         [property: JsonPropertyName("occurred_at_utc")] DateTimeOffset OccurredAtUtc,
         [property: JsonPropertyName("level")] string Level,
+        [property: JsonPropertyName("component_version")] string? ComponentVersion,
         [property: JsonPropertyName("category")] string Category,
         [property: JsonPropertyName("event_code")] string? EventCode,
         [property: JsonPropertyName("message")] string Message,

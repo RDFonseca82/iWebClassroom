@@ -34,9 +34,13 @@ public sealed class CloudLogUploadWorker(
 
         for (var batchNumber = 0; batchNumber < 4; batchNumber++)
         {
-            var batch = await logs.ReadBatchAsync(250, cancellationToken);
+            var batch = await logs.ReadCloudDiagnosticBatchAsync(250, cancellationToken);
             if (batch.Entries.Count == 0)
             {
+                if (batch.CursorAdvanced)
+                {
+                    await logs.AcknowledgeAsync(batch.Cursor, cancellationToken);
+                }
                 return;
             }
 
