@@ -95,6 +95,7 @@ public sealed class CloudSyncService(
             var agentList = agents.List();
             var request = new CloudSyncRequest(
                 state.InstanceUid,
+                Environment.MachineName,
                 CurrentVersion(),
                 CurrentVersion(),
                 agentList.Count(item => !item.IsRoaming),

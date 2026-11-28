@@ -48,6 +48,7 @@ public sealed record CloudAuthResponse(
 
 public sealed record CloudSyncRequest(
     [property: JsonPropertyName("instance_uid")] Guid InstanceUid,
+    [property: JsonPropertyName("server_name")] string ServerName,
     [property: JsonPropertyName("server_version")] string ServerVersion,
     [property: JsonPropertyName("agent_version")] string AgentVersion,
     [property: JsonPropertyName("device_count")] int DeviceCount,

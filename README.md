@@ -163,7 +163,7 @@ Cada escola pode ter vários servidores. No portal central, registe cada servido
 
 Depois da ligação inicial, a administração local deixa de pedir a credencial técnica e passa a pedir o email e a palavra-passe de um administrador ativo da escola. A cloud valida a palavra-passe; o servidor local sincroniza apenas a identidade, o email e a função do administrador, nunca o respetivo hash. O token local continua disponível exclusivamente como recuperação offline.
 
-A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. Professores, administradores, salas fixas e atribuições de computadores são consultados num endpoint pequeno a cada 20–60 segundos; o `ETag` evita transferir dados quando nada mudou. As salas temporárias e a carga têm um heartbeat próprio de 20 segundos, e a resolução de um código é feita apenas quando um aluno tenta entrar. Configuração e licença usam a sincronização completa a cada cinco minutos. A verificação de novas versões continua independente, por omissão a cada seis horas. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
+A palavra-passe nunca é guardada no servidor local. A API devolve um token individual que fica cifrado com DPAPI ao nível da máquina em `cloud-sync-state.json`; a licença offline fica em `cloud-license.json`. O painel recebe uma sessão administrativa local temporária de oito horas. Professores, administradores, salas fixas e atribuições de computadores são consultados num endpoint pequeno a cada 20–60 segundos; o `ETag` evita transferir dados quando nada mudou. As salas temporárias e a carga têm um heartbeat próprio de 20 segundos, e a resolução de um código é feita apenas quando um aluno tenta entrar. Configuração, licença e o nome Windows do servidor usam a sincronização completa a cada cinco minutos; depois de uma alteração do `hostname` e reinício do serviço ou do Windows, o nome correspondente é atualizado automaticamente na Cloud. A verificação de novas versões continua independente, por omissão a cada seis horas. Se os dois lados alterarem a mesma configuração, vence a revisão central mais recente e o conflito fica assinalado no painel local.
 
 O token de `bootstrap-secrets.json` permanece disponível no ecrã em **Acesso local de recuperação**, para permitir a administração quando a cloud estiver indisponível.
 
@@ -215,8 +215,8 @@ O primeiro ecrã do instalador permite escolher Português de Portugal, Inglês 
 Instalação silenciosa:
 
 ```powershell
-msiexec.exe /i iWebClassroom-Server-0.14.4-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
-msiexec.exe /i iWebClassroom-Agent-0.14.4-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Server-0.14.6-win-x64.msi /qn INSTALLLANGUAGE=pt-PT /norestart
+msiexec.exe /i iWebClassroom-Agent-0.14.6-win-x64.msi /qn SERVERURL="https://classroom.escola.local:7443" INSTALLLANGUAGE=pt-PT /norestart
 ```
 
 `INSTALLLANGUAGE` aceita `pt-PT`, `en-US` ou `es-ES` e `SERVERURL` é obrigatório numa primeira instalação silenciosa do agente. A sala, a função aluno/professor e a zona partilhada deixam de ser parâmetros do instalador: o computador regista-se como **Por atribuir** e o administrador configura-o em **Escola → Computadores**. Estes parâmetros podem ser distribuídos por GPO, Intune ou Microsoft Configuration Manager.
