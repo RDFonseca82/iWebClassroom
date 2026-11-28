@@ -36,6 +36,16 @@ IF COL_LENGTH(N'dbo.server_logs', N'component_version') IS NULL
     ALTER TABLE dbo.server_logs ADD component_version NVARCHAR(50) NULL;
 GO
 
+UPDATE logs
+SET component_version = CASE
+    WHEN logs.agent_id IS NOT NULL THEN servers.agent_version
+    ELSE servers.server_version
+END
+FROM dbo.server_logs AS logs
+INNER JOIN dbo.school_servers AS servers ON servers.id = logs.school_server_id
+WHERE logs.component_version IS NULL;
+GO
+
 IF NOT EXISTS (
     SELECT 1 FROM sys.foreign_keys
     WHERE parent_object_id = OBJECT_ID(N'dbo.server_logs')
