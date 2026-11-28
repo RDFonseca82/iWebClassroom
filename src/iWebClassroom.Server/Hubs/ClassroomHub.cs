@@ -107,10 +107,23 @@ public sealed class ClassroomHub(
 
     public async Task PublishScreenStopped(IReadOnlyCollection<Guid> viewerAgentIds)
     {
-        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) ||
-            agent is null ||
-            !lessons.TryGetForAgent(agent, out var lesson) ||
-            lesson!.TeacherAgentId != agent.AgentId)
+        if (!registry.TryGetByConnection(Context.ConnectionId, out var agent) || agent is null)
+        {
+            throw new HubException("Only the teacher of an active lesson can stop a screen share.");
+        }
+
+        if (!lessons.TryGetForAgent(agent, out var lesson))
+        {
+            // Ending or expiring a lesson first removes it from the registry and then asks the
+            // teacher agent to stop its local capture. The viewers have already received the
+            // ScreenStopped event, so this late acknowledgement is a valid idempotent no-op.
+            logger.LogDebug(
+                "Ignoring a late screen-stop acknowledgement from agent {AgentId} because its lesson has already ended.",
+                agent.AgentId);
+            return;
+        }
+
+        if (lesson!.TeacherAgentId != agent.AgentId)
         {
             throw new HubException("Only the teacher of an active lesson can stop a screen share.");
         }
