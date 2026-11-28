@@ -183,7 +183,7 @@ A versão 0.9.0 acrescenta a tabela `active_room_routes` ao SQL Server do portal
 
 ## Atualizações dos servidores aprovadas pela escola
 
-O portal cloud lê diretamente a release estável pública mais recente de `RDFonseca82/iWebClassroom` e mantém os resultados em cache durante cinco minutos. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível no GitHub e o estado da aprovação. Os MSI e manifestos não são copiados para o alojamento do portal.
+O portal cloud lê diretamente a release estável pública mais recente de `RDFonseca82/iWebClassroom` e mantém os resultados em cache durante um minuto. Na área **Servidores**, apresenta a versão instalada por servidor, a versão mais recente disponível no GitHub e o estado da aprovação. Os MSI e manifestos não são copiados para o alojamento do portal.
 
 Uma nova versão nunca é autorizada apenas por existir no GitHub. Um administrador da escola tem de escolher **Aprovar vX.Y.Z para todos**. A aprovação é guardada nas definições JSON da escola e enviada a todos os servidores durante a sincronização completa seguinte. Não existe alteração de SQL Server para esta funcionalidade.
 
